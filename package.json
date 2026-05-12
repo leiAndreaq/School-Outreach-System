@@ -1,0 +1,21 @@
+{
+  "name": "thinktanq-ai-school-outreach-mvp",
+  "version": "1.0.0",
+  "description": "ThinkTANQ AI School Outreach MVP with free template mode and optional OpenAI API upgrade.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.16",
+    "openai": "^4.77.0",
+    "sqlite3": "^5.1.7"
+  }
+}
