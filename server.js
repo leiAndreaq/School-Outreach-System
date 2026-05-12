@@ -203,6 +203,165 @@ app.get("/api/activity-logs/:schoolId", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// ── MEETINGS API ──
+
+// Get all meetings
+app.get("/api/meetings", (req, res) => {
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     ORDER BY meeting_date ASC, meeting_time ASC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+// Get single meeting
+app.get("/api/meetings/:id", (req, res) => {
+  db.get(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meetings.id = ?`,
+    [req.params.id],
+    (err, row) => {
+      if (err || !row) return res.status(404).json({ error: "Meeting not found" });
+      res.json(row);
+    }
+  );
+});
+
+// Get meetings by month
+app.get("/api/meetings/month/:year/:month", (req, res) => {
+  const { year, month } = req.params;
+  const pad = month.toString().padStart(2, '0');
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE strftime('%Y', meeting_date) = ?
+     AND strftime('%m', meeting_date) = ?
+     ORDER BY meeting_date ASC, meeting_time ASC`,
+    [year, pad],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+// Create meeting
+app.post("/api/meetings", (req, res) => {
+  const m = req.body;
+
+  if (!m.school_id || !m.meeting_date || !m.meeting_time) {
+    return res.status(400).json({
+      error: "school_id, meeting_date, and meeting_time are required"
+    });
+  }
+
+  db.get(`SELECT * FROM schools WHERE id = ?`, [m.school_id], (err, school) => {
+    if (err || !school) return res.status(404).json({ error: "School not found" });
+
+    db.run(
+      `INSERT INTO meetings
+       (school_id, school_name, contact_person, meeting_type,
+        meeting_date, meeting_time, meeting_mode, meeting_link,
+        meeting_address, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        m.school_id,
+        school.school_name,
+        school.contact_person || m.contact_person,
+        m.meeting_type || 'PRESENTATION',
+        m.meeting_date,
+        m.meeting_time,
+        m.meeting_mode || 'ONLINE',
+        m.meeting_link || '',
+        m.meeting_address || '',
+        m.notes || '',
+        'SCHEDULED'
+      ],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Update school status
+        db.run(
+          `UPDATE schools SET status = 'PRESENTATION_SCHEDULED',
+           updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [m.school_id]
+        );
+
+        logActivity(
+          m.school_id,
+          'MEETING_SCHEDULED',
+          `Presentation scheduled on ${m.meeting_date} at ${m.meeting_time}`
+        );
+
+        res.json({
+          message: "Meeting scheduled",
+          id: this.lastID
+        });
+      }
+    );
+  });
+});
+
+// Update meeting status
+app.patch("/api/meetings/:id/status", (req, res) => {
+  const { status } = req.body;
+  db.run(
+    `UPDATE meetings SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [status, req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "Meeting status updated" });
+    }
+  );
+});
+
+// Delete meeting
+app.delete("/api/meetings/:id", (req, res) => {
+  db.get(`SELECT * FROM meetings WHERE id = ?`, [req.params.id], (err, meeting) => {
+    if (err || !meeting) return res.status(404).json({ error: "Meeting not found" });
+
+    db.run(`DELETE FROM meetings WHERE id = ?`, [req.params.id], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+
+      logActivity(
+        meeting.school_id,
+        'MEETING_CANCELLED',
+        `Meeting on ${meeting.meeting_date} was cancelled`
+      );
+
+      res.json({ message: "Meeting deleted" });
+    });
+  });
+});
+
+// Get upcoming meetings (next 7 days)
+app.get("/api/meetings/upcoming/week", (req, res) => {
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meeting_date >= DATE('now')
+     AND meeting_date <= DATE('now', '+7 days')
+     AND meetings.status = 'SCHEDULED'
+     ORDER BY meeting_date ASC, meeting_time ASC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
 app.listen(PORT, () => {
   console.log(`ThinkTANQ AI School Outreach MVP running on http://localhost:${PORT}`);
 });

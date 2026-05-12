@@ -1,1028 +1,561 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>ThinkTANQ — AI School Outreach</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<style>
-  :root {
-    --red: #D01B1B;
-    --red-dark: #a01414;
-    --red-light: #f5e6e6;
-    --navy: #1B1F6B;
-    --navy-light: #e8e9f5;
-    --white: #ffffff;
-    --gray-100: #f7f7f8;
-    --gray-200: #ebebed;
-    --gray-400: #9a9aaa;
-    --gray-700: #3a3a4a;
-    --black: #111118;
-    --font-display: 'Bebas Neue', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
-    --font-mono: 'DM Mono', monospace;
-    --radius: 10px;
-    --shadow: 0 4px 24px rgba(17,17,24,0.10);
-    --shadow-lg: 0 8px 40px rgba(17,17,24,0.16);
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ThinkTANQ — School Outreach CRM</title>
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy:  '#1B1F6B',
+            brand: '#D01B1B',
+          },
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
 
-  body {
-    font-family: var(--font-body);
-    background: var(--gray-100);
-    color: var(--black);
-    min-height: 100vh;
-  }
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 
-  /* ── SIDEBAR ── */
-  .sidebar {
-    position: fixed; left: 0; top: 0; bottom: 0;
-    width: 230px;
-    background: var(--navy);
-    display: flex; flex-direction: column;
-    z-index: 100;
-    box-shadow: 4px 0 20px rgba(27,31,107,0.18);
-  }
-  .sidebar-logo {
-    padding: 28px 22px 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
-  .sidebar-logo img { width: 150px; filter: brightness(0) invert(1); }
-  .sidebar-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: rgba(255,255,255,0.4);
-    text-transform: uppercase;
-    padding: 22px 22px 8px;
-  }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 22px;
-    color: rgba(255,255,255,0.65);
-    font-size: 14px; font-weight: 500;
-    cursor: pointer;
-    border-left: 3px solid transparent;
-    transition: all 0.18s;
-    user-select: none;
-  }
-  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.06); }
-  .nav-item.active { color: #fff; border-left-color: var(--red); background: rgba(208,27,27,0.12); }
-  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
-  .sidebar-footer {
-    margin-top: auto;
-    padding: 16px 22px;
-    border-top: 1px solid rgba(255,255,255,0.08);
-  }
-  .mode-badge {
-    font-family: var(--font-mono);
-    font-size: 10px; letter-spacing: 1px;
-    padding: 5px 10px; border-radius: 20px;
-    background: rgba(208,27,27,0.2);
-    color: #ff8080;
-    display: inline-block;
-  }
-  .mode-badge.ai { background: rgba(40,200,100,0.15); color: #5fe89a; }
-
-  /* ── MAIN ── */
-  .main { margin-left: 230px; min-height: 100vh; }
-
-  /* ── TOPBAR ── */
-  .topbar {
-    background: var(--white);
-    border-bottom: 1px solid var(--gray-200);
-    padding: 0 32px;
-    height: 60px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 50;
-  }
-  .topbar-title {
-    font-family: var(--font-display);
-    font-size: 22px;
-    letter-spacing: 1px;
-    color: var(--navy);
-  }
-  .topbar-title span { color: var(--red); }
-  .topbar-right { display: flex; gap: 10px; align-items: center; }
-
-  /* ── CONTENT AREA ── */
-  .content { padding: 32px; }
-
-  /* ── TABS ── */
-  .tab-section { display: none; }
-  .tab-section.active { display: block; }
-
-  /* ── STATS ROW ── */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px; margin-bottom: 28px;
-  }
-  .stat-card {
-    background: var(--white);
-    border-radius: var(--radius);
-    padding: 20px 22px;
-    box-shadow: var(--shadow);
-    border-top: 3px solid var(--gray-200);
-    transition: transform 0.15s;
-  }
-  .stat-card:hover { transform: translateY(-2px); }
-  .stat-card.red { border-top-color: var(--red); }
-  .stat-card.navy { border-top-color: var(--navy); }
-  .stat-card.green { border-top-color: #22c55e; }
-  .stat-card.orange { border-top-color: #f97316; }
-  .stat-num {
-    font-family: var(--font-display);
-    font-size: 36px; color: var(--black);
-    line-height: 1;
-  }
-  .stat-label { font-size: 12px; color: var(--gray-400); margin-top: 4px; font-weight: 500; letter-spacing: 0.5px; }
-
-  /* ── SECTION HEADER ── */
-  .section-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 18px;
-  }
-  .section-title {
-    font-family: var(--font-display);
-    font-size: 20px; letter-spacing: 1px; color: var(--navy);
-  }
-
-  /* ── BUTTONS ── */
-  .btn {
-    font-family: var(--font-body);
-    font-size: 13px; font-weight: 600;
-    padding: 9px 18px; border-radius: 7px;
-    border: none; cursor: pointer;
-    transition: all 0.15s;
-    display: inline-flex; align-items: center; gap: 6px;
-  }
-  .btn-red { background: var(--red); color: #fff; }
-  .btn-red:hover { background: var(--red-dark); }
-  .btn-navy { background: var(--navy); color: #fff; }
-  .btn-navy:hover { background: #141850; }
-  .btn-outline {
-    background: transparent; color: var(--navy);
-    border: 1.5px solid var(--navy);
-  }
-  .btn-outline:hover { background: var(--navy-light); }
-  .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 5px; }
-  .btn-ghost { background: var(--gray-100); color: var(--gray-700); }
-  .btn-ghost:hover { background: var(--gray-200); }
-  .btn-green { background: #22c55e; color: #fff; }
-  .btn-green:hover { background: #16a34a; }
-
-  /* ── CARD ── */
-  .card {
-    background: var(--white);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-  .card-header {
-    padding: 16px 22px;
-    border-bottom: 1px solid var(--gray-200);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .card-header h3 { font-size: 14px; font-weight: 600; color: var(--navy); }
-  .card-body { padding: 22px; }
-
-  /* ── TABLE ── */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th {
-    text-align: left; padding: 10px 14px;
-    font-family: var(--font-mono); font-size: 11px;
-    letter-spacing: 1px; color: var(--gray-400);
-    border-bottom: 2px solid var(--gray-200);
-    background: var(--gray-100);
-    text-transform: uppercase;
-  }
-  tbody tr { border-bottom: 1px solid var(--gray-200); transition: background 0.12s; }
-  tbody tr:hover { background: var(--gray-100); }
-  tbody td { padding: 11px 14px; color: var(--gray-700); vertical-align: middle; }
-  tbody td:first-child { color: var(--black); font-weight: 500; }
-
-  /* ── STATUS BADGE ── */
-  .badge {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.5px;
-    padding: 3px 9px; border-radius: 20px;
-    font-family: var(--font-mono);
-    text-transform: uppercase; white-space: nowrap;
-  }
-  .badge-new { background: var(--navy-light); color: var(--navy); }
-  .badge-generated { background: #fef3c7; color: #92400e; }
-  .badge-sent { background: #dcfce7; color: #166534; }
-  .badge-interested { background: #dbeafe; color: #1e40af; }
-  .badge-won { background: #dcfce7; color: #166534; }
-  .badge-lost { background: #fee2e2; color: #991b1b; }
-  .badge-default { background: var(--gray-200); color: var(--gray-700); }
-
-  /* ── FORM ── */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-group.full { grid-column: 1 / -1; }
-  label { font-size: 12px; font-weight: 600; color: var(--navy); letter-spacing: 0.3px; }
-  input, select, textarea {
-    font-family: var(--font-body);
-    font-size: 13px;
-    padding: 9px 12px;
-    border: 1.5px solid var(--gray-200);
-    border-radius: 7px;
-    color: var(--black);
-    background: var(--white);
-    transition: border-color 0.15s;
-    outline: none;
-  }
-  input:focus, select:focus, textarea:focus { border-color: var(--navy); }
-  textarea { resize: vertical; min-height: 80px; }
-  .form-actions { margin-top: 20px; display: flex; gap: 10px; }
-
-  /* ── MODAL ── */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(17,17,24,0.55); backdrop-filter: blur(3px);
-    z-index: 200; align-items: center; justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--white); border-radius: 14px;
-    width: 90%; max-width: 620px; max-height: 90vh;
-    overflow-y: auto; box-shadow: var(--shadow-lg);
-    animation: slideUp 0.22s ease;
-  }
-  .modal-lg { max-width: 780px; }
-  @keyframes slideUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
-  }
-  .modal-header {
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid var(--gray-200);
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; background: var(--white); z-index: 1;
-  }
-  .modal-header h2 {
-    font-family: var(--font-display);
-    font-size: 20px; letter-spacing: 1px; color: var(--navy);
-  }
-  .modal-close {
-    background: var(--gray-200); border: none; border-radius: 50%;
-    width: 30px; height: 30px; font-size: 16px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: var(--gray-700); transition: background 0.15s;
-  }
-  .modal-close:hover { background: var(--gray-400); color: #fff; }
-  .modal-body { padding: 24px; }
-  .modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--gray-200);
-    display: flex; gap: 10px; justify-content: flex-end;
-  }
-
-  /* ── EMAIL PREVIEW ── */
-  .email-preview {
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    border-radius: 8px;
-    padding: 18px;
-    font-size: 13px; line-height: 1.7;
-    white-space: pre-wrap;
-    font-family: var(--font-body);
-    color: var(--gray-700);
-    max-height: 380px; overflow-y: auto;
-  }
-  .email-subject {
-    font-weight: 700; color: var(--navy);
-    font-size: 14px; margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--gray-200);
-  }
-
-  /* ── TOAST ── */
-  #toast {
-    position: fixed; bottom: 28px; right: 28px;
-    background: var(--navy); color: #fff;
-    padding: 12px 20px; border-radius: 8px;
-    font-size: 13px; font-weight: 500;
-    box-shadow: var(--shadow-lg);
-    transform: translateY(80px); opacity: 0;
-    transition: all 0.25s; z-index: 999;
-    display: flex; align-items: center; gap: 8px;
-  }
-  #toast.show { transform: translateY(0); opacity: 1; }
-  #toast.success { background: #16a34a; }
-  #toast.error { background: var(--red); }
-
-  /* ── UPLOAD AREA ── */
-  .upload-area {
-    border: 2px dashed var(--gray-200);
-    border-radius: 10px; padding: 36px;
-    text-align: center; cursor: pointer;
-    transition: all 0.18s;
-  }
-  .upload-area:hover { border-color: var(--navy); background: var(--navy-light); }
-  .upload-icon { font-size: 36px; margin-bottom: 10px; }
-  .upload-text { font-size: 14px; color: var(--gray-400); }
-  .upload-text strong { color: var(--navy); }
-
-  /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center; padding: 60px 20px;
-    color: var(--gray-400);
-  }
-  .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-title { font-size: 16px; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
-  .empty-sub { font-size: 13px; }
-
-  /* ── LOADING ── */
-  .spinner {
-    width: 18px; height: 18px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: inline-block;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── DETAIL ROW ── */
-  .detail-row { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 8px; font-size: 13px; }
-  .detail-label { color: var(--gray-400); min-width: 130px; font-weight: 500; }
-  .detail-value { color: var(--black); }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 900px) {
-    .stats-row { grid-template-columns: 1fr 1fr; }
-    .form-grid { grid-template-columns: 1fr; }
-  }
-</style>
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css"/>
 </head>
-<body>
+<body class="bg-gray-100 font-inter">
 
-<!-- SIDEBAR -->
-<aside class="sidebar">
-  <div class="sidebar-logo">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;letter-spacing:2px;">THINK<span style="color:#D01B1B;">TANQ</span></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:2px;font-family:'DM Mono',monospace;">SCHOOL OUTREACH</div>
-  </div>
-  <div class="sidebar-label">Main Menu</div>
-  <div class="nav-item active" onclick="showTab('dashboard')"><span class="icon">📊</span> Dashboard</div>
-  <div class="nav-item" onclick="showTab('schools')"><span class="icon">🏫</span> School Leads</div>
-  <div class="nav-item" onclick="showTab('add')"><span class="icon">➕</span> Add School</div>
-  <div class="nav-item" onclick="showTab('import')"><span class="icon">📂</span> Import CSV</div>
-  <div class="nav-item" onclick="showTab('drafts')"><span class="icon">✉️</span> Email Drafts</div>
-  <div class="sidebar-footer">
-    <div id="modeBadge" class="mode-badge">⚙ FREE TEMPLATE MODE</div>
-    <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.3);">Draft Only — Safe Mode</div>
-  </div>
-</aside>
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-navy flex flex-col z-50 shadow-xl">
 
-<!-- MAIN -->
-<div class="main">
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-title">THINK<span>TANQ</span> — AI School Outreach</div>
-    <div class="topbar-right">
-      <span style="font-size:12px;color:var(--gray-400);font-family:var(--font-mono);" id="clockDisplay"></span>
-      <button class="btn btn-red btn-sm" onclick="showTab('add')">+ Add School</button>
-    </div>
-  </div>
-
-  <!-- CONTENT -->
-  <div class="content">
-
-    <!-- ── DASHBOARD ── -->
-    <div id="tab-dashboard" class="tab-section active">
-      <div class="section-header">
-        <div class="section-title">DASHBOARD</div>
-        <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">↻ Refresh</button>
+    <!-- Logo -->
+    <div class="px-5 py-6 border-b border-white/10">
+      <div class="text-2xl font-bold tracking-widest text-white">
+        THINK<span class="text-red-600">TANQ</span>
       </div>
-      <div class="stats-row">
-        <div class="stat-card red">
-          <div class="stat-num" id="stat-total">—</div>
-          <div class="stat-label">Total Leads</div>
-        </div>
-        <div class="stat-card navy">
-          <div class="stat-num" id="stat-new">—</div>
-          <div class="stat-label">New Leads</div>
-        </div>
-        <div class="stat-card green">
-          <div class="stat-num" id="stat-sent">—</div>
-          <div class="stat-label">Emails Sent</div>
-        </div>
-        <div class="stat-card orange">
-          <div class="stat-num" id="stat-interested">—</div>
-          <div class="stat-label">Interested</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <h3>Recent School Leads</h3>
-          <button class="btn btn-outline btn-sm" onclick="showTab('schools')">View All →</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>School Name</th>
-                <th>City / Province</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="dashboardTable">
-              <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🏫</div><div class="empty-title">No leads yet</div><div class="empty-sub">Add your first school lead to get started</div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="text-xs tracking-widest text-white/40 mt-1 font-mono">
+        SCHOOL OUTREACH CRM
       </div>
     </div>
 
-    <!-- ── ALL SCHOOLS ── -->
-    <div id="tab-schools" class="tab-section">
-      <div class="section-header">
-        <div class="section-title">SCHOOL LEADS</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="searchInput" placeholder="🔍  Search schools..." style="width:220px;padding:8px 12px;font-size:13px;" oninput="filterSchools()"/>
-          <button class="btn btn-red btn-sm" onclick="showTab('add')">+ Add School</button>
-        </div>
+    <!-- Navigation -->
+    <nav class="flex-1 py-4">
+      <div class="px-4 mb-2 text-xs tracking-widest text-white/30 font-mono uppercase">Menu</div>
+
+      <div class="nav-item active" onclick="showTab('dashboard')">
+        <span>📊</span> Dashboard
       </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>School Name</th>
-                <th>Contact Person</th>
-                <th>City / Province</th>
-                <th>Level</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="schoolsTable">
-              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Loading...</div></div></td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="nav-item" onclick="showTab('schools')">
+        <span>🏫</span> School Leads
       </div>
+      <div class="nav-item" onclick="showTab('add')">
+        <span>➕</span> Add School
+      </div>
+      <div class="nav-item" onclick="showTab('import')">
+        <span>📂</span> Import CSV
+      </div>
+      <div class="nav-item" onclick="showTab('drafts')">
+        <span>✉️</span> Email Drafts
+      </div>
+      <div class="nav-item" onclick="showTab('calendar')">
+        <span>📅</span> Calendar
+      </div>
+    </nav>
+
+    <!-- Footer -->
+    <div class="px-5 py-4 border-t border-white/10">
+      <div id="modeBadge" class="text-xs font-mono px-3 py-1 rounded-full bg-red-900/40 text-red-300 inline-block">
+        ⚙ FREE TEMPLATE MODE
+      </div>
+      <div class="text-xs text-white/20 mt-2">Draft Only — Safe Mode</div>
     </div>
 
-    <!-- ── ADD SCHOOL ── -->
-    <div id="tab-add" class="tab-section">
-      <div class="section-header">
-        <div class="section-title">ADD SCHOOL LEAD</div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="ml-56 min-h-screen flex flex-col">
+
+    <!-- TOPBAR -->
+    <header class="bg-white border-b border-gray-200 px-8 h-16 flex items-center justify-between sticky top-0 z-40">
+      <div class="text-xl font-bold tracking-wide text-navy">
+        THINK<span class="text-red-600">TANQ</span>
+        <span class="text-gray-400 font-normal text-base ml-2">— School Outreach CRM</span>
       </div>
-      <div class="card">
-        <div class="card-body">
-          <div class="form-grid">
-            <div class="form-group full">
-              <label>School Name *</label>
-              <input type="text" id="f-school_name" placeholder="e.g. St. John's Academy"/>
-            </div>
-            <div class="form-group">
-              <label>Contact Person</label>
-              <input type="text" id="f-contact_person" placeholder="e.g. Mrs. Santos"/>
-            </div>
-            <div class="form-group">
-              <label>Email Address</label>
-              <input type="email" id="f-email" placeholder="e.g. admin@school.edu.ph"/>
-            </div>
-            <div class="form-group">
-              <label>Phone</label>
-              <input type="text" id="f-phone" placeholder="e.g. 02-8123-4567"/>
-            </div>
-            <div class="form-group">
-              <label>Website</label>
-              <input type="text" id="f-website" placeholder="e.g. https://school.edu.ph"/>
-            </div>
-            <div class="form-group">
-              <label>Facebook Page</label>
-              <input type="text" id="f-facebook_page" placeholder="e.g. facebook.com/schoolname"/>
-            </div>
-            <div class="form-group full">
-              <label>Address</label>
-              <input type="text" id="f-address" placeholder="e.g. 123 Rizal St, Barangay..."/>
-            </div>
-            <div class="form-group">
-              <label>City / Province</label>
-              <input type="text" id="f-city_province" placeholder="e.g. Quezon City"/>
-            </div>
-            <div class="form-group">
-              <label>Region</label>
-              <input type="text" id="f-region" placeholder="e.g. NCR"/>
-            </div>
-            <div class="form-group">
-              <label>School Type</label>
-              <select id="f-school_type">
-                <option value="">-- Select --</option>
-                <option>Private</option>
-                <option>Semi-Private</option>
-                <option>Non-Sectarian</option>
-                <option>Catholic</option>
-                <option>Christian</option>
-                <option>Other</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Level Offered</label>
-              <select id="f-level_offered">
-                <option value="">-- Select --</option>
-                <option>Preschool</option>
-                <option>Elementary</option>
-                <option>Junior High School</option>
-                <option>Senior High School</option>
-                <option>K-12</option>
-                <option>College</option>
-                <option>K-12 + College</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Estimated Students</label>
-              <input type="number" id="f-estimated_students" placeholder="e.g. 500"/>
-            </div>
-            <div class="form-group">
-              <label>Assigned To (Intern)</label>
-              <input type="text" id="f-assigned_to" placeholder="e.g. Juan dela Cruz"/>
-            </div>
-            <div class="form-group full">
-              <label>Notes</label>
-              <textarea id="f-notes" placeholder="Any additional notes about this school..."></textarea>
-            </div>
+      <div class="flex items-center gap-4">
+        <span id="clockDisplay" class="text-xs text-gray-400 font-mono"></span>
+        <button onclick="showTab('add')" class="btn-red text-sm">
+          + Add School
+        </button>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <main class="p-8 flex-1">
+
+      <!-- DASHBOARD TAB -->
+      <div id="tab-dashboard" class="tab-section active">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="section-title">Dashboard</h1>
+          <button onclick="loadDashboard()" class="btn-ghost text-sm">↻ Refresh</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="stat-card border-t-red-600">
+            <div id="stat-total" class="stat-num">—</div>
+            <div class="stat-label">Total Leads</div>
           </div>
-          <div class="form-actions">
-            <button class="btn btn-red" onclick="addSchool()">💾 Save School Lead</button>
-            <button class="btn btn-ghost" onclick="clearForm()">✕ Clear</button>
+          <div class="stat-card border-t-navy">
+            <div id="stat-new" class="stat-num">—</div>
+            <div class="stat-label">New Leads</div>
+          </div>
+          <div class="stat-card border-t-green-500">
+            <div id="stat-sent" class="stat-num">—</div>
+            <div class="stat-label">Emails Sent</div>
+          </div>
+          <div class="stat-card border-t-orange-400">
+            <div id="stat-interested" class="stat-num">—</div>
+            <div class="stat-label">Interested</div>
+          </div>
+        </div>
+
+        <!-- Recent Schools Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="font-semibold text-navy">Recent School Leads</h3>
+            <button onclick="showTab('schools')" class="btn-outline text-sm">View All →</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="table-head">
+                  <th>School Name</th>
+                  <th>City / Province</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardTable">
+                <tr><td colspan="5" id="dashboardEmpty"></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SCHOOLS TAB -->
+      <div id="tab-schools" class="tab-section">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="section-title">School Leads</h1>
+          <div class="flex gap-3 items-center">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="🔍 Search schools..."
+              oninput="filterSchools()"
+              class="input-field w-56 text-sm"
+            />
+            <button onclick="showTab('add')" class="btn-red text-sm">+ Add School</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="table-head">
+                  <th>School Name</th>
+                  <th>Contact Person</th>
+                  <th>City / Province</th>
+                  <th>Level</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="schoolsTable"></tbody>
+            </table>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ── IMPORT CSV ── -->
-    <div id="tab-import" class="tab-section">
-      <div class="section-header">
-        <div class="section-title">IMPORT CSV</div>
-      </div>
-      <div class="card" style="max-width:560px;">
-        <div class="card-body">
-          <p style="font-size:13px;color:var(--gray-400);margin-bottom:18px;">Upload a CSV file with school leads. Make sure the columns match the sample format.</p>
-          <div class="upload-area" onclick="document.getElementById('csvFile').click()">
-            <div class="upload-icon">📂</div>
-            <div class="upload-text"><strong>Click to choose a CSV file</strong><br/>or drag and drop here</div>
-            <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="importCSV(this)"/>
-          </div>
-          <div id="importResult" style="margin-top:16px;"></div>
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-200);">
-            <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">Required CSV Columns:</div>
-            <div style="font-family:var(--font-mono);font-size:11px;color:var(--gray-400);line-height:1.8;">
-              school_name, contact_person, email, phone, website,<br/>
-              facebook_page, address, city_province, region,<br/>
-              school_type, level_offered, estimated_students,<br/>
-              assigned_to, notes
+      <!-- ADD SCHOOL TAB -->
+      <div id="tab-add" class="tab-section">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="section-title">Add School Lead</h1>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group col-span-2">
+                <label class="form-label">School Name *</label>
+                <input type="text" id="f-school_name" class="input-field" placeholder="e.g. St. John's Academy"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contact Person</label>
+                <input type="text" id="f-contact_person" class="input-field" placeholder="e.g. Mrs. Santos"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="f-email" class="input-field" placeholder="e.g. admin@school.edu.ph"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone</label>
+                <input type="text" id="f-phone" class="input-field" placeholder="e.g. 02-8123-4567"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Website</label>
+                <input type="text" id="f-website" class="input-field" placeholder="e.g. https://school.edu.ph"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Facebook Page</label>
+                <input type="text" id="f-facebook_page" class="input-field" placeholder="e.g. facebook.com/schoolname"/>
+              </div>
+              <div class="form-group col-span-2">
+                <label class="form-label">Address</label>
+                <input type="text" id="f-address" class="input-field" placeholder="e.g. 123 Rizal St, Barangay..."/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">City / Province</label>
+                <input type="text" id="f-city_province" class="input-field" placeholder="e.g. Quezon City"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Region</label>
+                <input type="text" id="f-region" class="input-field" placeholder="e.g. NCR"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">School Type</label>
+                <select id="f-school_type" class="input-field">
+                  <option value="">-- Select --</option>
+                  <option>Private</option>
+                  <option>Semi-Private</option>
+                  <option>Non-Sectarian</option>
+                  <option>Catholic</option>
+                  <option>Christian</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Level Offered</label>
+                <select id="f-level_offered" class="input-field">
+                  <option value="">-- Select --</option>
+                  <option>Preschool</option>
+                  <option>Elementary</option>
+                  <option>Junior High School</option>
+                  <option>Senior High School</option>
+                  <option>K-12</option>
+                  <option>College</option>
+                  <option>K-12 + College</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Estimated Students</label>
+                <input type="number" id="f-estimated_students" class="input-field" placeholder="e.g. 500"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Assigned To (Intern)</label>
+                <input type="text" id="f-assigned_to" class="input-field" placeholder="e.g. Juan dela Cruz"/>
+              </div>
+              <div class="form-group col-span-2">
+                <label class="form-label">Notes</label>
+                <textarea id="f-notes" class="input-field h-24" placeholder="Any additional notes..."></textarea>
+              </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+              <button onclick="addSchool()" class="btn-red">💾 Save School Lead</button>
+              <button onclick="clearForm()" class="btn-ghost">✕ Clear</button>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ── EMAIL DRAFTS ── -->
-    <div id="tab-drafts" class="tab-section">
-      <div class="section-header">
-        <div class="section-title">EMAIL DRAFTS</div>
-        <button class="btn btn-ghost btn-sm" onclick="loadDrafts()">↻ Refresh</button>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>School</th>
-                <th>Email Type</th>
-                <th>Subject</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="draftsTable">
-              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">✉️</div><div class="empty-title">No drafts yet</div><div class="empty-sub">Generate an email from a school lead first</div></div></td></tr>
-            </tbody>
-          </table>
+      <!-- IMPORT CSV TAB -->
+      <div id="tab-import" class="tab-section">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="section-title">Import CSV</h1>
+        </div>
+        <div class="card max-w-xl">
+          <div class="card-body">
+            <p class="text-sm text-gray-400 mb-5">Upload a CSV file with school leads. Make sure the columns match the format below.</p>
+            <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+              <div class="text-4xl mb-3">📂</div>
+              <div class="text-sm text-gray-400">
+                <span class="font-semibold text-navy">Click to choose a CSV file</span><br/>
+                or drag and drop here
+              </div>
+              <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="importCSV(this)"/>
+            </div>
+            <div id="importResult" class="mt-4"></div>
+            <div class="mt-5 pt-4 border-t border-gray-200">
+              <div class="text-xs font-semibold text-navy mb-2">Required CSV Columns:</div>
+              <div class="text-xs font-mono text-gray-400 leading-7">
+                school_name, contact_person, email, phone, website,<br/>
+                facebook_page, address, city_province, region,<br/>
+                school_type, level_offered, estimated_students,<br/>
+                assigned_to, notes
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-  </div><!-- /content -->
-</div><!-- /main -->
+      <!-- EMAIL DRAFTS TAB -->
+      <div id="tab-drafts" class="tab-section">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="section-title">Email Drafts</h1>
+          <button onclick="loadDrafts()" class="btn-ghost text-sm">↻ Refresh</button>
+        </div>
+        <div class="card">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="table-head">
+                  <th>School</th>
+                  <th>Email Type</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="draftsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- CALENDAR TAB -->
+      <div id="tab-calendar" class="tab-section">
 
-<!-- TOAST -->
-<div id="toast"></div>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="section-title">Calendar</h1>
+          <button onclick="openScheduleModal()" class="btn-red text-sm">
+            + Schedule Meeting
+          </button>
+        </div>
 
-<!-- MODAL: View School / Generate Email -->
-<div class="modal-overlay" id="schoolModal">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <h2 id="modalSchoolName">School Details</h2>
-      <button class="modal-close" onclick="closeModal('schoolModal')">✕</button>
-    </div>
-    <div class="modal-body" id="schoolModalBody"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('schoolModal')">Close</button>
-      <button class="btn btn-outline btn-sm" onclick="generateEmail(currentSchoolId,'FOLLOW_UP')">📨 Follow-Up</button>
-      <button class="btn btn-outline btn-sm" onclick="generateEmail(currentSchoolId,'MEETING_INVITE')">📅 Meeting Invite</button>
-      <button class="btn btn-red" onclick="generateEmail(currentSchoolId,'PROPOSAL')">⚡ Generate Proposal</button>
-    </div>
+        <!-- Upcoming meetings this week -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <h3 class="font-semibold text-navy">📌 Upcoming This Week</h3>
+            <button onclick="loadUpcoming()" class="btn-ghost text-sm">↻ Refresh</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="table-head">
+                  <th>School</th>
+                  <th>Contact Person</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Mode</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="upcomingTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="card">
+          <div class="card-header">
+            <div class="flex items-center gap-4">
+              <button onclick="prevMonth()" class="btn-ghost text-sm">← Prev</button>
+              <h3 id="calendarTitle" class="font-semibold text-navy text-lg"></h3>
+              <button onclick="nextMonth()" class="btn-ghost text-sm">Next →</button>
+            </div>
+            <button onclick="goToToday()" class="btn-outline text-sm">Today</button>
+          </div>
+          <div class="card-body">
+
+            <!-- Day Labels -->
+            <div class="grid grid-cols-7 mb-2">
+              <div class="text-center text-xs font-semibold text-gray-400 py-2">SUN</div>
+              <div class="text-center text-xs font-semibold text-gray-400 py-2">MON</div>
+              <div class="text-center text-xs font-semibold text-gray-400 py-2">TUE</div>
+              <div class="text-center text-xs font-semibold text-gray-400 py-2">WED</div>
+              <div class="text-center text-xs font-semibold text-gray-400 py-2">THU</div>
+              <div class="text-center text-xs font-semibold text-gray-400 py-2">FRI</div>
+              <div class="text-center text-xs font-semibold text-gray-400 py-2">SAT</div>
+            </div>
+
+            <!-- Calendar Days -->
+            <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+
+          </div>
+        </div>
+
+      </div>           
+
+    </main>
   </div>
-</div>
 
-<!-- MODAL: Email Preview -->
-<div class="modal-overlay" id="emailModal">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <h2>📧 Email Draft</h2>
-      <button class="modal-close" onclick="closeModal('emailModal')">✕</button>
-    </div>
-    <div class="modal-body" id="emailModalBody"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('emailModal')">Close</button>
-      <div id="emailModalActions"></div>
-    </div>
-  </div>
-</div>
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast"></div>
 
-<!-- MODAL: Status Update -->
-<div class="modal-overlay" id="statusModal">
-  <div class="modal" style="max-width:380px;">
-    <div class="modal-header">
-      <h2>Update Status</h2>
-      <button class="modal-close" onclick="closeModal('statusModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>New Status</label>
-        <select id="statusSelect">
-          <option value="NEW_LEAD">NEW_LEAD</option>
-          <option value="PROPOSAL_GENERATED">PROPOSAL_GENERATED</option>
-          <option value="FOR_APPROVAL">FOR_APPROVAL</option>
-          <option value="EMAIL_SENT">EMAIL_SENT</option>
-          <option value="FOLLOW_UP_1">FOLLOW_UP_1</option>
-          <option value="INTERESTED">INTERESTED</option>
-          <option value="PRESENTATION_SCHEDULED">PRESENTATION_SCHEDULED</option>
-          <option value="PRESENTED">PRESENTED</option>
-          <option value="NEGOTIATION">NEGOTIATION</option>
-          <option value="CLOSED_WON">CLOSED_WON</option>
-          <option value="CLOSED_LOST">CLOSED_LOST</option>
-          <option value="DO_NOT_CONTACT">DO_NOT_CONTACT</option>
-        </select>
+  <!-- MODAL: View School -->
+  <div id="schoolModal" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 id="modalSchoolName" class="modal-title">School Details</h2>
+        <button onclick="closeModal('schoolModal')" class="modal-close">✕</button>
+      </div>
+      <div id="schoolModalBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button onclick="closeModal('schoolModal')" class="btn-ghost">Close</button>
+        <button onclick="generateEmail(currentSchoolId, 'FOLLOW_UP')" class="btn-outline text-sm">📨 Follow-Up</button>
+        <button onclick="generateEmail(currentSchoolId, 'MEETING_INVITE')" class="btn-outline text-sm">📅 Meeting Invite</button>
+        <button onclick="generateEmail(currentSchoolId, 'PROPOSAL')" class="btn-red text-sm">⚡ Generate Proposal</button>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('statusModal')">Cancel</button>
-      <button class="btn btn-navy" onclick="confirmStatusUpdate()">Update</button>
+  </div>
+
+  <!-- MODAL: Email Preview -->
+  <div id="emailModal" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title">📧 Email Draft</h2>
+        <button onclick="closeModal('emailModal')" class="modal-close">✕</button>
+      </div>
+      <div id="emailModalBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button onclick="closeModal('emailModal')" class="btn-ghost">Close</button>
+        <div id="emailModalActions"></div>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-  let allSchools = [];
-  let currentSchoolId = null;
-  let statusTargetId = null;
-
-  // ── CLOCK ──
-  function updateClock() {
-    const now = new Date();
-    document.getElementById('clockDisplay').textContent =
-      now.toLocaleDateString('en-PH', {weekday:'short',month:'short',day:'numeric'}) + '  ' +
-      now.toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'});
-  }
-  setInterval(updateClock, 1000); updateClock();
-
-  // ── TABS ──
-  function showTab(name) {
-    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(n => {
-      if (n.textContent.toLowerCase().includes(name === 'dashboard' ? 'dashboard' :
-          name === 'schools' ? 'school leads' : name === 'add' ? 'add' :
-          name === 'import' ? 'import' : 'email')) n.classList.add('active');
-    });
-    if (name === 'dashboard') loadDashboard();
-    if (name === 'schools') loadSchools();
-    if (name === 'drafts') loadDrafts();
-  }
-
-  // ── TOAST ──
-  function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.className = 'show ' + type;
-    setTimeout(() => t.className = '', 3000);
-  }
-
-  // ── MODAL ──
-  function openModal(id) { document.getElementById(id).classList.add('open'); }
-  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-  // ── STATUS BADGE ──
-  function statusBadge(s) {
-    const map = {
-      'NEW_LEAD':'badge-new','PROPOSAL_GENERATED':'badge-generated',
-      'FOR_APPROVAL':'badge-generated','EMAIL_SENT':'badge-sent',
-      'FOLLOW_UP_1':'badge-generated','INTERESTED':'badge-interested',
-      'PRESENTATION_SCHEDULED':'badge-interested','PRESENTED':'badge-interested',
-      'NEGOTIATION':'badge-interested','CLOSED_WON':'badge-won',
-      'CLOSED_LOST':'badge-lost','DO_NOT_CONTACT':'badge-lost'
-    };
-    return `<span class="badge ${map[s]||'badge-default'}">${s||'NEW_LEAD'}</span>`;
-  }
-
-  function fmtDate(d) {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-PH', {month:'short',day:'numeric',year:'numeric'});
-  }
-
-  // ── LOAD DASHBOARD ──
-  async function loadDashboard() {
-    try {
-      const r = await fetch('/api/schools');
-      const schools = await r.json();
-      allSchools = schools;
-      document.getElementById('stat-total').textContent = schools.length;
-      document.getElementById('stat-new').textContent = schools.filter(s => s.status === 'NEW_LEAD' || !s.status).length;
-      document.getElementById('stat-sent').textContent = schools.filter(s => s.status === 'EMAIL_SENT').length;
-      document.getElementById('stat-interested').textContent = schools.filter(s => s.status === 'INTERESTED').length;
-      const recent = schools.slice(0, 8);
-      const tbody = document.getElementById('dashboardTable');
-      if (!recent.length) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🏫</div><div class="empty-title">No leads yet</div><div class="empty-sub">Add your first school lead to get started</div></div></td></tr>`;
-        return;
-      }
-      tbody.innerHTML = recent.map(s => `
-        <tr>
-          <td>${s.school_name}</td>
-          <td>${s.city_province || '—'}</td>
-          <td>${s.school_type || '—'}</td>
-          <td>${statusBadge(s.status)}</td>
-          <td><button class="btn btn-ghost btn-sm" onclick="viewSchool(${s.id})">View</button></td>
-        </tr>`).join('');
-    } catch(e) { showToast('Could not load dashboard', 'error'); }
-  }
-
-  // ── LOAD SCHOOLS ──
-  async function loadSchools() {
-    try {
-      const r = await fetch('/api/schools');
-      allSchools = await r.json();
-      renderSchools(allSchools);
-    } catch(e) { showToast('Could not load schools', 'error'); }
-  }
-
-  function renderSchools(schools) {
-    const tbody = document.getElementById('schoolsTable');
-    if (!schools.length) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No schools found</div></div></td></tr>`;
-      return;
-    }
-    tbody.innerHTML = schools.map(s => `
-      <tr>
-        <td>${s.school_name}</td>
-        <td>${s.contact_person || '—'}</td>
-        <td>${s.city_province || '—'}</td>
-        <td>${s.level_offered || '—'}</td>
-        <td>${statusBadge(s.status)}</td>
-        <td style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="viewSchool(${s.id})">👁 View</button>
-          <button class="btn btn-outline btn-sm" onclick="openStatusModal(${s.id}, '${s.status||'NEW_LEAD'}')">✏ Status</button>
-        </td>
-      </tr>`).join('');
-  }
-
-  function filterSchools() {
-    const q = document.getElementById('searchInput').value.toLowerCase();
-    renderSchools(allSchools.filter(s =>
-      (s.school_name||'').toLowerCase().includes(q) ||
-      (s.city_province||'').toLowerCase().includes(q) ||
-      (s.contact_person||'').toLowerCase().includes(q)
-    ));
-  }
-
-  // ── VIEW SCHOOL ──
-  async function viewSchool(id) {
-    try {
-      const r = await fetch('/api/schools/' + id);
-      const s = await r.json();
-      currentSchoolId = id;
-      document.getElementById('modalSchoolName').textContent = s.school_name;
-      document.getElementById('schoolModalBody').innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;">
-          ${row('Contact Person', s.contact_person)}
-          ${row('Email', s.email ? `<a href="mailto:${s.email}">${s.email}</a>` : '—')}
-          ${row('Phone', s.phone)}
-          ${row('Website', s.website ? `<a href="${s.website}" target="_blank">${s.website}</a>` : '—')}
-          ${row('Facebook', s.facebook_page || '—')}
-          ${row('Address', s.address)}
-          ${row('City / Province', s.city_province)}
-          ${row('Region', s.region)}
-          ${row('School Type', s.school_type)}
-          ${row('Level Offered', s.level_offered)}
-          ${row('Est. Students', s.estimated_students)}
-          ${row('Assigned To', s.assigned_to)}
-          ${row('Status', statusBadge(s.status))}
-          ${row('Last Contacted', fmtDate(s.last_contacted))}
+  <!-- MODAL: Update Status -->
+  <div id="statusModal" class="modal-overlay">
+    <div class="modal max-w-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Update Status</h2>
+        <button onclick="closeModal('statusModal')" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">New Status</label>
+          <select id="statusSelect" class="input-field">
+            <option value="NEW_LEAD">NEW LEAD</option>
+            <option value="PROPOSAL_GENERATED">PROPOSAL GENERATED</option>
+            <option value="FOR_APPROVAL">FOR APPROVAL</option>
+            <option value="EMAIL_SENT">EMAIL SENT</option>
+            <option value="FOLLOW_UP_1">FOLLOW UP</option>
+            <option value="INTERESTED">INTERESTED</option>
+            <option value="PRESENTATION_SCHEDULED">PRESENTATION SCHEDULED</option>
+            <option value="PRESENTED">PRESENTED</option>
+            <option value="NEGOTIATION">NEGOTIATION</option>
+            <option value="CLOSED_WON">CLOSED WON</option>
+            <option value="CLOSED_LOST">CLOSED LOST</option>
+            <option value="DO_NOT_CONTACT">DO NOT CONTACT</option>
+          </select>
         </div>
-        ${s.notes ? `<div style="margin-top:16px;padding:12px;background:var(--gray-100);border-radius:8px;font-size:13px;color:var(--gray-700);">📝 ${s.notes}</div>` : ''}
-      `;
-      openModal('schoolModal');
-    } catch(e) { showToast('Could not load school', 'error'); }
-  }
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('statusModal')" class="btn-ghost">Cancel</button>
+        <button onclick="confirmStatusUpdate()" class="btn-navy">Update</button>
+      </div>
+    </div>
+  </div>
 
-  function row(label, val) {
-    return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${val||'—'}</span></div>`;
-  }
+  <!-- MODAL: Schedule Meeting -->
+  <div id="scheduleModal" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title">📅 Schedule Presentation</h2>
+        <button onclick="closeModal('scheduleModal')" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group col-span-2">
+            <label class="form-label">School *</label>
+            <select id="m-school_id" class="input-field">
+              <option value="">-- Select a School --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meeting Date *</label>
+            <input type="date" id="m-meeting_date" class="input-field"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meeting Time *</label>
+            <input type="time" id="m-meeting_time" class="input-field"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meeting Type</label>
+            <select id="m-meeting_type" class="input-field">
+              <option value="PRESENTATION">Presentation</option>
+              <option value="FOLLOW_UP">Follow Up</option>
+              <option value="DEMO">Demo</option>
+              <option value="NEGOTIATION">Negotiation</option>
+              <option value="CLOSING">Closing</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meeting Mode</label>
+            <select id="m-meeting_mode" class="input-field" onchange="toggleMeetingMode()">
+              <option value="ONLINE">Online</option>
+              <option value="ONSITE">Onsite</option>
+              <option value="HYBRID">Hybrid</option>
+            </select>
+          </div>
+          <div class="form-group col-span-2" id="meetingLinkGroup">
+            <label class="form-label">Meeting Link (Zoom, Google Meet, etc.)</label>
+            <input type="text" id="m-meeting_link" class="input-field"
+              placeholder="e.g. https://meet.google.com/xxx-xxxx-xxx"/>
+          </div>
+          <div class="form-group col-span-2" id="meetingAddressGroup" style="display:none;">
+            <label class="form-label">Meeting Address</label>
+            <input type="text" id="m-meeting_address" class="input-field"
+              placeholder="e.g. School address or ThinkTANQ office"/>
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Notes</label>
+            <textarea id="m-notes" class="input-field h-20"
+              placeholder="Any notes about this meeting..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('scheduleModal')" class="btn-ghost">Cancel</button>
+        <button onclick="scheduleMeeting()" class="btn-red">📅 Schedule Meeting</button>
+      </div>
+    </div>
+  </div>
 
-  // ── GENERATE EMAIL ──
-  async function generateEmail(id, type) {
-    closeModal('schoolModal');
-    showToast('⚡ Generating ' + type + ' email...', '');
-    try {
-      const r = await fetch('/api/schools/' + id + '/generate-email', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ email_type: type })
-      });
-      const data = await r.json();
-      if (data.error) { showToast('Error: ' + data.error, 'error'); return; }
-      showToast('Email generated!', 'success');
-      document.getElementById('emailModalBody').innerHTML = `
-        <div class="email-subject">Subject: ${data.subject}</div>
-        <div class="email-preview">${data.body}</div>
-      `;
-      document.getElementById('emailModalActions').innerHTML = `
-        <button class="btn btn-green btn-sm" onclick="sendDraft(${data.draft_id})">📤 Send Email</button>
-      `;
-      openModal('emailModal');
-      if (document.getElementById('tab-schools').classList.contains('active')) loadSchools();
-      loadDashboard();
-    } catch(e) { showToast('Failed to generate email', 'error'); }
-  }
+  <!-- MODAL: View Meeting -->
+  <div id="meetingModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Meeting Details</h2>
+        <button onclick="closeModal('meetingModal')" class="modal-close">✕</button>
+      </div>
+      <div id="meetingModalBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button onclick="closeModal('meetingModal')" class="btn-ghost">Close</button>
+        <button onclick="markAsDone()" class="btn-navy text-sm">✅ Mark as Done</button>
+        <button onclick="cancelMeeting()" class="btn-ghost text-sm"
+          style="color:#991b1b;">🗑 Cancel Meeting</button>
+      </div>
+    </div>
+  </div>
 
-  // ── SEND DRAFT ──
-  async function sendDraft(draftId) {
-    if (!confirm('Are you sure you want to send this email? Make sure it has been approved.')) return;
-    try {
-      const r = await fetch('/api/email-drafts/' + draftId + '/send', { method: 'POST' });
-      const data = await r.json();
-      if (data.sent) {
-        showToast('✅ Email sent!', 'success');
-        closeModal('emailModal');
-      } else {
-        showToast('📋 ' + (data.reason || 'Draft mode — email not sent'), '');
-      }
-    } catch(e) { showToast('Error sending email', 'error'); }
-  }
+  <!-- JavaScript Files -->
+  <script src="/js/app.js"></script>
+  <script src="/js/schools.js"></script>
+  <script src="/js/emails.js"></script>
+  <script src="/js/import.js"></script>
+  <script src="/js/calendar.js"></script>
 
-  // ── LOAD DRAFTS ──
-  async function loadDrafts() {
-    try {
-      const r = await fetch('/api/email-drafts');
-      const drafts = await r.json();
-      const tbody = document.getElementById('draftsTable');
-      if (!drafts.length) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">✉️</div><div class="empty-title">No drafts yet</div><div class="empty-sub">Generate an email from a school lead first</div></div></td></tr>`;
-        return;
-      }
-      tbody.innerHTML = drafts.map(d => `
-        <tr>
-          <td>${d.school_name || '—'}</td>
-          <td><span class="badge badge-default">${d.email_type}</span></td>
-          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.subject}</td>
-          <td>${statusBadge(d.status)}</td>
-          <td>${fmtDate(d.created_at)}</td>
-          <td>
-            <button class="btn btn-ghost btn-sm" onclick="previewDraft(${d.id}, \`${d.subject.replace(/`/g,"'")}\`, \`${d.body.replace(/`/g,"'").replace(/\n/g,'\\n')}\`)">👁 Preview</button>
-          </td>
-        </tr>`).join('');
-    } catch(e) { showToast('Could not load drafts', 'error'); }
-  }
-
-  function previewDraft(id, subject, body) {
-    document.getElementById('emailModalBody').innerHTML = `
-      <div class="email-subject">Subject: ${subject}</div>
-      <div class="email-preview">${body.replace(/\\n/g,'\n')}</div>
-    `;
-    document.getElementById('emailModalActions').innerHTML = `
-      <button class="btn btn-green btn-sm" onclick="sendDraft(${id})">📤 Send Email</button>
-    `;
-    openModal('emailModal');
-  }
-
-  // ── ADD SCHOOL ──
-  async function addSchool() {
-    const name = document.getElementById('f-school_name').value.trim();
-    if (!name) { showToast('School name is required!', 'error'); return; }
-    const payload = {
-      school_name: name,
-      contact_person: document.getElementById('f-contact_person').value,
-      email: document.getElementById('f-email').value,
-      phone: document.getElementById('f-phone').value,
-      website: document.getElementById('f-website').value,
-      facebook_page: document.getElementById('f-facebook_page').value,
-      address: document.getElementById('f-address').value,
-      city_province: document.getElementById('f-city_province').value,
-      region: document.getElementById('f-region').value,
-      school_type: document.getElementById('f-school_type').value,
-      level_offered: document.getElementById('f-level_offered').value,
-      estimated_students: document.getElementById('f-estimated_students').value || null,
-      assigned_to: document.getElementById('f-assigned_to').value,
-      notes: document.getElementById('f-notes').value,
-    };
-    try {
-      const r = await fetch('/api/schools', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      const data = await r.json();
-      if (data.error) { showToast('Error: ' + data.error, 'error'); return; }
-      showToast('✅ School lead saved!', 'success');
-      clearForm();
-      showTab('schools');
-    } catch(e) { showToast('Failed to save school', 'error'); }
-  }
-
-  function clearForm() {
-    ['school_name','contact_person','email','phone','website','facebook_page',
-     'address','city_province','region','school_type','level_offered',
-     'estimated_students','assigned_to','notes'].forEach(f => {
-      const el = document.getElementById('f-' + f);
-      if (el) el.value = '';
-    });
-  }
-
-  // ── IMPORT CSV ──
-  async function importCSV(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    document.getElementById('importResult').innerHTML = '<span style="color:var(--gray-400);font-size:13px;">Importing...</span>';
-    try {
-      const r = await fetch('/api/import-csv', { method: 'POST', body: formData });
-      const data = await r.json();
-      document.getElementById('importResult').innerHTML = `
-        <div style="padding:14px;border-radius:8px;background:#dcfce7;border:1px solid #86efac;">
-          <div style="font-weight:600;color:#166534;font-size:14px;">✅ Import Complete</div>
-          <div style="color:#166534;font-size:13px;margin-top:4px;">Successfully imported <strong>${data.imported}</strong> school(s).</div>
-          ${data.errors.length ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">${data.errors.length} error(s) occurred.</div>` : ''}
-        </div>`;
-      input.value = '';
-      showToast('Imported ' + data.imported + ' schools!', 'success');
-    } catch(e) {
-      document.getElementById('importResult').innerHTML = `<div style="color:var(--red);font-size:13px;">Import failed. Please check your CSV format.</div>`;
-    }
-  }
-
-  // ── STATUS MODAL ──
-  function openStatusModal(id, currentStatus) {
-    statusTargetId = id;
-    document.getElementById('statusSelect').value = currentStatus;
-    openModal('statusModal');
-  }
-
-  async function confirmStatusUpdate() {
-    const status = document.getElementById('statusSelect').value;
-    try {
-      await fetch('/api/schools/' + statusTargetId + '/status', {
-        method: 'PATCH',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ status })
-      });
-      showToast('Status updated!', 'success');
-      closeModal('statusModal');
-      loadSchools();
-      loadDashboard();
-    } catch(e) { showToast('Failed to update status', 'error'); }
-  }
-
-  // ── CHECK AI MODE ──
-  async function checkHealth() {
-    try {
-      const r = await fetch('/api/health');
-      const data = await r.json();
-      const badge = document.getElementById('modeBadge');
-      if (data.ai_mode === 'OPENAI_API') {
-        badge.textContent = '✦ OPENAI MODE';
-        badge.classList.add('ai');
-      }
-    } catch(e) {}
-  }
-
-  // ── INIT ──
-  checkHealth();
-  loadDashboard();
-</script>
 </body>
 </html>
