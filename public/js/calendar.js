@@ -93,7 +93,10 @@ async function renderCalendar(year, month) {
            onclick="onDayClick('${dateStr}')">
         <div class="day-number ${isToday ? 'today-number' : ''}">${day}</div>
         ${dayMeetings.map(m => `
-          <div class="meeting-dot" onclick="event.stopPropagation(); viewMeeting(${m.id})">
+          <div class="meeting-dot ${m.status === 'CANCELLED' ? 'cancelled' :
+            m.status === 'RESCHEDULED' ? 'rescheduled' :
+            m.status === 'DONE' ? 'done' : ''}"
+            onclick="event.stopPropagation(); viewMeeting(${m.id})">
             <span>${formatTime(m.meeting_time)}</span>
             <span>${truncate(m.school_name, 12)}</span>
           </div>
@@ -179,9 +182,10 @@ function toggleMeetingMode() {
 
 // ── SCHEDULE MEETING ──
 async function scheduleMeeting() {
-  const schoolId   = document.getElementById('m-school_id').value;
-  const date       = document.getElementById('m-meeting_date').value;
-  const time       = document.getElementById('m-meeting_time').value;
+  const schoolId = document.getElementById('m-school_id').value;
+  const date     = document.getElementById('m-meeting_date').value;
+  const time     = document.getElementById('m-meeting_time').value;
+  const mode     = document.getElementById('m-meeting_mode').value;
 
   if (!schoolId || !date || !time) {
     showToast('Please fill in School, Date, and Time', 'error');
@@ -193,7 +197,7 @@ async function scheduleMeeting() {
     meeting_date:    date,
     meeting_time:    time,
     meeting_type:    document.getElementById('m-meeting_type').value,
-    meeting_mode:    document.getElementById('m-meeting_mode').value,
+    meeting_mode:    mode,
     meeting_link:    document.getElementById('m-meeting_link').value,
     meeting_address: document.getElementById('m-meeting_address').value,
     notes:           document.getElementById('m-notes').value,
@@ -208,7 +212,8 @@ async function scheduleMeeting() {
     const data = await res.json();
 
     if (data.error) {
-      showToast('Error: ' + data.error, 'error');
+      // ── Show specific error messages based on conflict type ──
+      handleSchedulingError(data);
       return;
     }
 
@@ -223,6 +228,94 @@ async function scheduleMeeting() {
   }
 }
 
+// ── HANDLE SCHEDULING ERRORS ──
+function handleSchedulingError(data) {
+  const type = data.conflict_type;
+
+  if (type === 'SCHOOL_ALREADY_HAS_MEETING') {
+    showConflictAlert(
+      '🏫 School Already Has a Meeting',
+      data.error,
+      'Please go to the Calendar and cancel or reschedule the existing meeting first.'
+    );
+  } else if (type === 'MAX_MEETINGS_REACHED') {
+    showConflictAlert(
+      '📅 Maximum Meetings Reached',
+      data.error,
+      'Only 3 meetings are allowed per day. Please choose a different date.'
+    );
+  } else if (type === 'TIME_SLOT_TAKEN') {
+    showConflictAlert(
+      '⏰ Time Slot Conflict',
+      data.error,
+      'Please choose a time at least 30 minutes away from existing meetings.'
+    );
+  } else if (type === 'OUTSIDE_METRO_MANILA') {
+    showConflictAlert(
+      '📍 Outside Metro Manila',
+      data.error,
+      'Switch to Online mode or contact your partner for areas outside Metro Manila.'
+    );
+  } else {
+    showToast('Error: ' + data.error, 'error');
+  }
+}
+
+// ── SHOW CONFLICT ALERT ──
+function showConflictAlert(title, message, suggestion) {
+  document.getElementById('conflictTitle').textContent   = title;
+  document.getElementById('conflictMessage').textContent = message;
+  document.getElementById('conflictSuggestion').textContent = suggestion;
+  openModal('conflictModal');
+}
+
+// ── CHECK DATE WHEN ADMIN PICKS IT ──
+async function checkDateAvailability(date) {
+  if (!date) return;
+
+  try {
+    const res  = await fetch('/api/meetings/check/' + date);
+    const data = await res.json();
+
+    const indicator = document.getElementById('dateAvailability');
+    if (!indicator) return;
+
+    if (data.is_full) {
+      indicator.innerHTML = `
+        <div style="color:#991b1b; font-size:12px; margin-top:6px;
+          padding:8px 12px; background:#fee2e2; border-radius:6px;">
+          ❌ This date is fully booked (3/3 meetings).
+          Please choose another date.
+        </div>
+      `;
+    } else if (data.count === 0) {
+      indicator.innerHTML = `
+        <div style="color:#166534; font-size:12px; margin-top:6px;
+          padding:8px 12px; background:#dcfce7; border-radius:6px;">
+          ✅ This date is available (0/3 meetings scheduled)
+        </div>
+      `;
+    } else {
+      const remaining = 3 - data.count;
+      const times = data.meetings.map(m =>
+        formatTime(m.meeting_time) + ' — ' + m.school_name
+      ).join(', ');
+      indicator.innerHTML = `
+        <div style="color:#92400e; font-size:12px; margin-top:6px;
+          padding:8px 12px; background:#fef3c7; border-radius:6px;">
+          ⚠️ ${data.count}/3 meetings on this date.
+          ${remaining} slot${remaining > 1 ? 's' : ''} remaining.<br/>
+          <span style="color:#6b7280;">
+            Existing: ${times}
+          </span>
+        </div>
+      `;
+    }
+  } catch (e) {
+    console.error('Could not check date availability');
+  }
+}
+
 // ── VIEW MEETING ──
 async function viewMeeting(id) {
   try {
@@ -230,33 +323,81 @@ async function viewMeeting(id) {
     const m = await res.json();
     currentMeetingId = id;
 
+    const isCancelled   = m.status === 'CANCELLED';
+    const isRescheduled = m.status === 'RESCHEDULED';
+    const isDone        = m.status === 'DONE';
+
     document.getElementById('meetingModalBody').innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 24px;">
-        ${detailRow('School',       m.school_name)}
-        ${detailRow('Contact',      m.contact_person)}
-        ${detailRow('Date',         formatDateDisplay(m.meeting_date))}
-        ${detailRow('Time',         formatTime(m.meeting_time))}
-        ${detailRow('Type',         m.meeting_type)}
-        ${detailRow('Mode',         m.meeting_mode)}
-        ${m.meeting_link    ? detailRow('Meeting Link',
+        ${detailRow('School',   m.school_name)}
+        ${detailRow('Contact',  m.contact_person)}
+        ${detailRow('Date',     formatDateDisplay(m.meeting_date))}
+        ${detailRow('Time',     formatTime(m.meeting_time))}
+        ${detailRow('Type',     m.meeting_type)}
+        ${detailRow('Mode',     m.meeting_mode)}
+        ${m.meeting_link ?
+          detailRow('Meeting Link',
             `<a href="${m.meeting_link}" target="_blank"
               style="color:var(--navy)">${m.meeting_link}</a>`) : ''}
-        ${m.meeting_address ? detailRow('Address', m.meeting_address) : ''}
-        ${detailRow('Status',       meetingStatusBadge(m.status))}
+        ${m.meeting_address ?
+          detailRow('Address', m.meeting_address) : ''}
+        ${detailRow('Status',   meetingStatusBadge(m.status))}
       </div>
       ${m.notes ? `
         <div style="margin-top:16px; padding:12px; background:#f9fafb;
           border-radius:8px; font-size:13px; color:#4b5563;">
           📝 ${m.notes}
         </div>` : ''}
+      ${isCancelled ? `
+        <div style="margin-top:16px; padding:12px; background:#fee2e2;
+          border-radius:8px; font-size:13px; color:#991b1b;">
+          ⚠️ This meeting was cancelled.
+        </div>` : ''}
+      ${isRescheduled ? `
+        <div style="margin-top:16px; padding:12px; background:#fef3c7;
+          border-radius:8px; font-size:13px; color:#92400e;">
+          🔄 This meeting has been rescheduled.
+        </div>` : ''}
     `;
+
+    // Show different action buttons based on status
+    const footer = document.getElementById('meetingModalFooter');
+
+    if (isCancelled) {
+      footer.innerHTML = `
+        <button onclick="closeModal('meetingModal')" class="btn-ghost">
+          Close
+        </button>
+      `;
+    } else if (isDone) {
+      footer.innerHTML = `
+        <button onclick="closeModal('meetingModal')" class="btn-ghost">
+          Close
+        </button>
+      `;
+    } else {
+      footer.innerHTML = `
+        <button onclick="closeModal('meetingModal')" class="btn-ghost">
+          Close
+        </button>
+        <button onclick="openRescheduleModal()" class="btn-outline text-sm">
+          🔄 Reschedule
+        </button>
+        <button onclick="markAsDone()" class="btn-navy text-sm">
+          ✅ Mark as Done
+        </button>
+        <button onclick="openCancelModal()" class="btn-ghost text-sm"
+          style="color:#991b1b;">
+          🗑 Cancel Meeting
+        </button>
+      `;
+    }
 
     openModal('meetingModal');
   } catch (e) {
     showToast('Could not load meeting details', 'error');
   }
 }
-
 // ── MARK MEETING AS DONE ──
 async function markAsDone() {
   if (!currentMeetingId) return;
@@ -275,21 +416,81 @@ async function markAsDone() {
 }
 
 // ── CANCEL MEETING ──
-async function cancelMeeting() {
+// ── OPEN CANCEL MODAL ──
+function openCancelModal() {
+  document.getElementById('cancelReason').value = '';
+  closeModal('meetingModal');
+  openModal('cancelModal');
+}
+
+// ── CONFIRM CANCEL MEETING ──
+async function confirmCancelMeeting() {
   if (!currentMeetingId) return;
-  const confirmed = confirm('Are you sure you want to cancel this meeting?');
-  if (!confirmed) return;
+  const reason = document.getElementById('cancelReason').value.trim();
 
   try {
-    await fetch('/api/meetings/' + currentMeetingId, {
-      method: 'DELETE'
+    const res = await fetch('/api/meetings/' + currentMeetingId + '/cancel', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
     });
+    const data = await res.json();
+
+    if (data.error) {
+      showToast('Error: ' + data.error, 'error');
+      return;
+    }
+
     showToast('Meeting cancelled', '');
-    closeModal('meetingModal');
+    closeModal('cancelModal');
     loadCalendar();
     loadDashboard();
   } catch (e) {
     showToast('Failed to cancel meeting', 'error');
+  }
+}
+
+// ── OPEN RESCHEDULE MODAL ──
+function openRescheduleModal() {
+  document.getElementById('r-meeting_date').value = '';
+  document.getElementById('r-meeting_time').value = '';
+  document.getElementById('r-notes').value = '';
+  closeModal('meetingModal');
+  openModal('rescheduleModal');
+}
+
+// ── CONFIRM RESCHEDULE ──
+async function confirmReschedule() {
+  if (!currentMeetingId) return;
+
+  const date  = document.getElementById('r-meeting_date').value;
+  const time  = document.getElementById('r-meeting_time').value;
+  const notes = document.getElementById('r-notes').value;
+
+  if (!date || !time) {
+    showToast('Please fill in the new date and time', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/meetings/' + currentMeetingId + '/reschedule', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meeting_date: date, meeting_time: time, notes })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      showToast('Error: ' + data.error, 'error');
+      return;
+    }
+
+    showToast('✅ Meeting rescheduled!', 'success');
+    closeModal('rescheduleModal');
+    loadCalendar();
+    loadDashboard();
+  } catch (e) {
+    showToast('Failed to reschedule meeting', 'error');
   }
 }
 

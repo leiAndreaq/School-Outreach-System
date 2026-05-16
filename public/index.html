@@ -7,6 +7,8 @@
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -36,11 +38,11 @@
 
     <!-- Logo -->
     <div class="px-5 py-6 border-b border-white/10">
-      <div class="text-2xl font-bold tracking-widest text-white">
-        THINK<span class="text-red-600">TANQ</span>
-      </div>
+      <div class="text-base font-bold text-white tracking-widest">
+          ACCOUTRE AI
+        </div>
       <div class="text-xs tracking-widest text-white/40 mt-1 font-mono">
-        SCHOOL OUTREACH CRM
+        powered by THINKTANQ
       </div>
     </div>
 
@@ -49,22 +51,33 @@
       <div class="px-4 mb-2 text-xs tracking-widest text-white/30 font-mono uppercase">Menu</div>
 
       <div class="nav-item active" onclick="showTab('dashboard')">
-        <span>📊</span> Dashboard
+        <i data-lucide="layout-dashboard" class="nav-icon"></i>
+        Dashboard
       </div>
       <div class="nav-item" onclick="showTab('schools')">
-        <span>🏫</span> School Leads
+        <i data-lucide="school" class="nav-icon"></i>
+        School Leads
       </div>
-      <div class="nav-item" onclick="showTab('add')">
-        <span>➕</span> Add School
-      </div>
+      
       <div class="nav-item" onclick="showTab('import')">
-        <span>📂</span> Import CSV
+        <i data-lucide="upload" class="nav-icon"></i>
+        Import CSV
       </div>
       <div class="nav-item" onclick="showTab('drafts')">
-        <span>✉️</span> Email Drafts
+        <i data-lucide="mail" class="nav-icon"></i>
+        Email Drafts
       </div>
       <div class="nav-item" onclick="showTab('calendar')">
-        <span>📅</span> Calendar
+        <i data-lucide="calendar" class="nav-icon"></i>
+        Calendar
+      </div>
+      <div class="nav-item" onclick="showTab('inquiries')">
+        <i data-lucide="inbox" class="nav-icon"></i>
+        Inquiries
+        <span id="pendingBadge" class="ml-auto bg-brand text-white
+          text-xs font-bold px-2 py-0.5 rounded-full hidden">
+          0
+        </span>
       </div>
     </nav>
 
@@ -84,14 +97,12 @@
     <!-- TOPBAR -->
     <header class="bg-white border-b border-gray-200 px-8 h-16 flex items-center justify-between sticky top-0 z-40">
       <div class="text-xl font-bold tracking-wide text-navy">
-        THINK<span class="text-red-600">TANQ</span>
-        <span class="text-gray-400 font-normal text-base ml-2">— School Outreach CRM</span>
+        School Outreach CRM<span class="text-red-600"></span>
+        <span class="text-gray-400 font-normal text-base ml-2"></span>
       </div>
       <div class="flex items-center gap-4">
         <span id="clockDisplay" class="text-xs text-gray-400 font-mono"></span>
-        <button onclick="showTab('add')" class="btn-red text-sm">
-          + Add School
-        </button>
+        
       </div>
     </header>
 
@@ -106,6 +117,9 @@
           <h1 class="section-title">Dashboard</h1>
           <button onclick="loadDashboard()" class="btn-ghost text-sm">↻ Refresh</button>
         </div>
+
+        <!-- Today's Meetings Alert -->
+        <div id="todaysMeetings" style="display:none;"></div>
 
         <!-- Stats -->
         <div class="grid grid-cols-4 gap-4 mb-6">
@@ -395,7 +409,74 @@
           </div>
         </div>
 
-      </div>           
+      </div>    
+      
+      <!-- INQUIRIES TAB -->
+      <div id="tab-inquiries" class="tab-section">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="section-title">Inquiries</h1>
+            <p class="text-sm text-gray-400 mt-1">
+              Review form submissions from the public inquiry page
+            </p>
+          </div>
+          <button onclick="loadInquiries()" class="btn-ghost text-sm">
+            ↻ Refresh
+          </button>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex gap-2 mb-4">
+          <button
+            onclick="filterInquiries('PENDING')"
+            id="filter-PENDING"
+            class="btn-navy text-sm">
+            ⏳ Pending
+          </button>
+          <button
+            onclick="filterInquiries('APPROVED')"
+            id="filter-APPROVED"
+            class="btn-ghost text-sm">
+            ✅ Approved
+          </button>
+          <button
+            onclick="filterInquiries('DISMISSED')"
+            id="filter-DISMISSED"
+            class="btn-ghost text-sm">
+            ❌ Dismissed
+          </button>
+          <button
+            onclick="filterInquiries('ALL')"
+            id="filter-ALL"
+            class="btn-ghost text-sm">
+            📋 All
+          </button>
+        </div>
+
+        <!-- Inquiries Table -->
+        <div class="card">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="table-head">
+                  <th>School</th>
+                  <th>Contact Person</th>
+                  <th>Email</th>
+                  <th>Preferred Date</th>
+                  <th>Mode</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inquiriesTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
 
     </main>
   </div>
@@ -412,10 +493,19 @@
       </div>
       <div id="schoolModalBody" class="modal-body"></div>
       <div class="modal-footer">
-        <button onclick="closeModal('schoolModal')" class="btn-ghost">Close</button>
-        <button onclick="generateEmail(currentSchoolId, 'FOLLOW_UP')" class="btn-outline text-sm">📨 Follow-Up</button>
-        <button onclick="generateEmail(currentSchoolId, 'MEETING_INVITE')" class="btn-outline text-sm">📅 Meeting Invite</button>
-        <button onclick="generateEmail(currentSchoolId, 'PROPOSAL')" class="btn-red text-sm">⚡ Generate Proposal</button>
+        <button onclick="closeModal('schoolModal')"
+          class="btn-ghost">Close</button>
+        <button onclick="deleteSchool(currentSchoolId)"
+          class="btn-ghost text-sm"
+          style="color:#991b1b; margin-right:auto;">
+          🗑 Delete Record
+        </button>
+        <button onclick="generateEmail(currentSchoolId, 'FOLLOW_UP')"
+          class="btn-outline text-sm">📨 Follow-Up</button>
+        <button onclick="generateEmail(currentSchoolId, 'MEETING_INVITE')"
+          class="btn-outline text-sm">📅 Meeting Invite</button>
+        <button onclick="generateEmail(currentSchoolId, 'PROPOSAL')"
+          class="btn-red text-sm">⚡ Generate Proposal</button>
       </div>
     </div>
   </div>
@@ -468,6 +558,145 @@
     </div>
   </div>
 
+  <!-- MODAL: Delete School -->
+  <div id="deleteSchoolModal" class="modal-overlay">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🗑 Delete School Record</h2>
+        <button onclick="closeModal('deleteSchoolModal')"
+          class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="padding:12px 16px; background:#fee2e2;
+          border-radius:8px; margin-bottom:16px;
+          border-left:3px solid #D01B1B;">
+          <div style="font-size:13px; font-weight:700;
+            color:#991b1b; margin-bottom:4px;">
+            ⚠️ This action cannot be undone
+          </div>
+          <div style="font-size:12px; color:#991b1b;">
+            This will permanently delete the school record and all
+            associated emails, meetings, and activity logs.
+          </div>
+        </div>
+        <p style="font-size:13px; color:#374151; margin-bottom:16px;">
+          Are you sure you want to delete
+          <strong id="deleteSchoolName"></strong>?
+        </p>
+        <div class="form-group">
+          <label class="form-label">
+            Reason for Deletion
+            <span style="color:#9ca3af; font-weight:400;">
+              (optional)
+            </span>
+          </label>
+          <select id="deleteReason" class="input-field">
+            <option value="">-- Select reason --</option>
+            <option value="Right to Erasure Request">
+              Right to Erasure Request (Data Privacy Act)
+            </option>
+            <option value="Duplicate Record">
+              Duplicate Record
+            </option>
+            <option value="Invalid Entry">
+              Invalid Entry / Test Data
+            </option>
+            <option value="School Requested Removal">
+              School Requested Removal
+            </option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div style="margin-top:12px; padding:10px 14px;
+          background:#f9fafb; border-radius:8px;
+          font-size:11px; color:#9ca3af; line-height:1.7;">
+          📋 Under the <strong>Data Privacy Act of 2012
+          (RA 10173)</strong>, individuals have the right to
+          request erasure of their personal data. This deletion
+          is compliant with that right.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('deleteSchoolModal')"
+          class="btn-ghost">Cancel</button>
+        <button onclick="confirmDeleteSchool()"
+          class="btn-red">
+          🗑 Yes, Permanently Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Delete Inquiry -->
+  <div id="deleteInquiryModal" class="modal-overlay">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🗑 Delete Inquiry</h2>
+        <button onclick="closeModal('deleteInquiryModal')"
+          class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="padding:12px 16px; background:#fee2e2;
+          border-radius:8px; margin-bottom:16px;
+          border-left:3px solid #D01B1B;">
+          <div style="font-size:13px; font-weight:700;
+            color:#991b1b; margin-bottom:4px;">
+            ⚠️ This action cannot be undone
+          </div>
+          <div style="font-size:12px; color:#991b1b;">
+            This will permanently delete this inquiry
+            and all its information.
+          </div>
+        </div>
+        <p style="font-size:13px; color:#374151; margin-bottom:16px;">
+          Are you sure you want to delete the inquiry from
+          <strong id="deleteInquiryName"></strong>?
+        </p>
+        <div style="padding:10px 14px; background:#f9fafb;
+          border-radius:8px; font-size:11px; color:#9ca3af;
+          line-height:1.7;">
+          📋 Under the <strong>Data Privacy Act of 2012
+          (RA 10173)</strong>, individuals have the right to
+          request erasure of their personal data.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('deleteInquiryModal')"
+          class="btn-ghost">Cancel</button>
+        <button onclick="confirmDeleteInquiry()"
+          class="btn-red">
+          🗑 Yes, Permanently Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Conflict Alert -->
+  <div id="conflictModal" class="modal-overlay">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 id="conflictTitle" class="modal-title">Scheduling Conflict</h2>
+        <button onclick="closeModal('conflictModal')"
+          class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="conflictMessage"
+          style="font-size:13px; color:#374151;
+          margin-bottom:12px; line-height:1.7;">
+        </p>
+        <div id="conflictSuggestion"
+          style="font-size:12px; color:#6b7280;
+          padding:10px 12px; background:#f9fafb;
+          border-radius:6px; border-left:3px solid #D01B1B;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('conflictModal')"
+          class="btn-red">Got it</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: Schedule Meeting -->
   <div id="scheduleModal" class="modal-overlay">
     <div class="modal modal-lg">
@@ -483,9 +712,11 @@
               <option value="">-- Select a School --</option>
             </select>
           </div>
-          <div class="form-group">
+          <div>
             <label class="form-label">Meeting Date *</label>
-            <input type="date" id="m-meeting_date" class="input-field"/>
+            <input type="date" id="m-meeting_date" class="input-field"
+              onchange="checkDateAvailability(this.value)"/>
+            <div id="dateAvailability"></div>
           </div>
           <div class="form-group">
             <label class="form-label">Meeting Time *</label>
@@ -533,19 +764,144 @@
     </div>
   </div>
 
-  <!-- MODAL: View Meeting -->
+<!-- MODAL: View Meeting -->
   <div id="meetingModal" class="modal-overlay">
-    <div class="modal">
+    <div class="modal modal-lg">
       <div class="modal-header">
         <h2 class="modal-title">Meeting Details</h2>
         <button onclick="closeModal('meetingModal')" class="modal-close">✕</button>
       </div>
       <div id="meetingModalBody" class="modal-body"></div>
+      <div id="meetingModalFooter" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: Cancel Meeting -->
+  <div id="cancelModal" class="modal-overlay">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🗑 Cancel Meeting</h2>
+        <button onclick="closeModal('cancelModal')" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:#4b5563; margin-bottom:16px;">
+          Are you sure you want to cancel this meeting?
+          The meeting will be marked as <strong>CANCELLED</strong>
+          and will remain visible in the calendar.
+        </p>
+        <div class="form-group">
+          <label class="form-label">
+            Reason for Cancellation
+            <span style="color:#9ca3af; font-weight:400;">(optional)</span>
+          </label>
+          <textarea
+            id="cancelReason"
+            class="input-field h-24"
+            placeholder="e.g. School requested to move the meeting, no response from contact person, etc.">
+          </textarea>
+        </div>
+      </div>
       <div class="modal-footer">
-        <button onclick="closeModal('meetingModal')" class="btn-ghost">Close</button>
-        <button onclick="markAsDone()" class="btn-navy text-sm">✅ Mark as Done</button>
-        <button onclick="cancelMeeting()" class="btn-ghost text-sm"
-          style="color:#991b1b;">🗑 Cancel Meeting</button>
+        <button onclick="closeModal('cancelModal')" class="btn-ghost">
+          Go Back
+        </button>
+        <button onclick="confirmCancelMeeting()" class="btn-red">
+          Yes, Cancel Meeting
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Reschedule Meeting -->
+  <div id="rescheduleModal" class="modal-overlay">
+    <div class="modal" style="max-width:460px;">
+      <div class="modal-header">
+        <h2 class="modal-title">📅 Reschedule Meeting</h2>
+        <button onclick="closeModal('rescheduleModal')" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:#4b5563; margin-bottom:16px;">
+          Choose a new date and time for this meeting.
+        </p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">New Date *</label>
+            <input type="date" id="r-meeting_date" class="input-field"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Time *</label>
+            <input type="time" id="r-meeting_time" class="input-field"/>
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">
+              Notes
+              <span style="color:#9ca3af; font-weight:400;">(optional)</span>
+            </label>
+            <textarea
+              id="r-notes"
+              class="input-field h-20"
+              placeholder="e.g. Rescheduled per request of the principal...">
+            </textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('rescheduleModal')" class="btn-ghost">
+          Cancel
+        </button>
+        <button onclick="confirmReschedule()" class="btn-navy">
+          ✅ Confirm Reschedule
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: View Inquiry -->
+  <div id="inquiryModal" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title">📥 Inquiry Details</h2>
+        <button onclick="closeModal('inquiryModal')"
+          class="modal-close">✕</button>
+      </div>
+      <div id="inquiryModalBody" class="modal-body"></div>
+      <div id="inquiryModalFooter" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: Dismiss Inquiry -->
+  <div id="dismissModal" class="modal-overlay">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 class="modal-title">❌ Dismiss Inquiry</h2>
+        <button onclick="closeModal('dismissModal')"
+          class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:#4b5563; margin-bottom:16px;">
+          Are you sure you want to dismiss this inquiry?
+          It will be marked as <strong>DISMISSED</strong>
+          and moved out of the pending queue.
+        </p>
+        <div class="form-group">
+          <label class="form-label">
+            Reason for Dismissal
+            <span style="color:#9ca3af; font-weight:400;">
+              (optional)
+            </span>
+          </label>
+          <textarea
+            id="dismissReason"
+            class="input-field h-24"
+            placeholder="e.g. Duplicate submission, incomplete information, spam, etc.">
+          </textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('dismissModal')"
+          class="btn-ghost">Go Back</button>
+        <button onclick="confirmDismiss()"
+          class="btn-red">Dismiss Inquiry</button>
       </div>
     </div>
   </div>
@@ -556,6 +912,11 @@
   <script src="/js/emails.js"></script>
   <script src="/js/import.js"></script>
   <script src="/js/calendar.js"></script>
+  <script src="/js/inquiries.js"></script>
+
+  <script>
+    lucide.createIcons();
+  </script>
 
 </body>
 </html>

@@ -18,20 +18,37 @@ async function generateEmail(id, type) {
 
     showToast('✅ Email generated!', 'success');
 
-    // Show email preview in modal
+    // Show email preview in modal — now editable!
     document.getElementById('emailModalBody').innerHTML = `
       <div class="email-subject">
         Subject: ${data.subject}
       </div>
-      <div class="email-preview">
-        ${data.body}
+      <div style="font-size:12px; color:#9ca3af; margin-bottom:8px;">
+        ✏️ You can edit the email below before sending.
+        Paste your Google Meet link where needed.
+      </div>
+      <textarea
+        id="editableEmailBody"
+        style="width:100%; min-height:320px; padding:14px;
+          border:1.5px solid #e5e7eb; border-radius:8px;
+          font-size:13px; line-height:1.8; color:#374151;
+          font-family:'Inter',sans-serif; resize:vertical;
+          outline:none;"
+        onfocus="this.style.borderColor='#1B1F6B'"
+        onblur="this.style.borderColor='#e5e7eb'"
+      >${data.body}</textarea>
+      <div id="meetLinkWarning" style="display:none; margin-top:8px;
+        padding:10px 12px; background:#fef3c7; border-radius:6px;
+        font-size:12px; color:#92400e;">
+        ⚠️ No meeting link detected. Please paste your
+        Google Meet or Zoom link in the email before sending.
       </div>
     `;
 
     // Show send button
     document.getElementById('emailModalActions').innerHTML = `
       <button
-        onclick="sendDraft(${data.draft_id})"
+        onclick="saveAndSendDraft(${data.draft_id})"
         class="btn-navy text-sm">
         📤 Send Email
       </button>
@@ -126,18 +143,88 @@ function previewDraft(id, subject, body) {
     <div class="email-subject">
       Subject: ${subject}
     </div>
-    <div class="email-preview">
-      ${body}
+    <div style="font-size:12px; color:#9ca3af; margin-bottom:8px;">
+      ✏️ You can edit the email below before sending.
+      Paste your Google Meet link where needed.
+    </div>
+    <textarea
+      id="editableEmailBody"
+      style="width:100%; min-height:320px; padding:14px;
+        border:1.5px solid #e5e7eb; border-radius:8px;
+        font-size:13px; line-height:1.8; color:#374151;
+        font-family:'Inter',sans-serif; resize:vertical;
+        outline:none;"
+      onfocus="this.style.borderColor='#1B1F6B'"
+      onblur="this.style.borderColor='#e5e7eb'"
+      oninput="checkMeetLink()"
+    >${body}</textarea>
+    <div id="meetLinkWarning" style="display:none; margin-top:8px;
+      padding:10px 12px; background:#fef3c7; border-radius:6px;
+      font-size:12px; color:#92400e;">
+      ⚠️ No meeting link detected. Please paste your
+      Google Meet or Zoom link in the email before sending.
     </div>
   `;
 
   document.getElementById('emailModalActions').innerHTML = `
     <button
-      onclick="sendDraft(${id})"
+      onclick="saveAndSendDraft(${id})"
       class="btn-navy text-sm">
       📤 Send Email
     </button>
   `;
 
   openModal('emailModal');
+}
+
+// ── SAVE EDITS AND SEND ──
+async function saveAndSendDraft(draftId) {
+  const bodyEl = document.getElementById('editableEmailBody');
+  if (!bodyEl) {
+    sendDraft(draftId);
+    return;
+  }
+
+  const editedBody = bodyEl.value;
+
+  // ── CHECK FOR MEETING LINK ──
+  const hasLink =
+    editedBody.includes('meet.google.com') ||
+    editedBody.includes('zoom.us') ||
+    editedBody.includes('https://') ||
+    editedBody.includes('http://');
+
+  if (!hasLink) {
+    document.getElementById('meetLinkWarning').style.display = 'block';
+    showToast('⚠️ No meeting link found. Add a link before sending!', 'error');
+    return;
+  }
+
+  // Save the edited body first
+  try {
+    await fetch('/api/email-drafts/' + draftId + '/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: editedBody })
+    });
+  } catch (e) {
+    console.error('Could not save edits, sending original');
+  }
+
+  // Then send
+  sendDraft(draftId);
+}
+
+// ── CHECK MEET LINK AS USER TYPES ──
+function checkMeetLink() {
+  const bodyEl  = document.getElementById('editableEmailBody');
+  const warning = document.getElementById('meetLinkWarning');
+  if (!bodyEl || !warning) return;
+
+  const hasLink =
+    bodyEl.value.includes('meet.google.com') ||
+    bodyEl.value.includes('zoom.us') ||
+    bodyEl.value.includes('https://');
+
+  warning.style.display = hasLink ? 'none' : 'block';
 }

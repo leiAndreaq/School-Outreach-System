@@ -72,6 +72,67 @@ app.get("/api/schools/:id", (req, res) => {
   });
 });
 
+// ── DELETE SCHOOL (Right to Erasure) ──
+app.delete("/api/schools/:id", (req, res) => {
+  db.get(
+    `SELECT * FROM schools WHERE id = ?`,
+    [req.params.id],
+    (err, school) => {
+      if (err || !school) {
+        return res.status(404).json({ error: "School not found" });
+      }
+
+      // Delete all associated data
+      db.run(`DELETE FROM email_drafts WHERE school_id = ?`,
+        [req.params.id]);
+      db.run(`DELETE FROM meetings WHERE school_id = ?`,
+        [req.params.id]);
+      db.run(`DELETE FROM activity_logs WHERE school_id = ?`,
+        [req.params.id]);
+
+      // Delete the school itself
+      db.run(
+        `DELETE FROM schools WHERE id = ?`,
+        [req.params.id],
+        function (err) {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          res.json({
+            message: `${school.school_name} and all associated data has been permanently deleted.`
+          });
+        }
+      );
+    }
+  );
+});
+
+// ── DELETE INQUIRY (Right to Erasure) ──
+app.delete("/api/inquiries/:id", (req, res) => {
+  db.get(
+    `SELECT * FROM inquiries WHERE id = ?`,
+    [req.params.id],
+    (err, inquiry) => {
+      if (err || !inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+
+      db.run(
+        `DELETE FROM inquiries WHERE id = ?`,
+        [req.params.id],
+        function (err) {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          res.json({
+            message: `Inquiry from ${inquiry.contact_person} has been permanently deleted.`
+          });
+        }
+      );
+    }
+  );
+});
+
 app.patch("/api/schools/:id/status", (req, res) => {
   const { status } = req.body;
   db.run(`UPDATE schools SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [status, req.params.id], function (err) {
@@ -126,6 +187,19 @@ app.get("/api/email-drafts", (req, res) => {
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
+    }
+  );
+});
+
+// Update email draft body (for edited emails)
+app.patch("/api/email-drafts/:id/update", (req, res) => {
+  const { body } = req.body;
+  db.run(
+    `UPDATE email_drafts SET body = ? WHERE id = ?`,
+    [body, req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "Draft updated" });
     }
   );
 });
@@ -204,6 +278,177 @@ app.get("/api/activity-logs/:schoolId", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
+// Check if school email already exists
+app.get("/api/schools/check-email/:email", (req, res) => {
+  db.get(
+    `SELECT id, school_name FROM schools WHERE email = ?`,
+    [req.params.email],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (row) {
+        res.json({
+          exists: true,
+          school_name: row.school_name,
+          school_id: row.id
+        });
+      } else {
+        res.json({ exists: false });
+      }
+    }
+  );
+});
+
+// ── INQUIRIES API ──
+
+// Get all inquiries
+app.get("/api/inquiries", (req, res) => {
+  db.all(
+    `SELECT * FROM inquiries ORDER BY created_at DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+// Get single inquiry
+app.get("/api/inquiries/:id", (req, res) => {
+  db.get(
+    `SELECT * FROM inquiries WHERE id = ?`,
+    [req.params.id],
+    (err, row) => {
+      if (err || !row) return res.status(404).json({ error: "Inquiry not found" });
+      res.json(row);
+    }
+  );
+});
+
+// Submit inquiry (public form)
+app.post("/api/inquiries", (req, res) => {
+  const i = req.body;
+
+  if (!i.school_name || !i.contact_person || !i.email) {
+    return res.status(400).json({
+      error: "School name, contact person, and email are required"
+    });
+  }
+
+  db.run(
+    `INSERT INTO inquiries
+     (school_name, school_type, level_offered, estimated_students,
+      city_province, region, contact_person, position, email, phone,
+      preferred_date, preferred_time, preferred_mode,
+      heard_from, message, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
+    [
+      i.school_name, i.school_type, i.level_offered,
+      i.estimated_students || null, i.city_province, i.region,
+      i.contact_person, i.position, i.email, i.phone,
+      i.preferred_date, i.preferred_time, i.preferred_mode || 'ONLINE',
+      i.heard_from, i.message
+    ],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({
+        message: "Inquiry submitted successfully",
+        id: this.lastID
+      });
+    }
+  );
+});
+
+// Approve inquiry → convert to school lead
+app.post("/api/inquiries/:id/approve", (req, res) => {
+  db.get(
+    `SELECT * FROM inquiries WHERE id = ?`,
+    [req.params.id],
+    (err, inquiry) => {
+      if (err || !inquiry) {
+        return res.status(404).json({ error: "Inquiry not found" });
+      }
+
+      // Insert as new school lead
+      db.run(
+        `INSERT INTO schools
+         (school_name, contact_person, email, phone,
+          city_province, region, school_type, level_offered,
+          estimated_students, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW_LEAD')`,
+        [
+          inquiry.school_name,
+          inquiry.contact_person,
+          inquiry.email,
+          inquiry.phone,
+          inquiry.city_province,
+          inquiry.region,
+          inquiry.school_type,
+          inquiry.level_offered,
+          inquiry.estimated_students,
+          `Inquiry submitted on ${inquiry.created_at}.
+           Preferred date: ${inquiry.preferred_date || 'Not specified'}.
+           Preferred time: ${inquiry.preferred_time || 'Not specified'}.
+           Preferred mode: ${inquiry.preferred_mode || 'Online'}.
+           Heard from: ${inquiry.heard_from || 'Not specified'}.
+           Message: ${inquiry.message || 'None'}.`
+        ],
+        function (err) {
+          if (err) return res.status(500).json({ error: err.message });
+
+          const schoolId = this.lastID;
+
+          // Update inquiry status to approved
+          db.run(
+            `UPDATE inquiries SET status = 'APPROVED',
+             updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [req.params.id]
+          );
+
+          logActivity(
+            schoolId,
+            'LEAD_CREATED',
+            `School lead created from public inquiry form.`
+          );
+
+          res.json({
+            message: "Inquiry approved and converted to school lead",
+            school_id: schoolId
+          });
+        }
+      );
+    }
+  );
+});
+
+// Dismiss inquiry
+app.patch("/api/inquiries/:id/dismiss", (req, res) => {
+  const { reason } = req.body;
+  db.run(
+    `UPDATE inquiries SET
+     status = 'DISMISSED',
+     rejection_reason = ?,
+     updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [reason || '', req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "Inquiry dismissed" });
+    }
+  );
+});
+
+// Get pending inquiries count
+app.get("/api/inquiries/count/pending", (req, res) => {
+  db.get(
+    `SELECT COUNT(*) as count FROM inquiries WHERE status = 'PENDING'`,
+    [],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ count: row.count });
+    }
+  );
+});
+
 // ── MEETINGS API ──
 
 // Get all meetings
@@ -255,6 +500,13 @@ app.get("/api/meetings/month/:year/:month", (req, res) => {
   );
 });
 
+// ── HELPER: Convert time string to minutes ──
+function timeToMinutes(timeStr) {
+  if (!timeStr) return 0;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
 // Create meeting
 app.post("/api/meetings", (req, res) => {
   const m = req.body;
@@ -268,45 +520,124 @@ app.post("/api/meetings", (req, res) => {
   db.get(`SELECT * FROM schools WHERE id = ?`, [m.school_id], (err, school) => {
     if (err || !school) return res.status(404).json({ error: "School not found" });
 
-    db.run(
-      `INSERT INTO meetings
-       (school_id, school_name, contact_person, meeting_type,
-        meeting_date, meeting_time, meeting_mode, meeting_link,
-        meeting_address, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        m.school_id,
-        school.school_name,
-        school.contact_person || m.contact_person,
-        m.meeting_type || 'PRESENTATION',
-        m.meeting_date,
-        m.meeting_time,
-        m.meeting_mode || 'ONLINE',
-        m.meeting_link || '',
-        m.meeting_address || '',
-        m.notes || '',
-        'SCHEDULED'
-      ],
-      function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    // ── CHECK 1: School already has an active meeting ──
+    db.get(
+      `SELECT * FROM meetings
+       WHERE school_id = ?
+       AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+      [m.school_id],
+      (err, existingSchoolMeeting) => {
+        if (existingSchoolMeeting) {
+          return res.status(400).json({
+            error: `${school.school_name} already has an active meeting scheduled on ${existingSchoolMeeting.meeting_date} at ${existingSchoolMeeting.meeting_time}. Please cancel or reschedule it first.`,
+            conflict_type: 'SCHOOL_ALREADY_HAS_MEETING'
+          });
+        }
 
-        // Update school status
-        db.run(
-          `UPDATE schools SET status = 'PRESENTATION_SCHEDULED',
-           updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-          [m.school_id]
+        // ── CHECK 2: Max 3 meetings per day ──
+        db.get(
+          `SELECT COUNT(*) as count FROM meetings
+           WHERE meeting_date = ?
+           AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+          [m.meeting_date],
+          (err, dayCount) => {
+            if (dayCount.count >= 3) {
+              return res.status(400).json({
+                error: `Maximum of 3 meetings per day reached for ${m.meeting_date}. Please choose a different date.`,
+                conflict_type: 'MAX_MEETINGS_REACHED'
+              });
+            }
+
+            // ── CHECK 3: Time slot overlap (within 30 minutes) ──
+            db.all(
+              `SELECT * FROM meetings
+               WHERE meeting_date = ?
+               AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+              [m.meeting_date],
+              (err, sameDayMeetings) => {
+                const newTime = timeToMinutes(m.meeting_time);
+
+                const overlap = sameDayMeetings.find(existing => {
+                  const existingTime = timeToMinutes(existing.meeting_time);
+                  return Math.abs(newTime - existingTime) < 30;
+                });
+
+                if (overlap) {
+                  return res.status(400).json({
+                    error: `Time slot conflict. There is already a meeting at ${overlap.meeting_time} with ${overlap.school_name}. Please choose a time at least 30 minutes apart.`,
+                    conflict_type: 'TIME_SLOT_TAKEN'
+                  });
+                }
+
+                // ── CHECK 4: Onsite + outside Metro Manila warning ──
+                if (m.meeting_mode === 'ONSITE') {
+                  const metroManila = [
+                    'manila', 'quezon city', 'makati', 'pasig',
+                    'taguig', 'mandaluyong', 'marikina', 'pasay',
+                    'caloocan', 'malabon', 'navotas', 'valenzuela',
+                    'las pinas', 'muntinlupa', 'paranaque', 'parañaque',
+                    'pateros', 'san juan', 'ncr'
+                  ];
+                  const location = (
+                    m.meeting_address || school.city_province || ''
+                  ).toLowerCase();
+                  const isMetroManila = metroManila.some(city =>
+                    location.includes(city)
+                  );
+
+                  if (!isMetroManila && location.length > 0) {
+                    return res.status(400).json({
+                      error: `Onsite meetings are only available within Metro Manila. This school appears to be outside Metro Manila. Please switch to Online or contact your partner for this area.`,
+                      conflict_type: 'OUTSIDE_METRO_MANILA'
+                    });
+                  }
+                }
+
+                // ── ALL CHECKS PASSED — Create the meeting ──
+                db.run(
+                  `INSERT INTO meetings
+                   (school_id, school_name, contact_person, meeting_type,
+                    meeting_date, meeting_time, meeting_mode, meeting_link,
+                    meeting_address, notes, status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                  [
+                    m.school_id,
+                    school.school_name,
+                    school.contact_person || m.contact_person,
+                    m.meeting_type     || 'PRESENTATION',
+                    m.meeting_date,
+                    m.meeting_time,
+                    m.meeting_mode     || 'ONLINE',
+                    m.meeting_link     || '',
+                    m.meeting_address  || '',
+                    m.notes            || '',
+                    'SCHEDULED'
+                  ],
+                  function (err) {
+                    if (err) return res.status(500).json({ error: err.message });
+
+                    db.run(
+                      `UPDATE schools SET status = 'PRESENTATION_SCHEDULED',
+                       updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                      [m.school_id]
+                    );
+
+                    logActivity(
+                      m.school_id,
+                      'MEETING_SCHEDULED',
+                      `Presentation scheduled on ${m.meeting_date} at ${m.meeting_time}`
+                    );
+
+                    res.json({
+                      message: "Meeting scheduled successfully",
+                      id: this.lastID
+                    });
+                  }
+                );
+              }
+            );
+          }
         );
-
-        logActivity(
-          m.school_id,
-          'MEETING_SCHEDULED',
-          `Presentation scheduled on ${m.meeting_date} at ${m.meeting_time}`
-        );
-
-        res.json({
-          message: "Meeting scheduled",
-          id: this.lastID
-        });
       }
     );
   });
@@ -325,23 +656,168 @@ app.patch("/api/meetings/:id/status", (req, res) => {
   );
 });
 
-// Delete meeting
-app.delete("/api/meetings/:id", (req, res) => {
+// Cancel meeting (no longer deletes — just marks as cancelled)
+app.patch("/api/meetings/:id/cancel", (req, res) => {
+  const { reason } = req.body;
   db.get(`SELECT * FROM meetings WHERE id = ?`, [req.params.id], (err, meeting) => {
     if (err || !meeting) return res.status(404).json({ error: "Meeting not found" });
 
-    db.run(`DELETE FROM meetings WHERE id = ?`, [req.params.id], function (err) {
+    db.run(
+      `UPDATE meetings SET status = 'CANCELLED',
+       notes = CASE WHEN ? != '' THEN ? ELSE notes END,
+       updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [reason || '', reason ? `[CANCELLED] Reason: ${reason}` : '', req.params.id],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        logActivity(
+          meeting.school_id,
+          'MEETING_CANCELLED',
+          `Meeting on ${meeting.meeting_date} cancelled. ${reason ? 'Reason: ' + reason : ''}`
+        );
+
+        res.json({ message: "Meeting cancelled" });
+      }
+    );
+  });
+});
+
+// Reschedule meeting
+app.patch("/api/meetings/:id/reschedule", (req, res) => {
+  const { meeting_date, meeting_time, notes } = req.body;
+
+  if (!meeting_date || !meeting_time) {
+    return res.status(400).json({ error: "New date and time are required" });
+  }
+
+  db.get(`SELECT * FROM meetings WHERE id = ?`, [req.params.id], (err, meeting) => {
+    if (err || !meeting) return res.status(404).json({ error: "Meeting not found" });
+
+    db.run(
+      `UPDATE meetings SET
+       meeting_date = ?,
+       meeting_time = ?,
+       status = 'RESCHEDULED',
+       notes = ?,
+       updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        meeting_date,
+        meeting_time,
+        notes || meeting.notes,
+        req.params.id
+      ],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        logActivity(
+          meeting.school_id,
+          'MEETING_RESCHEDULED',
+          `Meeting rescheduled from ${meeting.meeting_date} to ${meeting_date} at ${meeting_time}`
+        );
+
+        res.json({ message: "Meeting rescheduled" });
+      }
+    );
+  });
+});
+
+// Get today's meetings
+app.get("/api/meetings/today", (req, res) => {
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meeting_date = DATE('now', '+8 hours')
+     AND meetings.status IN ('SCHEDULED', 'RESCHEDULED')
+     ORDER BY meeting_time ASC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+// Public time slot availability for a specific date
+app.get("/api/availability/slots/:date", (req, res) => {
+  const { date } = req.params;
+
+  // All possible time slots
+  const allSlots = [
+    '08:00', '09:00', '10:00', '11:00',
+    '13:00', '14:00', '15:00', '16:00'
+  ];
+
+  db.all(
+    `SELECT meeting_time FROM meetings
+     WHERE meeting_date = ?
+     AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+    [date],
+    (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
 
-      logActivity(
-        meeting.school_id,
-        'MEETING_CANCELLED',
-        `Meeting on ${meeting.meeting_date} was cancelled`
-      );
+      const bookedTimes = rows.map(r => r.meeting_time.substring(0, 5));
 
-      res.json({ message: "Meeting deleted" });
-    });
-  });
+      const slots = allSlots.map(slot => ({
+        time:      slot,
+        available: !bookedTimes.includes(slot)
+      }));
+
+      res.json({ date, slots });
+    }
+  );
+});
+
+// Public availability endpoint (no school names exposed)
+app.get("/api/availability/:year/:month", (req, res) => {
+  const { year, month } = req.params;
+  const pad = month.toString().padStart(2, '0');
+
+  db.all(
+    `SELECT meeting_date, COUNT(*) as count
+     FROM meetings
+     WHERE strftime('%Y', meeting_date) = ?
+     AND strftime('%m', meeting_date) = ?
+     AND status IN ('SCHEDULED', 'RESCHEDULED')
+     GROUP BY meeting_date`,
+    [year, pad],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      // Only return date and availability status — no school info
+      const availability = {};
+      rows.forEach(row => {
+        availability[row.meeting_date] = {
+          count: row.count,
+          is_full: row.count >= 3,
+          slots_remaining: 3 - row.count
+        };
+      });
+
+      res.json(availability);
+    }
+  );
+});
+
+// Check meetings count for a specific date
+app.get("/api/meetings/check/:date", (req, res) => {
+  db.all(
+    `SELECT * FROM meetings
+     WHERE meeting_date = ?
+     AND status IN ('SCHEDULED', 'RESCHEDULED')
+     ORDER BY meeting_time ASC`,
+    [req.params.date],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({
+        date: req.params.date,
+        count: rows.length,
+        meetings: rows,
+        is_full: rows.length >= 3
+      });
+    }
+  );
 });
 
 // Get upcoming meetings (next 7 days)
@@ -350,9 +826,9 @@ app.get("/api/meetings/upcoming/week", (req, res) => {
     `SELECT meetings.*, schools.email as school_email
      FROM meetings
      LEFT JOIN schools ON meetings.school_id = schools.id
-     WHERE meeting_date >= DATE('now')
-     AND meeting_date <= DATE('now', '+7 days')
-     AND meetings.status = 'SCHEDULED'
+     WHERE meeting_date >= DATE('now', '+8 hours')
+     AND meeting_date <= DATE('now', '+8 hours', '+7 days')
+     AND meetings.status IN ('SCHEDULED', 'RESCHEDULED')
      ORDER BY meeting_date ASC, meeting_time ASC`,
     [],
     (err, rows) => {

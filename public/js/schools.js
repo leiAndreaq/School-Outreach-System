@@ -46,6 +46,9 @@ async function loadDashboard() {
       </tr>
     `).join('');
 
+    // Load today's meetings alert
+    loadTodaysMeetings();
+
   } catch (e) {
     showToast('Could not load dashboard', 'error');
   }
@@ -160,11 +163,35 @@ function detailRow(label, value) {
 
 // ── ADD SCHOOL ──
 async function addSchool() {
-  const name = document.getElementById('f-school_name').value.trim();
+  const name  = document.getElementById('f-school_name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
 
   if (!name) {
     showToast('School name is required!', 'error');
     return;
+  }
+
+  // ── CHECK DUPLICATE EMAIL ──
+  if (email) {
+    try {
+      const checkRes = await fetch(
+        '/api/schools/check-email/' + encodeURIComponent(email)
+      );
+      const checkData = await checkRes.json();
+
+      if (checkData.exists) {
+        const proceed = confirm(
+          `⚠️ Duplicate Email Detected!\n\n` +
+          `The email "${email}" is already registered under:\n` +
+          `"${checkData.school_name}"\n\n` +
+          `This might be a duplicate entry.\n` +
+          `Do you still want to add this school?`
+        );
+        if (!proceed) return;
+      }
+    } catch (e) {
+      console.error('Could not check duplicate email');
+    }
   }
 
   const payload = {
@@ -218,4 +245,92 @@ function clearForm() {
     const el = document.getElementById('f-' + f);
     if (el) el.value = '';
   });
+}
+
+// ── TODAY'S MEETINGS ALERT ──
+async function loadTodaysMeetings() {
+  try {
+    const res      = await fetch('/api/meetings/today');
+    const meetings = await res.json();
+    const container = document.getElementById('todaysMeetings');
+    if (!container) return;
+
+    if (!meetings.length) {
+      container.style.display = 'none';
+      return;
+    }
+
+    container.style.display = 'block';
+    container.innerHTML = `
+      <div style="background:#e8e9f5; border:1.5px solid #1B1F6B;
+        border-radius:10px; padding:16px 20px; margin-bottom:24px;">
+        <div style="font-size:13px; font-weight:700; color:#1B1F6B;
+          margin-bottom:10px;">
+          📅 Today's Meetings — ${meetings.length} scheduled
+        </div>
+        ${meetings.map(m => `
+          <div style="display:flex; justify-content:space-between;
+            align-items:center; padding:8px 0;
+            border-bottom:1px solid rgba(27,31,107,0.1);">
+            <div>
+              <div style="font-size:13px; font-weight:600;
+                color:#1B1F6B;">
+                ${m.school_name}
+              </div>
+              <div style="font-size:11px; color:#6b7280; margin-top:2px;">
+                ${formatTime(m.meeting_time)} · ${m.meeting_mode}
+                ${m.contact_person ? '· ' + m.contact_person : ''}
+              </div>
+            </div>
+            <button onclick="viewMeeting(${m.id})"
+              class="btn-ghost text-xs py-1 px-3">
+              View
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (e) {
+    console.error('Could not load today meetings');
+  }
+}
+
+// ── DELETE SCHOOL ──
+let deleteTargetId   = null;
+let deleteTargetName = null;
+
+function deleteSchool(id) {
+  deleteTargetId   = id;
+  deleteTargetName = document.getElementById('modalSchoolName').textContent;
+
+  document.getElementById('deleteSchoolName').textContent =
+    deleteTargetName;
+  document.getElementById('deleteReason').value = '';
+
+  closeModal('schoolModal');
+  openModal('deleteSchoolModal');
+}
+
+async function confirmDeleteSchool() {
+  if (!deleteTargetId) return;
+
+  try {
+    const res  = await fetch('/api/schools/' + deleteTargetId, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      showToast('Error: ' + data.error, 'error');
+      return;
+    }
+
+    showToast('🗑 Record permanently deleted', 'success');
+    closeModal('deleteSchoolModal');
+    loadSchools();
+    loadDashboard();
+
+  } catch (e) {
+    showToast('Failed to delete record', 'error');
+  }
 }

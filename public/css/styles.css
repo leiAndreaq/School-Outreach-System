@@ -414,3 +414,23 @@ textarea.input-field { resize: vertical; }
   transition: background 0.15s;
 }
 .meeting-dot:hover { background: #a01414; }
+
+/* ── CANCELLED / RESCHEDULED MEETING DOTS ── */
+.meeting-dot.cancelled {
+  background: #9ca3af;
+  text-decoration: line-through;
+}
+.meeting-dot.rescheduled {
+  background: #f97316;
+}
+.meeting-dot.done {
+  background: #22c55e;
+}
+
+/* ── LUCIDE NAV ICONS ── */
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}

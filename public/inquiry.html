@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Accoutre AI — School Partnership Inquiry</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy:  '#1B1F6B',
+            brand: '#D01B1B',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Inquiry Styles -->
+  <link rel="stylesheet" href="/css/inquiry.css"/>
+
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- ── HEADER ── -->
+  <header class="bg-navy shadow-lg">
+    <div class="max-w-2xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div>
+        <div class="text-2xl font-bold text-white tracking-widest">
+          Accoutre AI<span class="text-red-500"></span>
+        </div>
+        <div class="text-xs text-white/40 tracking-widest mt-0.5">
+          BUSINESS CREATION & MANAGEMENT
+        </div>
+      </div>
+      <div class="text-right hidden sm:block">
+        <div class="text-xs text-white/40">Questions?</div>
+        <div class="text-sm text-white font-medium">Accoutre.ai.ph@gmail.com</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── HERO ── -->
+  <div class="bg-navy/5 border-b border-gray-200">
+    <div class="max-w-2xl mx-auto px-6 py-10 text-center">
+      <div class="inline-block bg-red-100 text-brand text-xs font-bold
+        px-3 py-1 rounded-full mb-4 tracking-wider uppercase">
+        School Partnership Program
+      </div>
+      <h1 class="text-3xl font-bold text-navy mb-3">
+        Let's Bring Your School Into the Future
+      </h1>
+      <p class="text-gray-500 text-base leading-relaxed max-w-lg mx-auto">
+        Fill out this short form and our team will reach out to schedule
+        a free 20–30 minute presentation tailored to your school's needs.
+        No commitment required.
+      </p>
+      <div class="flex items-center justify-center gap-6 mt-6 flex-wrap">
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <span class="text-green-500">✓</span> Free Presentation
+        </div>
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <span class="text-green-500">✓</span> No Commitment
+        </div>
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <span class="text-green-500">✓</span> Responds within 24 hours
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FORM CARD ── -->
+  <div class="max-w-2xl mx-auto px-4 py-10">
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden fade-in">
+
+      <!-- Card Header -->
+      <div class="bg-navy px-8 py-5">
+        <div class="text-white font-semibold text-lg">
+          Partnership Inquiry Form
+        </div>
+        <div class="text-white/50 text-sm mt-0.5">
+          All fields marked with
+          <span class="text-red-400">*</span> are required
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="px-8 pt-6">
+        <div class="flex justify-between text-xs text-gray-400 mb-1.5">
+          <span>Form Progress</span>
+          <span id="progressText">0% Complete</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <!-- ── THE FORM ── -->
+      <form id="inquiryForm" class="px-8 pb-8" onsubmit="submitForm(event)">
+
+        <!-- SECTION 1: School Info -->
+        <div class="section-heading">🏫 School Information</div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+          <div class="sm:col-span-2">
+            <label class="form-label">
+              School Name <span class="required-star">*</span>
+            </label>
+            <input type="text" id="school_name" class="input-field"
+              placeholder="e.g. St. John's Academy" required/>
+          </div>
+
+          <div>
+            <label class="form-label">School Type</label>
+            <select id="school_type" class="input-field">
+              <option value="">-- Select --</option>
+              <option>Private</option>
+              <option>Semi-Private</option>
+              <option>Non-Sectarian</option>
+              <option>Catholic</option>
+              <option>Christian</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Level Offered</label>
+            <select id="level_offered" class="input-field">
+              <option value="">-- Select --</option>
+              <option>Preschool</option>
+              <option>Elementary</option>
+              <option>Junior High School</option>
+              <option>Senior High School</option>
+              <option>K-12</option>
+              <option>College</option>
+              <option>K-12 + College</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Estimated Number of Students</label>
+            <input type="number" id="estimated_students" class="input-field"
+              placeholder="e.g. 500"/>
+          </div>
+
+          <div>
+            <label class="form-label">City / Province</label>
+            <input type="text" id="city_province" class="input-field"
+              placeholder="e.g. Quezon City"/>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="form-label">Region</label>
+            <select id="region" class="input-field">
+              <option value="">-- Select Region --</option>
+              <option>NCR - National Capital Region</option>
+              <option>Region I - Ilocos Region</option>
+              <option>Region II - Cagayan Valley</option>
+              <option>Region III - Central Luzon</option>
+              <option>Region IV-A - CALABARZON</option>
+              <option>Region IV-B - MIMAROPA</option>
+              <option>Region V - Bicol Region</option>
+              <option>Region VI - Western Visayas</option>
+              <option>Region VII - Central Visayas</option>
+              <option>Region VIII - Eastern Visayas</option>
+              <option>Region IX - Zamboanga Peninsula</option>
+              <option>Region X - Northern Mindanao</option>
+              <option>Region XI - Davao Region</option>
+              <option>Region XII - SOCCSKSARGEN</option>
+              <option>Region XIII - Caraga</option>
+              <option>CAR - Cordillera Administrative Region</option>
+              <option>BARMM - Bangsamoro</option>
+            </select>
+          </div>
+
+        </div>
+
+        <hr class="section-divider"/>
+
+        <!-- SECTION 2: Contact Info -->
+        <div class="section-heading">👤 Contact Person</div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+          <div>
+            <label class="form-label">
+              Full Name <span class="required-star">*</span>
+            </label>
+            <input type="text" id="contact_person" class="input-field"
+              placeholder="e.g. Mrs. Maria Santos" required/>
+          </div>
+
+          <div>
+            <label class="form-label">Position / Role</label>
+            <input type="text" id="position" class="input-field"
+              placeholder="e.g. School Principal"/>
+          </div>
+
+          <div>
+            <label class="form-label">
+              Email Address <span class="required-star">*</span>
+            </label>
+            <input type="email" id="email" class="input-field"
+              placeholder="e.g. principal@school.edu.ph" required/>
+          </div>
+
+          <div>
+            <label class="form-label">Phone Number</label>
+            <input type="text" id="phone" class="input-field"
+              placeholder="e.g. 09XX-XXX-XXXX"/>
+          </div>
+
+        </div>
+
+        <hr class="section-divider"/>
+
+<!-- SECTION 3: Schedule Preference -->
+        <div class="section-heading">📅 Schedule Preference</div>
+
+        <p class="text-sm text-gray-400 mb-4 leading-relaxed">
+          Please select your preferred meeting mode and schedule.
+          Our team will confirm the final details with you.
+          This is not a confirmed booking.
+        </p>
+
+        <!-- STEP 1: Meeting Mode -->
+        <div class="mb-6">
+          <label class="form-label">
+            Preferred Meeting Mode
+            <span class="required-star">*</span>
+          </label>
+          <p class="text-xs text-gray-400 mb-3">
+            Online meetings are available nationwide.
+            Onsite visits are within Metro Manila only.
+          </p>
+
+          <!-- Hidden radio inputs -->
+          <input type="radio" name="preferred_mode"
+            value="ONLINE" class="hidden"/>
+          <input type="radio" name="preferred_mode"
+            value="ONSITE" class="hidden"/>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="mode-card" id="mode-online"
+              onclick="selectMode('online')">
+              <div class="mode-icon">💻</div>
+              <div class="mode-title">Online</div>
+              <div class="mode-sub">Google Meet / Zoom</div>
+              <div class="mode-sub" style="margin-top:4px;
+                color:#22c55e; font-weight:600;">
+                Available Nationwide
+              </div>
+            </div>
+            <div class="mode-card" id="mode-onsite"
+              onclick="selectMode('onsite')">
+              <div class="mode-icon">🏫</div>
+              <div class="mode-title">Onsite</div>
+              <div class="mode-sub">At your school</div>
+              <div class="mode-sub" style="margin-top:4px;
+                color:#f59e0b; font-weight:600;">
+                Metro Manila Only
+              </div>
+            </div>
+          </div>
+
+          <!-- Onsite warning -->
+          <div id="onsiteWarning" style="display:none; margin-top:10px;
+            padding:10px 14px; background:#fef3c7;
+            border:1.5px solid #f59e0b; border-radius:8px;
+            font-size:12px; color:#92400e;">
+            ⚠️ Onsite visits are only available within Metro Manila.
+            If your school is outside Metro Manila, please select
+            Online instead or we will refer you to our partner.
+          </div>
+        </div>
+
+        <!-- STEP 2: Calendar (shows after mode selected) -->
+        <div id="calendarSection" style="display:none;">
+
+          <!-- Selected Summary — ONE clean display on top -->
+          <div id="selectionSummary" style="display:none;
+            margin-bottom:12px; padding:12px 16px;
+            background:#e8e9f5; border-radius:8px;
+            border-left:3px solid #1B1F6B;">
+            <div style="font-size:12px; color:#6b7280;
+              margin-bottom:2px;">
+              Your Selection
+            </div>
+            <div id="summaryText" style="font-size:14px;
+              font-weight:700; color:#1B1F6B;">
+            </div>
+          </div>
+
+          <div class="avail-calendar">
+
+            <!-- Calendar Header -->
+            <div class="avail-calendar-header">
+              <button type="button" onclick="availPrevMonth()"
+                class="avail-nav-btn">← Prev</button>
+              <div id="availCalTitle"
+                class="avail-calendar-title"></div>
+              <button type="button" onclick="availNextMonth()"
+                class="avail-nav-btn">Next →</button>
+            </div>
+
+            <!-- Day Labels -->
+            <div class="avail-day-labels">
+              <div class="avail-day-label">SUN</div>
+              <div class="avail-day-label">MON</div>
+              <div class="avail-day-label">TUE</div>
+              <div class="avail-day-label">WED</div>
+              <div class="avail-day-label">THU</div>
+              <div class="avail-day-label">FRI</div>
+              <div class="avail-day-label">SAT</div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div id="availGrid" class="avail-grid"></div>
+
+            <!-- Legend -->
+            <div class="avail-legend">
+              <div class="legend-item">
+                <div class="legend-dot"
+                  style="background:#22c55e;"></div>
+                Available
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot"
+                  style="background:#fde68a;
+                  border:1px solid #f59e0b;"></div>
+                Limited Slots
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot"
+                  style="background:#fee2e2;
+                  border:1px solid #fca5a5;"></div>
+                Fully Booked
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot"
+                  style="background:#1B1F6B;"></div>
+                Selected
+              </div>
+            </div>
+
+          </div>
+
+          <!-- STEP 3: Time Slots -->
+          <div id="timeSlotsWrapper" style="display:none; margin-top:16px;">
+            <label class="form-label">
+              Preferred Time
+              <span class="required-star">*</span>
+            </label>
+            <div id="timeSlotsContainer"></div>
+            <!-- Summary appears here after time is selected -->
+          </div>
+
+        </div>
+
+        <!-- Hidden inputs -->
+        <input type="hidden" id="preferred_time" value=""/>
+
+        <hr class="section-divider"/>
+
+        <!-- SECTION 4: Additional Info -->
+        <div class="section-heading">💬 Additional Information</div>
+
+        <div class="flex flex-col gap-4 mb-6">
+
+          <div>
+            <label class="form-label">
+            How did you hear about us?
+            <span style="color:#9ca3af; font-weight:400;">(optional)</span>
+          </label>
+            <select id="heard_from" class="input-field">
+              <option value="">-- Select --</option>
+              <option>Facebook</option>
+              <option>Instagram</option>
+              <option>LinkedIn</option>
+              <option>Referral from another school</option>
+              <option>Google Search</option>
+              <option>Email</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">
+              Message or Questions
+              <span style="color:#9ca3af; font-weight:400;">(optional)</span>
+            </label>
+            <textarea id="message" class="input-field"
+              style="height:100px; resize:vertical;"
+              placeholder="Feel free to share anything you'd like us to know...">
+            </textarea>
+          </div>
+
+        </div>
+
+        <!-- Privacy Notice -->
+        <div class="privacy-box">
+          🔒 <strong style="color:#6b7280;">Privacy Notice:</strong>
+          The information you provide will only be used to contact you
+          regarding the Accoutre AI School Management System presentation.
+          We will never sell or share your information with third parties.
+          You may opt out at any time by replying "unsubscribe" to
+          any of our emails.
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span id="submitText">Submit Inquiry ✉️</span>
+        </button>
+
+      </form>
+
+      <!-- ── SUCCESS SCREEN ── -->
+      <div class="success-screen" id="successScreen">
+        <div class="success-icon">✅</div>
+        <h2 class="text-2xl font-bold text-navy mb-3">Thank You!</h2>
+        <p class="text-gray-500 text-base leading-relaxed mb-2">
+          Your inquiry has been successfully submitted.
+        </p>
+        <p class="text-gray-500 text-sm leading-relaxed mb-8">
+          Our team will review your submission and reach out within
+          <strong class="text-navy">24 hours</strong> to confirm
+          your presentation schedule.
+        </p>
+        <div class="next-steps-box">
+          <div class="text-xs font-bold text-navy uppercase
+            tracking-wider mb-3">
+            What Happens Next?
+          </div>
+          <div class="step">
+            <span class="step-num">1.</span>
+            Our team reviews your inquiry
+          </div>
+          <div class="step">
+            <span class="step-num">2.</span>
+            We send you a confirmation email with the meeting details
+          </div>
+          <div class="step">
+            <span class="step-num">3.</span>
+            We present the Accoutre AI School Management System to you
+          </div>
+          <div class="step">
+            <span class="step-num">4.</span>
+            You decide if it's a good fit — no pressure!
+          </div>
+        </div>
+        <p class="text-sm text-gray-400">
+          Questions? Email us at
+          <a href="mailto:Accouture.ai.ph@gmail.com"
+            class="text-navy font-medium">
+            Accouture.ai.ph@gmail.com
+          </a>
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Page Footer -->
+    <div class="text-center mt-8 text-xs text-gray-400 pb-8">
+      © 2026 Accoutre AI Business Creation & Management OPC ·
+      Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City ·
+      <a href="mailto:Accouture.ai.ph@gmail.com"
+        class="hover:text-navy transition-colors">
+        Accouture.ai.ph@gmail.com
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Inquiry JS -->
+  <script src="/js/inquiry.js"></script>
+
+</body>
+</html>

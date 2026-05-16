@@ -40,7 +40,9 @@ function showTab(name) {
     schools:   'school leads',
     add:       'add school',
     import:    'import csv',
-    drafts:    'email drafts'
+    drafts:    'email drafts',
+    calendar:  'calendar',
+    inquiries: 'inquiries'
   };
 
   document.querySelectorAll('.nav-item').forEach(n => {
@@ -54,6 +56,7 @@ function showTab(name) {
   if (name === 'schools')   loadSchools();
   if (name === 'drafts')    loadDrafts();
   if (name === 'calendar')  loadCalendar();
+  if (name === 'inquiries')  loadInquiries();
 }
 
 // ── TOAST NOTIFICATIONS ──
@@ -119,6 +122,23 @@ function emptyState(icon, title, sub = '') {
     </tr>`;
 }
 
+// ── CHECK PENDING INQUIRIES (badge on sidebar) ──
+async function checkPendingInquiries() {
+  try {
+    const res = await fetch('/api/inquiries/count/pending');
+    const data = await res.json();
+    const badge = document.getElementById('pendingBadge');
+    if (data.count > 0) {
+      badge.textContent = data.count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  } catch (e) {
+    console.error('Could not check pending inquiries');
+  }
+}
+
 // ── CHECK AI MODE ──
 async function checkHealth() {
   try {
@@ -133,6 +153,8 @@ async function checkHealth() {
   } catch (e) {
     console.error('Health check failed:', e);
   }
+  // Check pending inquiries count
+  checkPendingInquiries();
 }
 
 // ── STATUS MODAL ──
@@ -165,4 +187,21 @@ checkHealth();
 // Wait for page to fully load before fetching data
 window.addEventListener('load', () => {
   loadDashboard();
+
+  // Auto refresh every 10 seconds
+  setInterval(() => {
+    // Refresh whichever tab is currently active
+    const active = document.querySelector('.tab-section.active');
+    if (!active) return;
+
+    const id = active.id;
+    if (id === 'tab-dashboard')  loadDashboard();
+    if (id === 'tab-schools')    loadSchools();
+    if (id === 'tab-drafts')     loadDrafts();
+    if (id === 'tab-calendar')   loadCalendar();
+    if (id === 'tab-inquiries')  loadInquiries();
+
+    // Always check pending badge
+    checkPendingInquiries();
+  }, 10000);
 });

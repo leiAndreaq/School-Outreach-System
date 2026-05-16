@@ -70,6 +70,50 @@ db.serialize(() => {
       FOREIGN KEY (school_id) REFERENCES schools(id)
     )
   `);
+db.run(`
+    CREATE TABLE IF NOT EXISTS meetings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_id INTEGER NOT NULL,
+      school_name TEXT NOT NULL,
+      contact_person TEXT,
+      meeting_type TEXT DEFAULT 'PRESENTATION',
+      meeting_date TEXT NOT NULL,
+      meeting_time TEXT NOT NULL,
+      meeting_mode TEXT DEFAULT 'ONLINE',
+      meeting_link TEXT,
+      meeting_address TEXT,
+      notes TEXT,
+      status TEXT DEFAULT 'SCHEDULED',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (school_id) REFERENCES schools(id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS inquiries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_name TEXT NOT NULL,
+      school_type TEXT,
+      level_offered TEXT,
+      estimated_students INTEGER,
+      city_province TEXT,
+      region TEXT,
+      contact_person TEXT NOT NULL,
+      position TEXT,
+      email TEXT NOT NULL,
+      phone TEXT,
+      preferred_date TEXT,
+      preferred_time TEXT,
+      preferred_mode TEXT DEFAULT 'ONLINE',
+      heard_from TEXT,
+      message TEXT,
+      status TEXT DEFAULT 'PENDING',
+      rejection_reason TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 });
 
 module.exports = db;
