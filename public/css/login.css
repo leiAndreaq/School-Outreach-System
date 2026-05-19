@@ -1,0 +1,197 @@
+/* ── LOGIN PAGE STYLES ── */
+
+* { font-family: 'Inter', sans-serif; }
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: #1B1F6B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── BACKGROUND PATTERN ── */
+.bg-pattern {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(208,27,27,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.05) 0%, transparent 40%),
+    radial-gradient(circle at 60% 80%, rgba(208,27,27,0.08) 0%, transparent 40%);
+  z-index: 0;
+}
+
+/* ── LOGIN CARD ── */
+.login-card {
+  position: relative;
+  z-index: 1;
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── CARD HEADER ── */
+.login-header {
+  background: #1B1F6B;
+  padding: 32px 32px 24px;
+  text-align: center;
+}
+
+.login-logo {
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+
+.login-logo span { color: #D01B1B; }
+
+.login-tagline {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 16px;
+}
+
+/* ── CARD BODY ── */
+.login-body {
+  padding: 32px;
+}
+
+.login-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1B1F6B;
+  margin-bottom: 6px;
+}
+
+.login-desc {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 24px;
+}
+
+/* ── FORM ELEMENTS ── */
+.login-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1B1F6B;
+  margin-bottom: 6px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+}
+.login-input:focus { border-color: #1B1F6B; }
+
+/* ── PASSWORD WRAPPER ── */
+.password-wrapper {
+  position: relative;
+}
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 16px;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.toggle-password:hover { color: #1B1F6B; }
+
+/* ── LOGIN BUTTON ── */
+.login-btn {
+  width: 100%;
+  padding: 13px;
+  background: #D01B1B;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 20px;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.login-btn:hover    { background: #a01414; }
+.login-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+
+/* ── ERROR MESSAGE ── */
+.login-error {
+  display: none;
+  padding: 10px 14px;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #991b1b;
+  margin-top: 12px;
+  text-align: center;
+}
+.login-error.show { display: block; }
+
+/* ── ATTEMPTS WARNING ── */
+.attempts-warning {
+  display: none;
+  font-size: 11px;
+  color: #f59e0b;
+  text-align: center;
+  margin-top: 8px;
+}
+.attempts-warning.show { display: block; }
+
+/* ── FOOTER ── */
+.login-footer {
+  padding: 16px 32px;
+  border-top: 1px solid #f3f4f6;
+  text-align: center;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ── SHAKE ANIMATION (wrong password) ── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-8px); }
+  40%       { transform: translateX(8px); }
+  60%       { transform: translateX(-5px); }
+  80%       { transform: translateX(5px); }
+}
+.shake { animation: shake 0.4s ease; }

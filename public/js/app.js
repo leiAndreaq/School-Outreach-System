@@ -34,7 +34,6 @@ function showTab(name) {
   // Show the selected tab
   document.getElementById('tab-' + name).classList.add('active');
 
-  // Set active nav item
   const navMap = {
     dashboard: 'dashboard',
     schools:   'school leads',
@@ -42,9 +41,11 @@ function showTab(name) {
     import:    'import csv',
     drafts:    'email drafts',
     calendar:  'calendar',
-    inquiries: 'inquiries'
+    inquiries: 'inquiries',
+    history:   'deletion history',
+    settings:  'settings'
   };
-
+  
   document.querySelectorAll('.nav-item').forEach(n => {
     if (n.textContent.trim().toLowerCase().includes(navMap[name])) {
       n.classList.add('active');
@@ -57,6 +58,7 @@ function showTab(name) {
   if (name === 'drafts')    loadDrafts();
   if (name === 'calendar')  loadCalendar();
   if (name === 'inquiries')  loadInquiries();
+  if (name === 'history')    loadHistory();
 }
 
 // ── TOAST NOTIFICATIONS ──
@@ -184,24 +186,164 @@ async function confirmStatusUpdate() {
 // ── INIT ──
 checkHealth();
 
-// Wait for page to fully load before fetching data
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+
+  // ── CHECK SESSION FIRST ──
+  try {
+    const res  = await fetch('/api/session');
+    const data = await res.json();
+    if (!data.authenticated) {
+      window.location.href = '/login.html';
+      return;
+    }
+  } catch (e) {
+    window.location.href = '/login.html';
+    return;
+  }
+
   loadDashboard();
 
   // Auto refresh every 10 seconds
   setInterval(() => {
-    // Refresh whichever tab is currently active
     const active = document.querySelector('.tab-section.active');
     if (!active) return;
-
     const id = active.id;
     if (id === 'tab-dashboard')  loadDashboard();
     if (id === 'tab-schools')    loadSchools();
     if (id === 'tab-drafts')     loadDrafts();
     if (id === 'tab-calendar')   loadCalendar();
     if (id === 'tab-inquiries')  loadInquiries();
-
-    // Always check pending badge
     checkPendingInquiries();
   }, 10000);
+
+  // ── SESSION EXPIRY CHECK ──
+  async function checkSession() {
+    try {
+      const res  = await fetch('/api/session');
+      const data = await res.json();
+      if (!data.authenticated) {
+        showToast('Session expired. Redirecting to login...', '');
+        setTimeout(() => { window.location.href = '/login.html'; }, 2000);
+      }
+    } catch (e) {
+      window.location.href = '/login.html';
+    }
+  }
+
+  // Check every minute while tab is active
+  setInterval(checkSession, 60 * 1000);
+
+  // Re-validate immediately whenever the user returns to this tab
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkSession();
+  });
+
 });
+
+// ── LOGOUT ──
+async function handleLogout() {
+  const confirmed = confirm('Are you sure you want to logout?');
+  if (!confirmed) return;
+
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch (e) {
+    console.error('Logout error');
+  }
+  window.location.href = '/login.html';
+}
+
+// ── CHANGE PASSWORD ──
+function openChangePasswordModal() {
+  document.getElementById('currentPassword').value  = '';
+  document.getElementById('newPassword').value      = '';
+  document.getElementById('confirmPassword').value  = '';
+  document.getElementById('passwordChangeError').style.display = 'none';
+  openModal('changePasswordModal');
+}
+
+async function submitChangePassword() {
+  const current  = document.getElementById('currentPassword').value.trim();
+  const newPass  = document.getElementById('newPassword').value.trim();
+  const confirm  = document.getElementById('confirmPassword').value.trim();
+  const errorEl  = document.getElementById('passwordChangeError');
+
+  errorEl.style.display = 'none';
+
+  if (!current || !newPass || !confirm) {
+    errorEl.textContent   = 'Please fill in all fields.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if (newPass.length < 8) {
+    errorEl.textContent   = 'New password must be at least 8 characters.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if (newPass !== confirm) {
+    errorEl.textContent   = 'New passwords do not match.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res  = await fetch('/api/change-password', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        current_password: current,
+        new_password:     newPass
+      })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      errorEl.textContent   = data.error;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    showToast('✅ Password changed successfully!', 'success');
+    closeModal('changePasswordModal');
+
+  } catch (e) {
+    errorEl.textContent   = 'Something went wrong. Please try again.';
+    errorEl.style.display = 'block';
+  }
+}
+
+// ── MANUAL BACKUP ──
+async function triggerBackup() {
+  const btn = document.querySelector('[onclick="triggerBackup()"]');
+
+  // Disable button to prevent spam clicking
+  if (btn) {
+    btn.disabled        = true;
+    btn.textContent     = '💾 Backing up...';
+  }
+
+  try {
+    const res  = await fetch('/api/backup', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.error) {
+      showToast('Backup failed: ' + data.error, 'error');
+      return;
+    }
+
+    showToast('💾 Backup created successfully!', 'success');
+
+  } catch (e) {
+    showToast('Backup failed', 'error');
+  } finally {
+    // Re-enable after 5 seconds
+    if (btn) {
+      setTimeout(() => {
+        btn.disabled    = false;
+        btn.textContent = '💾 Backup';
+      }, 5000);
+    }
+  }
+}

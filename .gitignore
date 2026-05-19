@@ -19,3 +19,12 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Database backups
+backups/
+
+# Claude Code (AI assistant tool files — not part of the project)
+.claude/
+CLAUDE_CONTEXT.md
+*claude*
+*CLAUDE*

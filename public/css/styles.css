@@ -28,9 +28,10 @@
   background: rgba(255,255,255,0.06);
 }
 .nav-item.active {
-  color: #fff;
-  border-left-color: var(--red);
-  background: rgba(208,27,27,0.12);
+  color: var(--navy);
+  background: #ffffff;
+  border-left-color: var(--navy);
+  font-weight: 700;
 }
 
 /* ── TABS ── */

@@ -1,11 +1,95 @@
 require("dotenv").config();
 
+// ── .ENV VALIDATION ──
+(function validateEnv() {
+  // These must be set — server cannot function safely without them
+  const required = [
+    { key: "SESSION_SECRET", hint: "Set a long random string (e.g. run: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\")" },
+  ];
+
+  // These are optional now but should be filled before go-live
+  const recommended = [
+    { key: "COMPANY_NAME",  hint: "Your company name shown in email templates" },
+    { key: "COMPANY_EMAIL", hint: "Your business email address — needed for sending emails" },
+    { key: "COMPANY_PHONE", hint: "Your contact number shown in email templates" },
+    { key: "SMTP_HOST",     hint: "Brevo SMTP host — required for sending emails (smtp-relay.brevo.com)" },
+    { key: "SMTP_USER",     hint: "Brevo SMTP username (your Brevo account email)" },
+    { key: "SMTP_PASS",     hint: "Brevo SMTP password/API key" },
+    // CRM_PASSWORD is only needed if the database is wiped and needs re-seeding.
+    // Once the hash is stored in the DB, this can stay blank.
+  ];
+
+  const missing = required.filter(v => !process.env[v.key]?.trim());
+
+  if (missing.length > 0) {
+    console.error("\n╔══════════════════════════════════════════════════════════╗");
+    console.error("║           STARTUP FAILED — MISSING REQUIRED .ENV        ║");
+    console.error("╚══════════════════════════════════════════════════════════╝");
+    missing.forEach(v => {
+      console.error(`\n  ✖ ${v.key} is not set`);
+      console.error(`    → ${v.hint}`);
+    });
+    console.error("\n  Fix the above in your .env file and restart the server.\n");
+    process.exit(1);
+  }
+
+  const unset = recommended.filter(v => !process.env[v.key]?.trim());
+
+  if (unset.length > 0) {
+    console.warn("\n┌──────────────────────────────────────────────────────────┐");
+    console.warn("│        WARNING — RECOMMENDED .ENV VALUES NOT SET         │");
+    console.warn("└──────────────────────────────────────────────────────────┘");
+    unset.forEach(v => {
+      console.warn(`\n  ⚠  ${v.key} is not set`);
+      console.warn(`     → ${v.hint}`);
+    });
+    console.warn("\n  Server is starting, but some features will not work correctly.");
+    console.warn("  Fill these in .env before going live.\n");
+  }
+})();
+
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const multer = require("multer");
 const fs = require("fs");
 const csv = require("csv-parser");
+
+const rateLimit = require("express-rate-limit");
+
+const { body, validationResult } = require("express-validator");
+
+const cron = require("node-cron");
+const path = require("path");
+
+const session = require("express-session");
+const bcrypt  = require("bcryptjs");
+
+// ── RATE LIMITERS ──
+
+// Inquiry form — max 3 submissions per hour per IP
+const inquiryLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3,
+  message: {
+    error: "Too many inquiries submitted from your connection. Please try again after 1 hour.",
+    code: "RATE_LIMITED"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// General API protection — max 100 requests per 15 minutes per IP
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: {
+    error: "Too many requests. Please slow down.",
+    code: "RATE_LIMITED"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const db = require("./database");
 const { generateEmail, hasApiKey } = require("./ai");
@@ -18,6 +102,59 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static("public"));
 
+// ── SESSION SETUP ──
+const SESSION_MAX_MS = 8 * 60 * 60 * 1000; // 8 hours absolute limit
+
+app.use(session({
+  secret:            process.env.SESSION_SECRET,
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    // No maxAge = session cookie: browser discards it when closed.
+    // Server enforces the 8-hour limit independently via loginTime.
+    httpOnly: true,
+    sameSite: "strict"
+  }
+}));
+
+// ── AUTH MIDDLEWARE ──
+// Protects all /api routes except login and inquiries
+function requireAuth(req, res, next) {
+  const publicRoutes = [
+    "/login",
+    "/logout",
+    "/inquiries",
+    "/availability",
+    "/session"
+  ];
+
+  const isPublic = publicRoutes.some(route =>
+    req.path.startsWith(route)
+  );
+
+  if (isPublic) return next();
+
+  if (!req.session.authenticated) {
+    return res.status(401).json({
+      error: "Unauthorized. Please log in.",
+      code:  "UNAUTHORIZED"
+    });
+  }
+
+  // Enforce 8-hour absolute limit server-side
+  if (Date.now() - req.session.loginTime > SESSION_MAX_MS) {
+    req.session.destroy(() => {});
+    return res.status(401).json({
+      error: "Session expired. Please log in again.",
+      code:  "SESSION_EXPIRED"
+    });
+  }
+
+  next();
+}
+
+app.use("/api", requireAuth);
+
 function logActivity(schoolId, activityType, details) {
   db.run(
     `INSERT INTO activity_logs (school_id, activity_type, details) VALUES (?, ?, ?)`,
@@ -25,7 +162,114 @@ function logActivity(schoolId, activityType, details) {
   );
 }
 
-app.get("/api/health", (req, res) => {
+// ── LOGIN RATE LIMITER ──
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // max 5 attempts
+  message: {
+    error: "Too many login attempts. Please wait 15 minutes.",
+    code:  "RATE_LIMITED"
+  }
+});
+
+// ── LOGIN ──
+app.post("/api/login", loginLimiter, (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ error: "Password is required" });
+  }
+
+  db.get(`SELECT * FROM auth LIMIT 1`, [], (err, row) => {
+    if (err || !row) {
+      return res.status(500).json({ error: "Auth not configured" });
+    }
+
+    const valid = bcrypt.compareSync(password, row.password_hash);
+
+    if (!valid) {
+      return res.status(401).json({
+        error: "Incorrect password. Please try again.",
+        code:  "WRONG_PASSWORD"
+      });
+    }
+
+    // Set session
+    req.session.authenticated = true;
+    req.session.loginTime     = Date.now();
+    req.session.ip            = req.ip;
+
+    res.json({ message: "Login successful" });
+  });
+});
+
+// ── LOGOUT ──
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.json({ message: "Logged out successfully" });
+  });
+});
+
+// ── CHANGE PASSWORD ──
+app.post("/api/change-password", (req, res) => {
+  const { current_password, new_password } = req.body;
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({
+      error: "Current and new password are required"
+    });
+  }
+
+  if (new_password.length < 8) {
+    return res.status(400).json({
+      error: "New password must be at least 8 characters"
+    });
+  }
+
+  db.get(`SELECT * FROM auth LIMIT 1`, [], (err, row) => {
+    if (err || !row) {
+      return res.status(500).json({ error: "Auth not configured" });
+    }
+
+    const valid = bcrypt.compareSync(current_password, row.password_hash);
+    if (!valid) {
+      return res.status(401).json({
+        error: "Current password is incorrect"
+      });
+    }
+
+    const newHash = bcrypt.hashSync(new_password, 10);
+    db.run(
+      `UPDATE auth SET password_hash = ?,
+       updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [newHash, row.id],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Password changed successfully" });
+      }
+    );
+  });
+});
+
+// ── CHECK SESSION ──
+app.get("/api/session", (req, res) => {
+  res.json({
+    authenticated: req.session.authenticated || false,
+    loginTime:     req.session.loginTime     || null
+  });
+});
+
+// Manual backup trigger
+app.post("/api/backup", (req, res) => {
+  try {
+    runBackup();
+    res.json({ message: "Backup created successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/health", apiLimiter, (req, res) => {
   res.json({
     app: "ThinkTANQ AI School Outreach MVP",
     status: "running",
@@ -34,7 +278,60 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.post("/api/schools", (req, res) => {
+app.post("/api/schools", [
+  body("school_name")
+    .trim()
+    .notEmpty().withMessage("School name is required")
+    .isLength({ max: 200 }).withMessage("School name too long")
+    .escape(),
+  body("email")
+    .optional()
+    .trim()
+    .isEmail().withMessage("Invalid email address")
+    .normalizeEmail(),
+  body("phone")
+    .optional()
+    .trim()
+    .matches(/^[\d\s\-\+\(\)]*$/)
+    .withMessage("Invalid phone number format"),
+  body("estimated_students")
+    .optional()
+    .isInt({ min: 1, max: 100000 })
+    .withMessage("Invalid student count"),
+  body("contact_person")
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .escape(),
+  body("notes")
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .escape(),
+  body("address")
+    .optional()
+    .trim()
+    .isLength({ max: 300 })
+    .escape(),
+  body("city_province")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .escape(),
+  body("website")
+    .optional()
+    .trim()
+    .isURL()
+    .withMessage("Invalid website URL"),
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      error: errors.array()[0].msg,
+      code:  "VALIDATION_ERROR"
+    });
+  }
+
   const s = req.body;
 
   if (!s.school_name) {
@@ -74,6 +371,8 @@ app.get("/api/schools/:id", (req, res) => {
 
 // ── DELETE SCHOOL (Right to Erasure) ──
 app.delete("/api/schools/:id", (req, res) => {
+  const { reason } = req.body;
+
   db.get(
     `SELECT * FROM schools WHERE id = ?`,
     [req.params.id],
@@ -81,6 +380,18 @@ app.delete("/api/schools/:id", (req, res) => {
       if (err || !school) {
         return res.status(404).json({ error: "School not found" });
       }
+
+      // Save to deletion history BEFORE deleting
+      db.run(
+        `INSERT INTO deletion_history
+         (record_type, record_name, reason)
+         VALUES (?, ?, ?)`,
+        [
+          'SCHOOL',
+          school.school_name,
+          reason || 'No reason provided'
+        ]
+      );
 
       // Delete all associated data
       db.run(`DELETE FROM email_drafts WHERE school_id = ?`,
@@ -109,6 +420,8 @@ app.delete("/api/schools/:id", (req, res) => {
 
 // ── DELETE INQUIRY (Right to Erasure) ──
 app.delete("/api/inquiries/:id", (req, res) => {
+  const { reason } = req.body;
+
   db.get(
     `SELECT * FROM inquiries WHERE id = ?`,
     [req.params.id],
@@ -116,6 +429,18 @@ app.delete("/api/inquiries/:id", (req, res) => {
       if (err || !inquiry) {
         return res.status(404).json({ error: "Inquiry not found" });
       }
+
+      // Save to deletion history BEFORE deleting
+      db.run(
+        `INSERT INTO deletion_history
+         (record_type, record_name, reason)
+         VALUES (?, ?, ?)`,
+        [
+          'INQUIRY',
+          inquiry.school_name,
+          reason || 'No reason provided'
+        ]
+      );
 
       db.run(
         `DELETE FROM inquiries WHERE id = ?`,
@@ -276,8 +601,6 @@ app.get("/api/activity-logs/:schoolId", (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-
 // Check if school email already exists
 app.get("/api/schools/check-email/:email", (req, res) => {
   db.get(
@@ -294,6 +617,18 @@ app.get("/api/schools/check-email/:email", (req, res) => {
       } else {
         res.json({ exists: false });
       }
+    }
+  );
+});
+
+// ── DELETION HISTORY API ──
+app.get("/api/deletion-history", (req, res) => {
+  db.all(
+    `SELECT * FROM deletion_history ORDER BY deleted_at DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
     }
   );
 });
@@ -324,8 +659,87 @@ app.get("/api/inquiries/:id", (req, res) => {
   );
 });
 
-// Submit inquiry (public form)
-app.post("/api/inquiries", (req, res) => {
+// Submit inquiry (public form) — rate limited + sanitized
+app.post("/api/inquiries", inquiryLimiter, [
+  body("school_name")
+    .trim()
+    .notEmpty().withMessage("School name is required")
+    .isLength({ max: 200 }).withMessage("School name too long")
+    .not().matches(/<[^>]*>/).withMessage("School name contains invalid characters")
+    .escape(),
+  body("contact_person")
+    .trim()
+    .notEmpty().withMessage("Contact person is required")
+    .isLength({ max: 200 }).withMessage("Name too long")
+    .not().matches(/<[^>]*>/).withMessage("Name contains invalid characters")
+    .escape(),
+  body("email")
+    .trim()
+    .notEmpty().withMessage("Email is required")
+    .isEmail().withMessage("Invalid email address")
+    .normalizeEmail(),
+  body("phone")
+    .optional()
+    .trim()
+    .matches(/^[\d\s\-\+\(\)]+$/)
+    .withMessage("Invalid phone number format"),
+  body("estimated_students")
+    .optional()
+    .isInt({ min: 1, max: 100000 })
+    .withMessage("Invalid student count"),
+  body("message")
+    .optional()
+    .trim()
+    .isLength({ max: 1000 }).withMessage("Message too long")
+    .not().matches(/<[^>]*>/).withMessage("Message contains invalid characters")
+    .escape(),
+  body("position")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .escape(),
+  body("city_province")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .escape(),
+  body("school_type")
+    .optional()
+    .trim()
+    .escape(),
+  body("level_offered")
+    .optional()
+    .trim()
+    .escape(),
+  body("heard_from")
+    .optional()
+    .trim()
+    .escape(),
+  body("preferred_mode")
+    .optional()
+    .isIn(["ONLINE", "ONSITE"])
+    .withMessage("Invalid meeting mode"),
+], (req, res) => {
+
+  // Check validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      error: errors.array()[0].msg,
+      code:  "VALIDATION_ERROR"
+    });
+  }
+
+  // ── HONEYPOT CHECK ──
+  // If honeypot field is filled — it's a bot
+  // Silently accept but don't save to database
+  if (req.body.website_url && req.body.website_url.trim() !== '') {
+    return res.json({
+      message: "Inquiry submitted successfully",
+      id: 0
+    });
+  }
+
   const i = req.body;
 
   if (!i.school_name || !i.contact_person || !i.email) {
@@ -838,6 +1252,69 @@ app.get("/api/meetings/upcoming/week", (req, res) => {
   );
 });
 
+// ── DATABASE BACKUP SYSTEM ──
+
+const BACKUP_DIR     = path.join(__dirname, "backups");
+const DB_FILE        = path.join(__dirname, "thinktanq_outreach.db");
+const KEEP_DAYS      = 30;
+
+// Create backups folder if it doesn't exist
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR);
+  console.log("✅ Backups folder created");
+}
+
+function runBackup() {
+  try {
+    const today    = new Date();
+    const dateStr  = today.toISOString().split("T")[0];
+    const backupFile = path.join(
+      BACKUP_DIR,
+      `thinktanq_backup_${dateStr}.db`
+    );
+
+    // Copy database file
+    fs.copyFileSync(DB_FILE, backupFile);
+    console.log(`✅ Backup created: thinktanq_backup_${dateStr}.db`);
+
+    // Delete backups older than 30 days
+    const files = fs.readdirSync(BACKUP_DIR);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - KEEP_DAYS);
+
+    let deleted = 0;
+    files.forEach(file => {
+      if (!file.startsWith("thinktanq_backup_")) return;
+
+      const filePath = path.join(BACKUP_DIR, file);
+      const fileStat = fs.statSync(filePath);
+
+      if (fileStat.mtime < cutoff) {
+        fs.unlinkSync(filePath);
+        deleted++;
+        console.log(`🗑 Old backup deleted: ${file}`);
+      }
+    });
+
+    if (deleted === 0) {
+      console.log("ℹ️ No old backups to delete");
+    }
+
+  } catch (err) {
+    console.error("❌ Backup failed:", err.message);
+  }
+}
+
+// Run backup every day at midnight Philippine time (UTC+8)
+// Midnight PHT = 4:00 PM UTC = cron "0 16 * * *"
+cron.schedule("0 16 * * *", () => {
+  console.log("⏰ Running scheduled database backup...");
+  runBackup();
+});
+
+console.log("✅ Backup scheduler started — runs daily at midnight PHT");
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`ThinkTANQ AI School Outreach MVP running on http://localhost:${PORT}`);
 });

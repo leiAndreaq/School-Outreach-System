@@ -114,6 +114,63 @@ db.run(`
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+db.run(`
+    CREATE TABLE IF NOT EXISTS inquiries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      school_name TEXT NOT NULL,
+      school_type TEXT,
+      level_offered TEXT,
+      estimated_students INTEGER,
+      city_province TEXT,
+      region TEXT,
+      contact_person TEXT NOT NULL,
+      position TEXT,
+      email TEXT NOT NULL,
+      phone TEXT,
+      preferred_date TEXT,
+      preferred_time TEXT,
+      preferred_mode TEXT DEFAULT 'ONLINE',
+      heard_from TEXT,
+      message TEXT,
+      status TEXT DEFAULT 'PENDING',
+      rejection_reason TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ── AUTH TABLE ──
+  db.run(`
+    CREATE TABLE IF NOT EXISTS auth (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      password_hash TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ── SEED DEFAULT PASSWORD FROM .env ──
+  const bcrypt = require("bcryptjs");
+  db.get(`SELECT * FROM auth LIMIT 1`, [], (err, row) => {
+    if (!row) {
+      const hash = bcrypt.hashSync(
+        process.env.CRM_PASSWORD || "thinktanq2026", 10
+      );
+      db.run(`INSERT INTO auth (password_hash) VALUES (?)`, [hash]);
+      console.log("✅ Default password set from .env");
+    }
+  });
+
+  // ── DELETION HISTORY TABLE ──
+  db.run(`
+    CREATE TABLE IF NOT EXISTS deletion_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      record_type TEXT NOT NULL,
+      record_name TEXT NOT NULL,
+      reason TEXT,
+      deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 });
 
 module.exports = db;

@@ -334,6 +334,15 @@ async function submitForm(e) {
   btn.disabled     = true;
   text.textContent = 'Submitting...';
 
+  // ── HONEYPOT CHECK ──
+  const honeypot = document.getElementById('website_url');
+  if (honeypot && honeypot.value.trim() !== '') {
+    // Bot detected — pretend it worked silently
+    document.getElementById('inquiryForm').style.display   = 'none';
+    document.getElementById('successScreen').style.display = 'block';
+    return;
+  }
+
   const modeEl = document.querySelector(
     'input[name="preferred_mode"]:checked'
   );
@@ -365,7 +374,16 @@ async function submitForm(e) {
     const data = await res.json();
 
     if (data.error) {
-      showToast('Error: ' + data.error, 'error');
+      if (data.code === 'RATE_LIMITED') {
+        showToast(
+          '⚠️ Too many submissions. Please try again after 1 hour.',
+          'error'
+        );
+      } else if (data.code === 'VALIDATION_ERROR') {
+        showToast('⚠️ ' + data.error, 'error');
+      } else {
+        showToast('Error: ' + data.error, 'error');
+      }
       btn.disabled     = false;
       text.textContent = 'Submit Inquiry ✉️';
       return;

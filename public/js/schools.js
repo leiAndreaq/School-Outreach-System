@@ -314,9 +314,13 @@ function deleteSchool(id) {
 async function confirmDeleteSchool() {
   if (!deleteTargetId) return;
 
+  const reason = document.getElementById('deleteReason').value;
+
   try {
     const res  = await fetch('/api/schools/' + deleteTargetId, {
-      method: 'DELETE'
+      method:  'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ reason })
     });
     const data = await res.json();
 

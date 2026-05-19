@@ -14,8 +14,9 @@
       theme: {
         extend: {
           colors: {
-            navy:  '#1B1F6B',
-            brand: '#D01B1B',
+            navy:       '#1B1F6B',
+            'navy-light': '#E8E9F1',
+            brand:      '#D01B1B',
           },
           fontFamily: {
             inter: ['Inter', 'sans-serif'],
@@ -31,45 +32,25 @@
   <!-- Custom Styles -->
   <link rel="stylesheet" href="/css/styles.css"/>
 </head>
-<body class="bg-gray-100 font-inter">
+<body class="bg-navy-light font-inter">
 
   <!-- SIDEBAR -->
   <aside id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-navy flex flex-col z-50 shadow-xl">
 
-    <!-- Logo -->
-    <div class="px-5 py-6 border-b border-white/10">
-      <div class="text-base font-bold text-white tracking-widest">
-          ACCOUTRE AI
-        </div>
-      <div class="text-xs tracking-widest text-white/40 mt-1 font-mono">
-        powered by THINKTANQ
-      </div>
+    <!-- Header -->
+    <div class="px-4 py-5 flex flex-col items-center text-center border-b border-white/10">
+      <div class="text-base font-bold text-white tracking-widest">ACCOUTRE AI</div>
+      <div class="text-xs text-white/40 font-mono tracking-widest mt-1">powered by THINKTANQ</div>
+      <div class="mt-2 px-3 py-0.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-semibold tracking-wide">Administrator</div>
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 py-4">
+    <nav class="flex-1 py-4 overflow-y-auto">
       <div class="px-4 mb-2 text-xs tracking-widest text-white/30 font-mono uppercase">Menu</div>
 
       <div class="nav-item active" onclick="showTab('dashboard')">
         <i data-lucide="layout-dashboard" class="nav-icon"></i>
         Dashboard
-      </div>
-      <div class="nav-item" onclick="showTab('schools')">
-        <i data-lucide="school" class="nav-icon"></i>
-        School Leads
-      </div>
-      
-      <div class="nav-item" onclick="showTab('import')">
-        <i data-lucide="upload" class="nav-icon"></i>
-        Import CSV
-      </div>
-      <div class="nav-item" onclick="showTab('drafts')">
-        <i data-lucide="mail" class="nav-icon"></i>
-        Email Drafts
-      </div>
-      <div class="nav-item" onclick="showTab('calendar')">
-        <i data-lucide="calendar" class="nav-icon"></i>
-        Calendar
       </div>
       <div class="nav-item" onclick="showTab('inquiries')">
         <i data-lucide="inbox" class="nav-icon"></i>
@@ -79,14 +60,38 @@
           0
         </span>
       </div>
+      <div class="nav-item" onclick="showTab('schools')">
+        <i data-lucide="school" class="nav-icon"></i>
+        School Leads
+      </div>
+      <div class="nav-item" onclick="showTab('calendar')">
+        <i data-lucide="calendar" class="nav-icon"></i>
+        Calendar
+      </div>
+      <div class="nav-item" onclick="showTab('import')">
+        <i data-lucide="upload" class="nav-icon"></i>
+        Import CSV
+      </div>
+      <div class="nav-item" onclick="showTab('drafts')">
+        <i data-lucide="mail" class="nav-icon"></i>
+        Email Drafts
+      </div>
+      <div class="nav-item" onclick="showTab('history')">
+        <i data-lucide="history" class="nav-icon"></i>
+        Deletion History
+      </div>
+      <div class="nav-item" onclick="showTab('settings')">
+        <i data-lucide="settings" class="nav-icon"></i>
+        Settings
+      </div>
     </nav>
 
-    <!-- Footer -->
-    <div class="px-5 py-4 border-t border-white/10">
-      <div id="modeBadge" class="text-xs font-mono px-3 py-1 rounded-full bg-red-900/40 text-red-300 inline-block">
-        ⚙ FREE TEMPLATE MODE
-      </div>
-      <div class="text-xs text-white/20 mt-2">Draft Only — Safe Mode</div>
+    <!-- Logout -->
+    <div class="border-t border-white/10 p-4">
+      <button onclick="handleLogout()" class="flex items-center justify-center gap-2 w-full bg-brand text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+        Logout
+      </button>
     </div>
 
   </aside>
@@ -95,14 +100,42 @@
   <div class="ml-56 min-h-screen flex flex-col">
 
     <!-- TOPBAR -->
-    <header class="bg-white border-b border-gray-200 px-8 h-16 flex items-center justify-between sticky top-0 z-40">
-      <div class="text-xl font-bold tracking-wide text-navy">
-        School Outreach CRM<span class="text-red-600"></span>
-        <span class="text-gray-400 font-normal text-base ml-2"></span>
+    <header class="bg-white border-b border-gray-200 px-8 h-24 flex items-center sticky top-0 z-40 relative">
+      <!-- Logos (left) -->
+      <div class="flex items-center gap-3 shrink-0">
+        <img src="/images/accoutre.jpg" alt="Accoutre AI" class="h-14 w-auto object-contain" />
+        <img src="/images/thinks.png" alt="ThinkTANQ" class="h-14 w-auto object-contain" />
       </div>
-      <div class="flex items-center gap-4">
-        <span id="clockDisplay" class="text-xs text-gray-400 font-mono"></span>
-        
+
+      <div class="absolute left-1/2 -translate-x-1/2 flex items-end gap-4">
+        <div class="flex flex-col items-center">
+          <span class="text-4xl font-bold text-navy leading-none">P</span>
+          <span class="text-xs text-gray-400 font-medium uppercase tracking-wide mt-3">Partnership</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-4xl font-bold text-navy leading-none">A</span>
+          <span class="text-xs text-gray-400 font-medium uppercase tracking-wide mt-3">And</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-4xl font-bold text-navy leading-none">T</span>
+          <span class="text-xs text-gray-400 font-medium uppercase tracking-wide mt-3">Training</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-4xl font-bold text-navy leading-none">H</span>
+          <span class="text-xs text-gray-400 font-medium uppercase tracking-wide mt-3">Hub</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-4xl font-bold text-navy leading-none">S</span>
+          <span class="text-xs text-gray-400 font-medium uppercase tracking-wide mt-3">System</span>
+        </div>
+      </div>
+
+      <!-- Backup button (right) -->
+      <div class="ml-auto shrink-0">
+        <button onclick="triggerBackup()" class="flex items-center gap-2 bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
+          <i data-lucide="database" class="w-4 h-4"></i>
+          Backup Data
+        </button>
       </div>
     </header>
 
@@ -115,7 +148,6 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
           <h1 class="section-title">Dashboard</h1>
-          <button onclick="loadDashboard()" class="btn-ghost text-sm">↻ Refresh</button>
         </div>
 
         <!-- Today's Meetings Alert -->
@@ -145,7 +177,7 @@
         <div class="card">
           <div class="card-header">
             <h3 class="font-semibold text-navy">Recent School Leads</h3>
-            <button onclick="showTab('schools')" class="btn-outline text-sm">View All →</button>
+            <button onclick="showTab('schools')" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">View All →</button>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -179,7 +211,7 @@
               oninput="filterSchools()"
               class="input-field w-56 text-sm"
             />
-            <button onclick="showTab('add')" class="btn-red text-sm">+ Add School</button>
+            <button onclick="showTab('add')" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">+ Add School</button>
           </div>
         </div>
         <div class="card">
@@ -325,7 +357,6 @@
       <div id="tab-drafts" class="tab-section">
         <div class="flex items-center justify-between mb-6">
           <h1 class="section-title">Email Drafts</h1>
-          <button onclick="loadDrafts()" class="btn-ghost text-sm">↻ Refresh</button>
         </div>
         <div class="card">
           <div class="overflow-x-auto">
@@ -351,7 +382,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
           <h1 class="section-title">Calendar</h1>
-          <button onclick="openScheduleModal()" class="btn-red text-sm">
+          <button onclick="openScheduleModal()" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
             + Schedule Meeting
           </button>
         </div>
@@ -360,7 +391,6 @@
         <div class="card mb-6">
           <div class="card-header">
             <h3 class="font-semibold text-navy">📌 Upcoming This Week</h3>
-            <button onclick="loadUpcoming()" class="btn-ghost text-sm">↻ Refresh</button>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -422,9 +452,6 @@
               Review form submissions from the public inquiry page
             </p>
           </div>
-          <button onclick="loadInquiries()" class="btn-ghost text-sm">
-            ↻ Refresh
-          </button>
         </div>
 
         <!-- Filter Tabs -->
@@ -476,6 +503,66 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="tab-history" class="tab-section">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="section-title">Deletion History</h1>
+            <p class="text-sm text-gray-400 mt-1">
+              Records of all deleted data for accountability
+              and Data Privacy Act compliance
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="table-head">
+                  <th>Record Type</th>
+                  <th>Name</th>
+                  <th>Reason</th>
+                  <th>Deleted At</th>
+                </tr>
+              </thead>
+              <tbody id="historyTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="tab-settings" class="tab-section">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="section-title">Settings</h1>
+        </div>
+        <div class="card" style="max-width:480px;">
+          <div class="card-header">
+            <h3 class="font-semibold text-navy">🔑 Change Password</h3>
+          </div>
+          <div class="modal-body">
+            <div class="flex flex-col gap-4 p-4">
+              <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input type="password" id="currentPassword" class="input-field" placeholder="Enter current password"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password</label>
+                <input type="password" id="newPassword" class="input-field" placeholder="At least 8 characters"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" id="confirmPassword" class="input-field" placeholder="Repeat new password"/>
+              </div>
+              <div id="passwordChangeError" style="display:none; padding:10px 14px; background:#fee2e2; border-radius:8px; font-size:12px; color:#991b1b;"></div>
+              <button onclick="submitChangePassword()" class="bg-navy text-white font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
+                🔑 Update Password
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
     </main>
@@ -666,6 +753,58 @@
         <button onclick="confirmDeleteInquiry()"
           class="btn-red">
           🗑 Yes, Permanently Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- MODAL: Change Password -->
+  <div id="changePasswordModal" class="modal-overlay">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🔑 Change Password</h2>
+        <button onclick="closeModal('changePasswordModal')"
+          class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="flex flex-col gap-4">
+          <div class="form-group">
+            <label class="form-label">Current Password</label>
+            <input
+              type="password"
+              id="currentPassword"
+              class="input-field"
+              placeholder="Enter current password"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              class="input-field"
+              placeholder="At least 8 characters"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm New Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              class="input-field"
+              placeholder="Repeat new password"/>
+          </div>
+          <div id="passwordChangeError"
+            style="display:none; padding:10px 14px;
+            background:#fee2e2; border-radius:8px;
+            font-size:12px; color:#991b1b;">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('changePasswordModal')"
+          class="btn-ghost">Cancel</button>
+        <button onclick="submitChangePassword()"
+          class="btn-navy">
+          🔑 Update Password
         </button>
       </div>
     </div>
@@ -913,10 +1052,16 @@
   <script src="/js/import.js"></script>
   <script src="/js/calendar.js"></script>
   <script src="/js/inquiries.js"></script>
+  <script src="/js/history.js"></script>
 
   <script>
     lucide.createIcons();
   </script>
+
+  <!-- FLOATING CLOCK -->
+  <div id="floatingClock" class="fixed bottom-6 right-6 z-50 bg-navy text-white font-mono font-semibold text-sm px-4 py-2 rounded-full shadow-lg">
+    <span id="clockDisplay"></span>
+  </div>
 
 </body>
 </html>

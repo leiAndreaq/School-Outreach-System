@@ -334,7 +334,11 @@ async function confirmDeleteInquiry() {
   try {
     const res  = await fetch(
       '/api/inquiries/' + deleteInquiryTargetId,
-      { method: 'DELETE' }
+      {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ reason: 'Right to Erasure Request' })
+      }
     );
     const data = await res.json();
 
