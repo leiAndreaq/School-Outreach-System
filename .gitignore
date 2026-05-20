@@ -25,6 +25,10 @@ backups/
 
 # Claude Code (AI assistant tool files — not part of the project)
 .claude/
-CLAUDE_CONTEXT.md
 *claude*
 *CLAUDE*
+
+# Markdown / planning docs (not part of deployable project)
+*.md
+*.MD
+SYSTEM_RECOMMENDATIONS.md

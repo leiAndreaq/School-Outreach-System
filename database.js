@@ -161,6 +161,17 @@ db.run(`
     }
   });
 
+  // ── IMPORT LOGS TABLE ──
+  db.run(`
+    CREATE TABLE IF NOT EXISTS import_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT,
+      imported_count INTEGER DEFAULT 0,
+      error_count INTEGER DEFAULT 0,
+      imported_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // ── DELETION HISTORY TABLE ──
   db.run(`
     CREATE TABLE IF NOT EXISTS deletion_history (

@@ -19,15 +19,10 @@ async function loadInquiries() {
 function filterInquiries(status) {
   currentFilter = status;
 
-  // Update filter button styles
   ['PENDING','APPROVED','DISMISSED','ALL'].forEach(s => {
     const btn = document.getElementById('filter-' + s);
     if (!btn) return;
-    if (s === status) {
-      btn.className = 'btn-navy text-sm';
-    } else {
-      btn.className = 'btn-ghost text-sm';
-    }
+    btn.className = s === status ? 'btn-navy text-sm' : 'btn-ghost text-sm';
   });
 
   renderInquiries(status);
@@ -41,6 +36,9 @@ function renderInquiries(filter) {
     ? allInquiries
     : allInquiries.filter(i => i.status === filter);
 
+  const countEl = document.getElementById('inquiryCount');
+  if (countEl) countEl.textContent = filtered.length;
+
   if (!filtered.length) {
     const messages = {
       PENDING:   'No pending inquiries',
@@ -51,39 +49,32 @@ function renderInquiries(filter) {
     tbody.innerHTML = emptyState(
       '📥',
       messages[filter] || 'No inquiries',
-      filter === 'PENDING'
-        ? 'New form submissions will appear here'
-        : ''
+      filter === 'PENDING' ? 'New form submissions will appear here' : ''
     );
     return;
   }
 
   tbody.innerHTML = filtered.map(i => `
     <tr>
-      <td>${i.school_name}</td>
-      <td>${i.contact_person}</td>
-      <td>
-        <a href="mailto:${i.email}"
-          style="color:var(--navy)">
-          ${i.email}
-        </a>
+      <td class="px-6 py-4 font-medium text-gray-900">${i.school_name}</td>
+      <td class="px-6 py-4 text-gray-600">${i.contact_person}</td>
+      <td class="px-6 py-4">
+        <a href="mailto:${i.email}" style="color:var(--navy)">${i.email}</a>
       </td>
-      <td>${i.preferred_date
-        ? formatInquiryDate(i.preferred_date)
-        : '—'}
+      <td class="px-6 py-4 text-gray-600">${i.preferred_date ? formatInquiryDate(i.preferred_date) : '—'}</td>
+      <td class="px-6 py-4">
+        <span class="badge badge-default">${i.preferred_mode || 'ONLINE'}</span>
       </td>
-      <td>
-        <span class="badge badge-default">
-          ${i.preferred_mode || 'ONLINE'}
-        </span>
-      </td>
-      <td>${inquiryStatusBadge(i.status)}</td>
-      <td>${formatInquiryDate(i.created_at)}</td>
-      <td>
+      <td class="px-6 py-4">${inquiryStatusBadge(i.status)}</td>
+      <td class="px-6 py-4 text-gray-600">${formatInquiryDate(i.created_at)}</td>
+      <td class="px-6 py-4 text-center">
         <button
           onclick="viewInquiry(${i.id})"
-          class="btn-ghost text-xs py-1 px-3">
-          👁 Review
+          class="inline-flex items-center gap-2 bg-navy text-white
+                 text-xs font-semibold px-3 py-2 rounded-lg
+                 border border-navy hover:bg-white hover:text-navy
+                 transition shadow-sm">
+          Review
         </button>
       </td>
     </tr>
@@ -102,12 +93,10 @@ async function viewInquiry(id) {
       <!-- School Info -->
       <div style="margin-bottom:20px;">
         <div style="font-size:11px; font-weight:700; color:#9ca3af;
-          letter-spacing:1.5px; text-transform:uppercase;
-          margin-bottom:10px;">
-          🏫 School Information
+          letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;">
+          School Information
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr;
-          gap:6px 24px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 24px;">
           ${detailRow('School Name',   i.school_name)}
           ${detailRow('School Type',   i.school_type)}
           ${detailRow('Level Offered', i.level_offered)}
@@ -118,38 +107,29 @@ async function viewInquiry(id) {
       </div>
 
       <!-- Contact Info -->
-      <div style="margin-bottom:20px; padding-top:16px;
-        border-top:1px solid #f3f4f6;">
+      <div style="margin-bottom:20px; padding-top:16px; border-top:1px solid #f3f4f6;">
         <div style="font-size:11px; font-weight:700; color:#9ca3af;
-          letter-spacing:1.5px; text-transform:uppercase;
-          margin-bottom:10px;">
-          👤 Contact Person
+          letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;">
+          Contact Person
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr;
-          gap:6px 24px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 24px;">
           ${detailRow('Name',     i.contact_person)}
           ${detailRow('Position', i.position)}
           ${detailRow('Email',
-            `<a href="mailto:${i.email}"
-              style="color:var(--navy)">${i.email}</a>`)}
+            `<a href="mailto:${i.email}" style="color:var(--navy)">${i.email}</a>`)}
           ${detailRow('Phone',    i.phone)}
         </div>
       </div>
 
       <!-- Schedule Preference -->
-      <div style="margin-bottom:20px; padding-top:16px;
-        border-top:1px solid #f3f4f6;">
+      <div style="margin-bottom:20px; padding-top:16px; border-top:1px solid #f3f4f6;">
         <div style="font-size:11px; font-weight:700; color:#9ca3af;
-          letter-spacing:1.5px; text-transform:uppercase;
-          margin-bottom:10px;">
-          📅 Schedule Preference
+          letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;">
+          Schedule Preference
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr;
-          gap:6px 24px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 24px;">
           ${detailRow('Preferred Date',
-            i.preferred_date
-              ? formatInquiryDate(i.preferred_date)
-              : '—')}
+            i.preferred_date ? formatInquiryDate(i.preferred_date) : '—')}
           ${detailRow('Preferred Time', i.preferred_time)}
           ${detailRow('Meeting Mode',   i.preferred_mode)}
           ${detailRow('Heard From',     i.heard_from)}
@@ -160,23 +140,20 @@ async function viewInquiry(id) {
       ${i.message ? `
         <div style="padding-top:16px; border-top:1px solid #f3f4f6;">
           <div style="font-size:11px; font-weight:700; color:#9ca3af;
-            letter-spacing:1.5px; text-transform:uppercase;
-            margin-bottom:8px;">
-            💬 Message
+            letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px;">
+            Message
           </div>
-          <div style="background:#f9fafb; border-radius:8px;
-            padding:14px; font-size:13px; color:#4b5563;
-            line-height:1.7;">
+          <div style="background:#f9fafb; border-radius:8px; padding:14px;
+            font-size:13px; color:#4b5563; line-height:1.7;">
             ${i.message}
           </div>
         </div>` : ''}
 
-      <!-- Dismissal reason if dismissed -->
+      <!-- Dismissal reason -->
       ${i.rejection_reason ? `
-        <div style="margin-top:16px; padding:12px;
-          background:#fee2e2; border-radius:8px;
-          font-size:13px; color:#991b1b;">
-          ❌ Dismissed — ${i.rejection_reason}
+        <div style="margin-top:16px; padding:12px; background:#fee2e2;
+          border-radius:8px; font-size:13px; color:#991b1b;">
+          Dismissed — ${i.rejection_reason}
         </div>` : ''}
 
       <!-- Status indicator -->
@@ -185,34 +162,27 @@ async function viewInquiry(id) {
       </div>
     `;
 
-    // Show different footer buttons based on status
     const footer = document.getElementById('inquiryModalFooter');
 
     if (i.status === 'PENDING') {
       footer.innerHTML = `
-        <button onclick="closeModal('inquiryModal')"
-          class="btn-ghost">Close</button>
+        <button onclick="closeModal('inquiryModal')" class="btn-ghost">Close</button>
         <button onclick="deleteInquiry(${i.id}, '${i.contact_person}')"
-          class="btn-ghost text-sm"
-          style="color:#991b1b; margin-right:auto;">
+          class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto;">
           🗑 Delete
         </button>
-        <button onclick="openDismissModal()"
-          class="btn-ghost text-sm" style="color:#991b1b;">
-          ❌ Dismiss
+        <button onclick="openDismissModal()" class="btn-red text-sm" style="color:#ffffff;">
+          Dismiss
         </button>
-        <button onclick="approveInquiry()"
-          class="btn-red">
-          ✅ Approve & Convert to Lead
+        <button onclick="approveInquiry()" class="btn-navy">
+          Approve &amp; Convert to Lead
         </button>
       `;
     } else {
       footer.innerHTML = `
-        <button onclick="closeModal('inquiryModal')"
-          class="btn-ghost">Close</button>
+        <button onclick="closeModal('inquiryModal')" class="btn-ghost">Close</button>
         <button onclick="deleteInquiry(${i.id}, '${i.contact_person}')"
-          class="btn-ghost text-sm"
-          style="color:#991b1b; margin-right:auto;">
+          class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto;">
           🗑 Delete
         </button>
       `;
@@ -245,10 +215,7 @@ async function approveInquiry() {
     loadInquiries();
     loadDashboard();
 
-    // Auto redirect to schools tab
-    setTimeout(() => {
-      showTab('schools');
-    }, 1500);
+    setTimeout(() => { showTab('schools'); }, 1500);
 
   } catch (e) {
     showToast('Failed to approve inquiry', 'error');

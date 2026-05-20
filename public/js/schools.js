@@ -1,5 +1,6 @@
 // ── GLOBAL SCHOOLS DATA ──
 let allSchools = [];
+let selectedSchoolIds = new Set();
 
 // ── LOAD DASHBOARD ──
 async function loadDashboard() {
@@ -17,8 +18,8 @@ async function loadDashboard() {
     document.getElementById('stat-interested').textContent =
       schools.filter(s => s.status === 'INTERESTED').length;
 
-    // Show recent 8 schools
-    const recent = schools.slice(0, 8);
+    // Show recent 5 schools
+    const recent = schools.slice(0, 5);
     const tbody = document.getElementById('dashboardTable');
 
     if (!recent.length) {
@@ -67,6 +68,11 @@ async function loadSchools() {
 
 // ── RENDER SCHOOLS TABLE ──
 function renderSchools(schools) {
+  selectedSchoolIds.clear();
+  const master = document.getElementById('selectAllCheckbox');
+  if (master) { master.checked = false; master.indeterminate = false; }
+  updateBulkActionBar();
+
   const tbody = document.getElementById('schoolsTable');
 
   if (!schools.length) {
@@ -80,6 +86,11 @@ function renderSchools(schools) {
 
   tbody.innerHTML = schools.map(s => `
     <tr>
+      <td style="width:40px; padding:8px 0 8px 16px;">
+        <input type="checkbox" class="school-checkbox" value="${s.id}"
+          onchange="toggleSchoolSelect(${s.id}, this)"
+          style="width:16px; height:16px; cursor:pointer; accent-color:#1B1F6B;">
+      </td>
       <td>${s.school_name}</td>
       <td>${s.contact_person || '—'}</td>
       <td>${s.city_province || '—'}</td>
@@ -103,6 +114,106 @@ function renderSchools(schools) {
   `).join('');
 }
 
+// ── MULTI-SELECT ──
+function toggleSchoolSelect(id, cb) {
+  if (cb.checked) selectedSchoolIds.add(id);
+  else selectedSchoolIds.delete(id);
+  updateSelectAllState();
+  updateBulkActionBar();
+}
+
+function toggleSelectAll(masterCb) {
+  document.querySelectorAll('.school-checkbox').forEach(cb => {
+    cb.checked = masterCb.checked;
+    const id = parseInt(cb.value);
+    if (masterCb.checked) selectedSchoolIds.add(id);
+    else selectedSchoolIds.delete(id);
+  });
+  updateBulkActionBar();
+}
+
+function updateSelectAllState() {
+  const master = document.getElementById('selectAllCheckbox');
+  if (!master) return;
+  const all     = document.querySelectorAll('.school-checkbox');
+  const checked = document.querySelectorAll('.school-checkbox:checked');
+  if (checked.length === 0) {
+    master.checked = false;
+    master.indeterminate = false;
+  } else if (checked.length === all.length) {
+    master.checked = true;
+    master.indeterminate = false;
+  } else {
+    master.checked = false;
+    master.indeterminate = true;
+  }
+}
+
+function updateBulkActionBar() {
+  const bar   = document.getElementById('bulkActionBar');
+  const count = document.getElementById('selectedCount');
+  if (!bar) return;
+  if (selectedSchoolIds.size > 0) {
+    bar.style.display = 'flex';
+    count.textContent = `${selectedSchoolIds.size} school${selectedSchoolIds.size > 1 ? 's' : ''} selected`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearSelection() {
+  selectedSchoolIds.clear();
+  document.querySelectorAll('.school-checkbox').forEach(cb => { cb.checked = false; });
+  const master = document.getElementById('selectAllCheckbox');
+  if (master) { master.checked = false; master.indeterminate = false; }
+  updateBulkActionBar();
+}
+
+function openBulkDeleteModal() {
+  if (selectedSchoolIds.size === 0) return;
+  document.getElementById('bulkDeleteCount').textContent = selectedSchoolIds.size;
+  document.getElementById('bulkDeleteReason').value = '';
+  openModal('bulkDeleteModal');
+}
+
+async function confirmBulkDelete() {
+  const ids    = Array.from(selectedSchoolIds);
+  const reason = document.getElementById('bulkDeleteReason').value.trim();
+
+  const btn = document.querySelector('#bulkDeleteModal .btn-red');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting...'; }
+
+  try {
+    const res = await fetch('/api/schools', {
+      method:  'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ ids, reason })
+    });
+
+    let data;
+    try { data = await res.json(); } catch (_) { data = {}; }
+
+    if (!res.ok || data.error) {
+      showToast('Error: ' + (data.error || 'Server error'), 'error');
+      return;
+    }
+
+    showToast(
+      `🗑 ${data.deleted} school${data.deleted !== 1 ? 's' : ''} permanently deleted`,
+      'success'
+    );
+    closeModal('bulkDeleteModal');
+    clearSelection();
+    loadSchools();
+    loadDashboard();
+
+  } catch (e) {
+    showToast('Failed to delete schools', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 Yes, Delete All Selected'; }
+  }
+}
+
 // ── SEARCH / FILTER ──
 function filterSchools() {
   const query = document.getElementById('searchInput').value.toLowerCase();
@@ -117,12 +228,54 @@ function filterSchools() {
 // ── VIEW SINGLE SCHOOL ──
 async function viewSchool(id) {
   try {
-    const res = await fetch('/api/schools/' + id);
-    const s = await res.json();
+    const schoolRes = await fetch('/api/schools/' + id);
+    if (!schoolRes.ok) throw new Error('School not found');
+    const s = await schoolRes.json();
     currentSchoolId = id;
+
+    // Fetch meetings separately — non-fatal, school details still show if this fails
+    let meetings = [];
+    try {
+      const meetingsRes = await fetch('/api/schools/' + id + '/meetings');
+      if (meetingsRes.ok) {
+        const data = await meetingsRes.json();
+        if (Array.isArray(data)) meetings = data;
+      }
+    } catch (_) {}
+
+    // Find the most relevant meeting to show
+    const upcoming = meetings.find(m => m.status === 'SCHEDULED' || m.status === 'RESCHEDULED');
+    const lastDone  = meetings.find(m => m.status === 'DONE');
+
+    let meetingBanner = '';
+    if (upcoming) {
+      meetingBanner = `
+        <div style="margin-bottom:14px; padding:12px 14px;
+          background:#e8e9f5; border:1.5px solid #1B1F6B;
+          border-radius:8px; font-size:13px; color:#1B1F6B;
+          display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <strong>📅 Meeting Scheduled</strong> —
+            ${formatDateDisplay(upcoming.meeting_date)} at ${formatTime(upcoming.meeting_time)}
+            · ${upcoming.meeting_mode}
+          </div>
+          <button onclick="viewMeeting(${upcoming.id}); closeModal('schoolModal');"
+            class="btn-ghost text-xs py-1 px-3" style="margin-left:12px;">
+            View
+          </button>
+        </div>`;
+    } else if (lastDone) {
+      meetingBanner = `
+        <div style="margin-bottom:14px; padding:12px 14px;
+          background:#dcfce7; border:1.5px solid #16a34a;
+          border-radius:8px; font-size:13px; color:#166534;">
+          ✅ Presentation completed on ${formatDateDisplay(lastDone.meeting_date)}
+        </div>`;
+    }
 
     document.getElementById('modalSchoolName').textContent = s.school_name;
     document.getElementById('schoolModalBody').innerHTML = `
+      ${meetingBanner}
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 24px;">
         ${detailRow('Contact Person',  s.contact_person)}
         ${detailRow('Email',           s.email ? `<a href="mailto:${s.email}" style="color:var(--navy)">${s.email}</a>` : '—')}
@@ -159,6 +312,85 @@ function detailRow(label, value) {
       <span class="detail-label">${label}</span>
       <span class="detail-value">${value || '—'}</span>
     </div>`;
+}
+
+// ── OPEN EDIT MODAL ──
+async function openEditModal(id) {
+  try {
+    const res = await fetch('/api/schools/' + id);
+    if (!res.ok) throw new Error();
+    const s = await res.json();
+
+    document.getElementById('e-school_name').value        = s.school_name        || '';
+    document.getElementById('e-contact_person').value     = s.contact_person     || '';
+    document.getElementById('e-email').value              = s.email              || '';
+    document.getElementById('e-phone').value              = s.phone              || '';
+    document.getElementById('e-website').value            = s.website            || '';
+    document.getElementById('e-facebook_page').value      = s.facebook_page      || '';
+    document.getElementById('e-address').value            = s.address            || '';
+    document.getElementById('e-city_province').value      = s.city_province      || '';
+    document.getElementById('e-region').value             = s.region             || '';
+    document.getElementById('e-school_type').value        = s.school_type        || '';
+    document.getElementById('e-level_offered').value      = s.level_offered      || '';
+    document.getElementById('e-estimated_students').value = s.estimated_students || '';
+    document.getElementById('e-assigned_to').value        = s.assigned_to        || '';
+    document.getElementById('e-notes').value              = s.notes              || '';
+
+    closeModal('schoolModal');
+    openModal('editSchoolModal');
+  } catch (e) {
+    showToast('Could not load school details', 'error');
+  }
+}
+
+// ── SUBMIT EDIT SCHOOL ──
+async function submitEditSchool() {
+  const name = document.getElementById('e-school_name').value.trim();
+  if (!name) {
+    showToast('School name is required!', 'error');
+    return;
+  }
+
+  const payload = {
+    school_name:        name,
+    contact_person:     document.getElementById('e-contact_person').value.trim(),
+    email:              document.getElementById('e-email').value.trim(),
+    phone:              document.getElementById('e-phone').value.trim(),
+    website:            document.getElementById('e-website').value.trim(),
+    facebook_page:      document.getElementById('e-facebook_page').value.trim(),
+    address:            document.getElementById('e-address').value.trim(),
+    city_province:      document.getElementById('e-city_province').value.trim(),
+    region:             document.getElementById('e-region').value.trim(),
+    school_type:        document.getElementById('e-school_type').value,
+    level_offered:      document.getElementById('e-level_offered').value,
+    estimated_students: document.getElementById('e-estimated_students').value || null,
+    assigned_to:        document.getElementById('e-assigned_to').value.trim(),
+    notes:              document.getElementById('e-notes').value.trim(),
+  };
+
+  try {
+    const res = await fetch('/api/schools/' + currentSchoolId, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+
+    let data;
+    try { data = await res.json(); } catch (_) { data = {}; }
+
+    if (!res.ok || data.error) {
+      showToast('Error: ' + (data.error || 'Server error'), 'error');
+      return;
+    }
+
+    showToast('✅ School details updated!', 'success');
+    closeModal('editSchoolModal');
+    loadSchools();
+    loadDashboard();
+    viewSchool(currentSchoolId);
+  } catch (e) {
+    showToast('Failed to update school', 'error');
+  }
 }
 
 // ── ADD SCHOOL ──
@@ -262,32 +494,19 @@ async function loadTodaysMeetings() {
 
     container.style.display = 'block';
     container.innerHTML = `
-      <div style="background:#e8e9f5; border:1.5px solid #1B1F6B;
-        border-radius:10px; padding:16px 20px; margin-bottom:24px;">
-        <div style="font-size:13px; font-weight:700; color:#1B1F6B;
-          margin-bottom:10px;">
-          📅 Today's Meetings — ${meetings.length} scheduled
+      <div onclick="showTab('calendar')"
+        style="background:#e8e9f5; border:1.5px solid #1B1F6B;
+          border-radius:10px; padding:14px 20px; margin-bottom:24px;
+          display:flex; align-items:center; justify-content:space-between;
+          cursor:pointer; transition:background 0.15s;"
+        onmouseover="this.style.background='#d4d6eb'"
+        onmouseout="this.style.background='#e8e9f5'">
+        <div style="font-size:13px; font-weight:700; color:#1B1F6B;">
+          📅 You have ${meetings.length} meeting${meetings.length > 1 ? 's' : ''} today
         </div>
-        ${meetings.map(m => `
-          <div style="display:flex; justify-content:space-between;
-            align-items:center; padding:8px 0;
-            border-bottom:1px solid rgba(27,31,107,0.1);">
-            <div>
-              <div style="font-size:13px; font-weight:600;
-                color:#1B1F6B;">
-                ${m.school_name}
-              </div>
-              <div style="font-size:11px; color:#6b7280; margin-top:2px;">
-                ${formatTime(m.meeting_time)} · ${m.meeting_mode}
-                ${m.contact_person ? '· ' + m.contact_person : ''}
-              </div>
-            </div>
-            <button onclick="viewMeeting(${m.id})"
-              class="btn-ghost text-xs py-1 px-3">
-              View
-            </button>
-          </div>
-        `).join('')}
+        <div style="font-size:12px; color:#1B1F6B; opacity:0.7;">
+          View Calendar →
+        </div>
       </div>
     `;
   } catch (e) {

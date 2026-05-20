@@ -4,8 +4,10 @@ let statusTargetId = null;
 
 // ── CLOCK ──
 function updateClock() {
+  const el = document.getElementById('clockDisplay');
+  if (!el) return; // element may not exist yet if script runs before DOM is fully parsed
   const now = new Date();
-  document.getElementById('clockDisplay').textContent =
+  el.textContent =
     now.toLocaleDateString('en-PH', {
       weekday: 'short',
       month: 'short',
@@ -21,44 +23,79 @@ updateClock();
 
 // ── TABS ──
 function showTab(name) {
-  // Hide all tabs
-  document.querySelectorAll('.tab-section').forEach(s => {
-    s.classList.remove('active');
-  });
+  // Close dashboard dropdown when switching away from dashboard tabs
+  if (name !== 'dashboard' && name !== 'analytics') {
+    const dd = document.getElementById('dashDropdown');
+    const ch = document.getElementById('dashChevron');
+    if (dd) dd.classList.remove('open');
+    if (ch) ch.classList.add('rotated');
+  }
 
-  // Remove active from all nav items
-  document.querySelectorAll('.nav-item').forEach(n => {
-    n.classList.remove('active');
-  });
+  // Hide all tabs
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+
+  // Remove active from all nav items and sub-items
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-sub-item').forEach(n => n.classList.remove('active'));
 
   // Show the selected tab
   document.getElementById('tab-' + name).classList.add('active');
 
   const navMap = {
     dashboard: 'dashboard',
+    analytics: 'dashboard',
     schools:   'school leads',
     add:       'add school',
     import:    'import csv',
-    drafts:    'email drafts',
+    archived:  'archived',
     calendar:  'calendar',
     inquiries: 'inquiries',
-    history:   'deletion history',
     settings:  'settings'
   };
-  
+
   document.querySelectorAll('.nav-item').forEach(n => {
     if (n.textContent.trim().toLowerCase().includes(navMap[name])) {
       n.classList.add('active');
     }
   });
 
+  // Mark the correct sub-item active
+  if (name === 'dashboard') {
+    const el = document.getElementById('subnav-overview');
+    if (el) el.classList.add('active');
+  } else if (name === 'analytics') {
+    const el = document.getElementById('subnav-analytics');
+    if (el) el.classList.add('active');
+  }
+
   // Load data for the tab
-  if (name === 'dashboard') loadDashboard();
-  if (name === 'schools')   loadSchools();
-  if (name === 'drafts')    loadDrafts();
-  if (name === 'calendar')  loadCalendar();
+  if (name === 'dashboard')  loadDashboard();
+  if (name === 'schools')    loadSchools();
+  if (name === 'archived')   { loadDrafts(); loadHistory(); }
+  if (name === 'calendar')   loadCalendar();
   if (name === 'inquiries')  loadInquiries();
-  if (name === 'history')    loadHistory();
+  if (name === 'import')     loadImportHistory();
+  if (name === 'analytics')  loadAnalytics();
+}
+
+// ── DASHBOARD DROPDOWN ──
+function toggleDashboardDropdown() {
+  const dd = document.getElementById('dashDropdown');
+  const ch = document.getElementById('dashChevron');
+  const isOpen = dd.classList.contains('open');
+
+  if (isOpen) {
+    dd.classList.remove('open');
+    ch.classList.add('rotated');
+  } else {
+    dd.classList.add('open');
+    ch.classList.remove('rotated');
+    // Navigate to overview only if currently on a non-dashboard tab
+    const activeTab = document.querySelector('.tab-section.active');
+    if (!activeTab || (activeTab.id !== 'tab-dashboard' && activeTab.id !== 'tab-analytics')) {
+      showTab('dashboard');
+    }
+  }
 }
 
 // ── TOAST NOTIFICATIONS ──
@@ -146,11 +183,13 @@ async function checkHealth() {
   try {
     const res = await fetch('/api/health');
     const data = await res.json();
-    const badge = document.getElementById('modeBadge');
     if (data.ai_mode === 'OPENAI_API') {
-      badge.textContent = '✦ OPENAI MODE';
-      badge.classList.remove('bg-red-900/40', 'text-red-300');
-      badge.classList.add('bg-green-900/40', 'text-green-300');
+      const badge = document.getElementById('modeBadge');
+      if (badge) {
+        badge.textContent = '✦ OPENAI MODE';
+        badge.classList.remove('bg-red-900/40', 'text-red-300');
+        badge.classList.add('bg-green-900/40', 'text-green-300');
+      }
     }
   } catch (e) {
     console.error('Health check failed:', e);
@@ -209,8 +248,9 @@ window.addEventListener('load', async () => {
     if (!active) return;
     const id = active.id;
     if (id === 'tab-dashboard')  loadDashboard();
+    if (id === 'tab-analytics')  loadAnalytics();
     if (id === 'tab-schools')    loadSchools();
-    if (id === 'tab-drafts')     loadDrafts();
+    if (id === 'tab-archived')   { loadDrafts(); loadHistory(); }
     if (id === 'tab-calendar')   loadCalendar();
     if (id === 'tab-inquiries')  loadInquiries();
     checkPendingInquiries();
@@ -240,6 +280,18 @@ window.addEventListener('load', async () => {
 
 });
 
+// ── ARCHIVED SUB-TAB TOGGLE ──
+function switchArchivedView(view) {
+  const showDrafts  = view === 'drafts';
+  document.getElementById('archived-drafts').style.display  = showDrafts ? 'block' : 'none';
+  document.getElementById('archived-history').style.display = showDrafts ? 'none'  : 'block';
+
+  const activeStyle   = 'btn-navy text-sm';
+  const inactiveStyle = 'btn-ghost text-sm';
+  document.getElementById('archived-btn-drafts').className  = showDrafts ? activeStyle : inactiveStyle;
+  document.getElementById('archived-btn-history').className = showDrafts ? inactiveStyle : activeStyle;
+}
+
 // ── LOGOUT ──
 async function handleLogout() {
   const confirmed = confirm('Are you sure you want to logout?');
@@ -254,14 +306,6 @@ async function handleLogout() {
 }
 
 // ── CHANGE PASSWORD ──
-function openChangePasswordModal() {
-  document.getElementById('currentPassword').value  = '';
-  document.getElementById('newPassword').value      = '';
-  document.getElementById('confirmPassword').value  = '';
-  document.getElementById('passwordChangeError').style.display = 'none';
-  openModal('changePasswordModal');
-}
-
 async function submitChangePassword() {
   const current  = document.getElementById('currentPassword').value.trim();
   const newPass  = document.getElementById('newPassword').value.trim();
@@ -306,7 +350,9 @@ async function submitChangePassword() {
     }
 
     showToast('✅ Password changed successfully!', 'success');
-    closeModal('changePasswordModal');
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmPassword').value = '';
 
   } catch (e) {
     errorEl.textContent   = 'Something went wrong. Please try again.';

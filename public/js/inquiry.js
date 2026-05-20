@@ -1,435 +1,606 @@
-// ── FIELDS FOR PROGRESS BAR ──
-const allFields = [
-  'contact_person', 'position', 'email', 'phone',
+'use strict';
+
+/* ── DOM helpers ── */
+const $  = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
+
+/* ── App State ── */
+let selectedMode = '';
+let selectedDate = '';
+let selectedTime = '';
+let calYear      = new Date().getFullYear();
+let calMonth     = new Date().getMonth();
+
+/* ── Progress bar fields ── */
+const PROGRESS_FIELDS = [
   'school_name', 'school_type', 'level_offered',
-  'estimated_students', 'city_province',
+  'estimated_students', 'city_province', 'region',
+  'contact_person', 'position', 'email', 'phone',
   'heard_from', 'message'
 ];
 
-// ── CALENDAR STATE ──
-let calYear      = new Date().getFullYear();
-let calMonth     = new Date().getMonth();
-let selectedDate = '';
-let selectedTime = '';
-let selectedMode = '';
-let availability = {};
-
+/* ── Month labels ── */
 const MONTHS = [
   'January','February','March','April','May','June',
   'July','August','September','October','November','December'
 ];
 
-// ── PROGRESS BAR ──
+/* ── Static time slot fallback (used if API is unreachable) ── */
+const TIME_SLOTS = [
+  { label: '8:00 AM',  value: '08:00', avail: true  },
+  { label: '9:00 AM',  value: '09:00', avail: true  },
+  { label: '10:00 AM', value: '10:00', avail: true  },
+  { label: '11:00 AM', value: '11:00', avail: true  },
+  { label: '1:00 PM',  value: '13:00', avail: true  },
+  { label: '2:00 PM',  value: '14:00', avail: true  },
+  { label: '3:00 PM',  value: '15:00', avail: true  },
+  { label: '4:00 PM',  value: '16:00', avail: true  },
+];
+
+
+/* ────────────────────────────────────────────────
+   PRIVACY MODAL
+──────────────────────────────────────────────── */
+function openPrivacy() {
+  const overlay = $('privacyOverlay');
+  $('privacyCheck').checked = false;
+  $('btnAgree').disabled    = true;
+  $('btnAgree').style.opacity       = '0.38';
+  $('btnAgree').style.pointerEvents = 'none';
+  overlay.classList.add('active');
+  overlay.removeAttribute('aria-hidden');
+}
+
+function closePrivacy() {
+  $('privacyOverlay').classList.remove('active');
+  $('privacyOverlay').setAttribute('aria-hidden', 'true');
+}
+
+function toggleAgree(cb) {
+  const btn = $('btnAgree');
+  if (cb.checked) {
+    btn.disabled            = false;
+    btn.style.opacity       = '1';
+    btn.style.pointerEvents = 'all';
+  } else {
+    btn.disabled            = true;
+    btn.style.opacity       = '0.38';
+    btn.style.pointerEvents = 'none';
+  }
+}
+
+function proceedToForm() {
+  if (!$('privacyCheck').checked) return;
+  closePrivacy();
+  $('landingPage').style.display = 'none';
+  $('formPage').classList.add('active');
+  $('formPage').removeAttribute('aria-hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Click outside modal to close */
+$('privacyOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePrivacy();
+});
+
+
+/* ────────────────────────────────────────────────
+   BACK BUTTON
+──────────────────────────────────────────────── */
+function goBackToLanding() {
+  $('formPage').classList.remove('active');
+  $('formPage').setAttribute('aria-hidden', 'true');
+  $('landingPage').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+/* ────────────────────────────────────────────────
+   PROGRESS BAR
+──────────────────────────────────────────────── */
 function updateProgress() {
-  const filled = allFields.filter(id => {
-    const el = document.getElementById(id);
+  const filled = PROGRESS_FIELDS.filter(id => {
+    const el = $(id);
     return el && el.value.trim() !== '';
   }).length;
 
-  const total      = allFields.length + 3; // +mode +date +time
-  const extra      = (selectedMode ? 1 : 0) +
-                     (selectedDate ? 1 : 0) +
-                     (selectedTime ? 1 : 0);
-  const pct        = Math.round(((filled + extra) / total) * 100);
+  const total = PROGRESS_FIELDS.length + 3; // + mode + date + time
+  const extra = (selectedMode ? 1 : 0) +
+                (selectedDate ? 1 : 0) +
+                (selectedTime ? 1 : 0);
 
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressText').textContent = pct + '% Complete';
+  const pct = Math.min(Math.round(((filled + extra) / total) * 100), 100);
+  $('progressBar').style.width = pct + '%';
+  $('progressPct').textContent = pct + '% Complete';
 }
 
-allFields.forEach(id => {
-  const el = document.getElementById(id);
-  if (el) {
-    el.addEventListener('input',  updateProgress);
-    el.addEventListener('change', updateProgress);
-  }
+/* Attach change listeners */
+window.addEventListener('DOMContentLoaded', () => {
+  PROGRESS_FIELDS.forEach(id => {
+    const el = $(id);
+    if (el) {
+      el.addEventListener('input',  updateProgress);
+      el.addEventListener('change', updateProgress);
+    }
+  });
+
+  /* Keyboard support for mode cards */
+  $$('.mode-card').forEach(card => {
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
+  });
 });
 
-// ── MODE SELECTOR ──
+
+/* ────────────────────────────────────────────────
+   MEETING MODE
+──────────────────────────────────────────────── */
 function selectMode(mode) {
   selectedMode = mode.toUpperCase();
+
+  /* Reset date/time when mode changes */
   selectedDate = '';
   selectedTime = '';
+  $('preferred_date').value        = '';
+  $('preferred_time_hidden').value = '';
 
-  // Update mode card UI
-  ['online','onsite'].forEach(m => {
-    const card = document.getElementById('mode-' + m);
-    if (card) card.classList.remove('selected');
+  /* Update mode card visuals */
+  $$('.mode-card').forEach(c => {
+    c.classList.remove('selected');
+    c.setAttribute('aria-pressed', 'false');
   });
-  const selected = document.getElementById('mode-' + mode);
-  if (selected) selected.classList.add('selected');
+  const card = $('mode-' + mode);
+  if (card) {
+    card.classList.add('selected');
+    card.setAttribute('aria-pressed', 'true');
+  }
 
-  // Update hidden radio
-  const radio = document.querySelector(
-    `input[name="preferred_mode"][value="${mode.toUpperCase()}"]`
-  );
+  /* Check hidden radio */
+  const radio = $('radio_' + mode);
   if (radio) radio.checked = true;
 
-  // Show/hide onsite warning
-  const warning = document.getElementById('onsiteWarning');
-  if (warning) {
-    warning.style.display = mode === 'onsite' ? 'block' : 'none';
-  }
+  /* Onsite warning */
+  $('onsiteWarn').style.display = (mode === 'onsite') ? 'block' : 'none';
 
-  // Show calendar
-  document.getElementById('calendarSection').style.display = 'block';
+  /* Show calendar */
+  $('calSection').style.display = 'block';
+  $('selSummary').style.display  = 'none';
 
-  // Reset summary
-  updateSummary();
-
-  // Load availability
+  /* Re-render calendar with fresh data */
   loadAvailability(calYear, calMonth);
 
-  // Hide time slots until date picked
-  document.getElementById('timeSlotsWrapper').style.display = 'none';
-  document.getElementById('timeSlotsContainer').innerHTML   = '';
+  /* Hide time slots until date picked */
+  $('timeSection').style.display = 'none';
+  $('timeGrid').innerHTML        = '';
 
   updateProgress();
 }
 
-// ── UPDATE SELECTION SUMMARY ──
-function updateSummary() {
-  const summary    = document.getElementById('selectionSummary');
-  const summaryTxt = document.getElementById('summaryText');
-  if (!summary || !summaryTxt) return;
 
-  if (!selectedDate && !selectedTime) {
-    summary.style.display = 'none';
-    return;
-  }
-
-  let text = '';
-
-  if (selectedDate) {
-    const d = new Date(selectedDate + 'T00:00:00');
-    text += d.toLocaleDateString('en-PH', {
-      weekday: 'long',
-      month:   'long',
-      day:     'numeric',
-      year:    'numeric'
-    });
-  }
-
-  if (selectedTime) {
-    text += ' at ' + formatSlotTime(selectedTime);
-  } else if (selectedDate) {
-    text += ' — please select a time below';
-  }
-
-  summaryTxt.textContent  = text;
-  summary.style.display   = 'block';
-}
-
-// ── LOAD AVAILABILITY FOR MONTH ──
+/* ────────────────────────────────────────────────
+   CALENDAR — Availability
+──────────────────────────────────────────────── */
 async function loadAvailability(year, month) {
+  let avail = {};
   try {
-    const res    = await fetch(`/api/availability/${year}/${month + 1}`);
-    availability = await res.json();
-  } catch (e) {
-    availability = {};
+    const res = await fetch(`/api/availability/${year}/${month + 1}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      avail = await res.json();
+    } else {
+      avail = generateMockAvailability(year, month);
+    }
+  } catch (_) {
+    avail = generateMockAvailability(year, month);
   }
-  renderCalendar(year, month);
+  renderCalendar(year, month, avail);
 }
 
-// ── RENDER AVAILABILITY CALENDAR ──
-function renderCalendar(year, month) {
-  document.getElementById('availCalTitle').textContent =
-    MONTHS[month] + ' ' + year;
+function generateMockAvailability(year, month) {
+  const avail = {};
+  const days  = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= days; d++) {
+    const key  = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const seed = (year * 100 + month * 10 + d) % 10;
+    if (seed < 2)      avail[key] = { count: 3 };
+    else if (seed < 4) avail[key] = { count: 2 };
+    else               avail[key] = { count: 0 };
+  }
+  return avail;
+}
 
-  const grid        = document.getElementById('availGrid');
+function renderCalendar(year, month, avail) {
+  $('calTitle').textContent = MONTHS[month] + ' ' + year;
+
+  const grid        = $('calGrid');
+  grid.innerHTML    = '';
+  const today       = new Date(); today.setHours(0,0,0,0);
   const firstDay    = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today       = new Date();
-  today.setHours(0, 0, 0, 0);
 
-  let html = '';
-
-  // Empty cells
+  /* Empty leading cells */
   for (let i = 0; i < firstDay; i++) {
-    html += `<div class="avail-day empty"></div>`;
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell empty';
+    grid.appendChild(cell);
   }
 
-  // Day cells
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr  = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  /* Day cells */
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr  = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const cellDate = new Date(dateStr + 'T00:00:00');
-    const isToday  = cellDate.getTime() === today.getTime();
     const isPast   = cellDate < today;
+    const isWknd   = cellDate.getDay() === 0 || cellDate.getDay() === 6;
 
-    const info       = availability[dateStr];
-    const count      = info ? info.count : 0;
-    const isFull     = count >= 3;
-    const isLimited  = count > 0 && count < 3;
-    const isSelected = dateStr === selectedDate;
+    const cell = document.createElement('div');
+    cell.textContent = d;
 
-    let cls = 'avail-day';
-    let dot = '';
-
-    if (isPast) {
-      cls += ' past';
-    } else if (isFull) {
-      cls += ' full';
-      dot  = `<div class="avail-dot"></div>`;
-    } else if (isLimited) {
-      cls += ' limited';
-      dot  = `<div class="avail-dot"></div>`;
+    if (isPast || isWknd) {
+      cell.className = 'cal-cell past';
     } else {
-      cls += ' available';
-      dot  = `<div class="avail-dot"></div>`;
+      const info   = avail[dateStr];
+      const count  = info ? info.count : 0;
+      const isFull = count >= 3;
+      const isLim  = count >= 1 && count < 3;
+
+      if (isFull) {
+        cell.className = 'cal-cell booked';
+      } else {
+        const base = isLim ? 'limited' : 'available';
+        cell.className = 'cal-cell ' + base + (selectedDate === dateStr ? ' selected' : '');
+        cell.onclick   = () => selectDate(dateStr);
+        cell.setAttribute('role', 'gridcell');
+        cell.setAttribute('aria-label', `${MONTHS[month]} ${d}`);
+        cell.setAttribute('tabindex', '0');
+        cell.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectDate(dateStr); }
+        });
+      }
     }
 
-    if (isToday)    cls += ' today';
-    if (isSelected) cls += ' selected';
-
-    const clickable = !isPast && !isFull;
-
-    html += `
-      <div class="${cls}"
-        ${clickable ? `onclick="selectDay('${dateStr}')"` : ''}>
-        <span>${day}</span>
-        ${dot}
-      </div>
-    `;
-  }
-
-  grid.innerHTML = html;
-}
-
-// ── SELECT A DAY ──
-async function selectDay(dateStr) {
-  selectedDate = dateStr;
-  selectedTime = '';
-  renderCalendar(calYear, calMonth);
-  updateSummary();
-  updateProgress();
-  await loadTimeSlots(dateStr);
-}
-
-// ── LOAD TIME SLOTS ──
-async function loadTimeSlots(date) {
-  const container = document.getElementById('timeSlotsContainer');
-  const wrapper   = document.getElementById('timeSlotsWrapper');
-  if (!container || !wrapper) return;
-
-  wrapper.style.display   = 'block';
-  container.innerHTML = `
-    <div class="time-slots-loading">⏳ Loading available times...</div>
-  `;
-
-  try {
-    const res  = await fetch('/api/availability/slots/' + date);
-    const data = await res.json();
-
-    container.innerHTML = `
-      <div class="time-slots-grid">
-        ${data.slots.map(slot => `
-          <div
-            class="time-slot ${!slot.available ? 'booked' : ''}"
-            id="slot-${slot.time}"
-            ${slot.available
-              ? `onclick="selectTimeSlot('${slot.time}')"` : ''}>
-            ${formatSlotTime(slot.time)}
-          </div>
-        `).join('')}
-      </div>
-    `;
-  } catch (e) {
-    container.innerHTML = `
-      <div class="time-slots-placeholder">
-        Could not load time slots. Please try again.
-      </div>
-    `;
+    grid.appendChild(cell);
   }
 }
 
-// ── SELECT TIME SLOT ──
-function selectTimeSlot(time) {
-  selectedTime = time;
-
-  document.querySelectorAll('.time-slot').forEach(el => {
-    el.classList.remove('selected');
-  });
-  const slotEl = document.getElementById('slot-' + time);
-  if (slotEl) slotEl.classList.add('selected');
-
-  // Move summary BELOW time slots with spacing
-  const summary          = document.getElementById('selectionSummary');
-  const timeSlotsWrapper = document.getElementById('timeSlotsWrapper');
-  if (summary && timeSlotsWrapper) {
-    summary.style.marginTop = '16px';
-    timeSlotsWrapper.appendChild(summary);
-  }
-
-  updateSummary();
-  updateProgress();
-}
-
-// ── FORMAT SLOT TIME ──
-function formatSlotTime(time24) {
-  const [h, m] = time24.split(':').map(Number);
-  const ampm   = h >= 12 ? 'PM' : 'AM';
-  const hour   = h % 12 || 12;
-  return `${hour}:${String(m).padStart(2,'0')} ${ampm}`;
-}
-
-// ── NAVIGATE MONTHS ──
-function availPrevMonth() {
-  const today = new Date();
-  if (calYear  === today.getFullYear() &&
-      calMonth === today.getMonth()) return;
+/* ── Calendar navigation ── */
+function calPrev() {
+  const now = new Date();
+  if (calYear === now.getFullYear() && calMonth === now.getMonth()) return;
   calMonth--;
   if (calMonth < 0) { calMonth = 11; calYear--; }
   loadAvailability(calYear, calMonth);
 }
 
-function availNextMonth() {
+function calNext() {
   calMonth++;
   if (calMonth > 11) { calMonth = 0; calYear++; }
   loadAvailability(calYear, calMonth);
 }
 
-// ── SUBMIT FORM ──
+/* ── Select a day ── */
+function selectDate(dateStr) {
+  selectedDate = dateStr;
+  $('preferred_date').value = dateStr;
+
+  loadAvailability(calYear, calMonth);
+
+  $('timeSection').style.display = 'block';
+  renderTimeSlots();
+  updateSummary();
+  updateProgress();
+}
+
+
+/* ────────────────────────────────────────────────
+   TIME SLOTS
+──────────────────────────────────────────────── */
+async function renderTimeSlots() {
+  const grid = $('timeGrid');
+  grid.innerHTML = '<div style="font-size:13px;color:#9ca3af;padding:8px 0">Loading available times…</div>';
+
+  let slots = TIME_SLOTS;
+
+  try {
+    const res = await fetch(`/api/availability/slots/${selectedDate}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.slots)) {
+        slots = data.slots.map(s => ({
+          label: formatTime(s.time),
+          value: s.time,
+          avail: !!s.available
+        }));
+      }
+    }
+  } catch (_) { /* use static fallback */ }
+
+  grid.innerHTML = '';
+  slots.forEach(slot => {
+    const el = document.createElement('div');
+    el.className  = 'time-slot' + (!slot.avail ? ' unavail' : '') +
+                    (selectedTime === slot.value ? ' selected' : '');
+    el.textContent = slot.label;
+    if (slot.avail) {
+      el.onclick = () => pickTime(slot.value, slot.label);
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickTime(slot.value, slot.label); }
+      });
+    }
+    grid.appendChild(el);
+  });
+}
+
+function pickTime(value, label) {
+  selectedTime = value;
+  $('preferred_time_hidden').value = label;
+  renderTimeSlots();
+  updateSummary();
+  updateProgress();
+}
+
+function formatTime(t) {
+  const [h, m] = t.split(':').map(Number);
+  const ampm   = h >= 12 ? 'PM' : 'AM';
+  const hour   = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+
+/* ────────────────────────────────────────────────
+   SELECTION SUMMARY
+──────────────────────────────────────────────── */
+function updateSummary() {
+  const el = $('selSummary');
+  if (!selectedDate) { el.style.display = 'none'; return; }
+
+  const [y, mo, d] = selectedDate.split('-').map(Number);
+  const dt         = new Date(y, mo - 1, d);
+  const dateLabel  = dt.toLocaleDateString('en-PH', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+  });
+  const timeLabel  = selectedTime
+    ? ' at ' + formatTime(selectedTime)
+    : ' — please select a time below';
+
+  el.textContent   = '📅 ' + dateLabel + timeLabel;
+  el.style.display = 'block';
+}
+
+
+/* ────────────────────────────────────────────────
+   FORM SUBMIT
+──────────────────────────────────────────────── */
 async function submitForm(e) {
   e.preventDefault();
 
-  // Validate mode selected
+  /* Honeypot check */
+  if ($('hp_website') && $('hp_website').value.trim() !== '') {
+    fakeSuccess(); return;
+  }
+
+  /* Client-side validation */
+  const schoolName = $('school_name').value.trim();
+  const contact    = $('contact_person').value.trim();
+  const email      = $('email').value.trim();
+
+  if (!schoolName) {
+    showToast('Please enter your school name.', 'error');
+    $('school_name').focus(); return;
+  }
+  if (!contact) {
+    showToast('Please enter the contact person name.', 'error');
+    $('contact_person').focus(); return;
+  }
+  if (!email || !email.includes('@')) {
+    showToast('Please enter a valid email address.', 'error');
+    $('email').focus(); return;
+  }
   if (!selectedMode) {
-    showToast('Please select a meeting mode first', 'error');
-    return;
+    showToast('Please select a preferred meeting mode.', 'error'); return;
   }
-
-  // Validate date selected
   if (!selectedDate) {
-    showToast('Please select a preferred date', 'error');
-    return;
+    showToast('Please select a preferred date.', 'error'); return;
   }
-
-  // Validate time selected
   if (!selectedTime) {
-    showToast('Please select a preferred time slot', 'error');
-    return;
+    showToast('Please select a preferred time slot.', 'error'); return;
   }
 
-  // Warn if onsite outside Metro Manila
+  /* Onsite Metro Manila check */
   if (selectedMode === 'ONSITE') {
-    const city = document.getElementById('city_province').value.toLowerCase();
-    const metroManila = [
+    const city = ($('city_province').value || '').toLowerCase();
+    const METRO = [
       'manila','quezon city','makati','pasig','taguig',
       'mandaluyong','marikina','pasay','caloocan','malabon',
       'navotas','valenzuela','las pinas','las piñas',
       'muntinlupa','paranaque','parañaque','pateros','san juan'
     ];
-    const isMetro = metroManila.some(c => city.includes(c));
-    if (city && !isMetro) {
-      showToast(
-        '⚠️ Onsite is Metro Manila only. Switching to Online.',
-        'error'
-      );
+    if (city && !METRO.some(c => city.includes(c))) {
+      showToast('⚠️ Onsite visits are Metro Manila only. Switched to Online.', 'warn');
       selectMode('online');
       return;
     }
   }
 
-  const btn  = document.getElementById('submitBtn');
-  const text = document.getElementById('submitText');
-  btn.disabled     = true;
-  text.textContent = 'Submitting...';
+  /* Disable submit button */
+  const btn = $('submitBtn');
+  btn.disabled = true;
+  $('submitText').textContent = 'Submitting…';
 
-  // ── HONEYPOT CHECK ──
-  const honeypot = document.getElementById('website_url');
-  if (honeypot && honeypot.value.trim() !== '') {
-    // Bot detected — pretend it worked silently
-    document.getElementById('inquiryForm').style.display   = 'none';
-    document.getElementById('successScreen').style.display = 'block';
-    return;
-  }
-
-  const modeEl = document.querySelector(
-    'input[name="preferred_mode"]:checked'
-  );
-
+  /* Build payload */
   const payload = {
-    school_name:        document.getElementById('school_name').value.trim(),
-    school_type:        document.getElementById('school_type').value,
-    level_offered:      document.getElementById('level_offered').value,
-    estimated_students: document.getElementById('estimated_students').value || null,
-    city_province:      document.getElementById('city_province').value,
-    region:             document.getElementById('region').value,
-    contact_person:     document.getElementById('contact_person').value.trim(),
-    position:           document.getElementById('position').value,
-    email:              document.getElementById('email').value.trim(),
-    phone:              document.getElementById('phone').value,
+    school_name:        schoolName,
+    school_type:        $('school_type').value        || null,
+    level_offered:      $('level_offered').value      || null,
+    estimated_students: $('estimated_students').value ? Number($('estimated_students').value) : null,
+    city_province:      $('city_province').value.trim() || null,
+    region:             $('region').value              || null,
+    contact_person:     contact,
+    position:           $('position').value.trim()    || null,
+    email:              email,
+    phone:              $('phone').value.trim()        || null,
     preferred_date:     selectedDate,
-    preferred_time:     formatSlotTime(selectedTime),
+    preferred_time:     formatTime(selectedTime),
     preferred_mode:     selectedMode,
-    heard_from:         document.getElementById('heard_from').value,
-    message:            document.getElementById('message').value,
+    heard_from:         $('heard_from').value          || null,
+    message:            $('message').value.trim()      || null,
   };
 
+  /* POST to backend */
   try {
     const res  = await fetch('/api/inquiries', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload)
+      body:    JSON.stringify(payload),
     });
     const data = await res.json();
 
-    if (data.error) {
-      if (data.code === 'RATE_LIMITED') {
-        showToast(
-          '⚠️ Too many submissions. Please try again after 1 hour.',
-          'error'
-        );
-      } else if (data.code === 'VALIDATION_ERROR') {
-        showToast('⚠️ ' + data.error, 'error');
-      } else {
-        showToast('Error: ' + data.error, 'error');
-      }
-      btn.disabled     = false;
-      text.textContent = 'Submit Inquiry ✉️';
+    if (!res.ok || data.error) {
+      const msg = data.code === 'RATE_LIMITED'
+        ? '⚠️ Too many submissions. Please try again after 1 hour.'
+        : data.code === 'VALIDATION_ERROR'
+          ? '⚠️ ' + data.error
+          : (data.error || 'Something went wrong. Please try again.');
+      showToast(msg, 'error');
+      btn.disabled = false;
+      $('submitText').textContent = 'Submit Inquiry ✉️';
       return;
     }
 
-    document.getElementById('inquiryForm').style.display   = 'none';
-    document.getElementById('successScreen').style.display = 'block';
+    showSuccessScreen(payload);
 
   } catch (err) {
-    showToast('Something went wrong. Please try again.', 'error');
-    btn.disabled     = false;
-    text.textContent = 'Submit Inquiry ✉️';
+    showToast('Network error. Please check your connection and try again.', 'error');
+    btn.disabled = false;
+    $('submitText').textContent = 'Submit Inquiry ✉️';
   }
 }
 
-// ── TOAST ──
-function showToast(message, type = '') {
-  let toast = document.getElementById('inquiryToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'inquiryToast';
-    toast.style.cssText = `
-      position:fixed; bottom:28px; right:28px;
-      padding:12px 20px; border-radius:8px;
-      font-size:13px; font-weight:500;
-      box-shadow:0 8px 30px rgba(0,0,0,0.2);
-      z-index:999; transition:all 0.25s;
-      transform:translateY(80px); opacity:0;
-      font-family:'Inter',sans-serif;
+function fakeSuccess() {
+  $('formPage').classList.remove('active');
+  $('successPage').classList.add('active');
+  $('successPage').removeAttribute('aria-hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+/* ────────────────────────────────────────────────
+   SUCCESS SCREEN
+──────────────────────────────────────────────── */
+function showSuccessScreen(payload) {
+  const summaryCard = $('successSummary');
+  if (summaryCard) {
+    const rows = [
+      { label: 'School',  value: payload.school_name },
+      { label: 'Contact', value: payload.contact_person + (payload.position ? ` (${payload.position})` : '') },
+      { label: 'Email',   value: payload.email },
+      { label: 'Mode',    value: payload.preferred_mode === 'ONLINE' ? '💻 Online (Google Meet / Zoom)' : '🏫 Onsite (at your school)' },
+      { label: 'Date',    value: (() => {
+          const [y,m,d] = payload.preferred_date.split('-').map(Number);
+          return new Date(y, m - 1, d).toLocaleDateString('en-PH', {
+            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+          });
+        })()
+      },
+      { label: 'Time',    value: payload.preferred_time },
+    ];
+    summaryCard.innerHTML = `
+      <div class="sum-title">Your Submission Summary</div>
+      ${rows.map(r => `
+        <div class="sum-row">
+          <span class="sum-label">${r.label}</span>
+          <span class="sum-value">${escHtml(String(r.value || '—'))}</span>
+        </div>
+      `).join('')}
     `;
-    document.body.appendChild(toast);
   }
-  toast.textContent        = message;
-  toast.style.background   = type === 'error' ? '#D01B1B' : '#1B1F6B';
-  toast.style.color        = 'white';
-  setTimeout(() => {
-    toast.style.transform  = 'translateY(0)';
-    toast.style.opacity    = '1';
-  }, 10);
-  setTimeout(() => {
-    toast.style.transform  = 'translateY(80px)';
-    toast.style.opacity    = '0';
-  }, 3500);
+
+  $('formPage').classList.remove('active');
+  $('successPage').classList.add('active');
+  $('successPage').removeAttribute('aria-hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ── INIT ──
-window.addEventListener('load', () => {
-  // No default mode selected — user must choose
-});
+function escHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+
+/* ────────────────────────────────────────────────
+   RESET — "Submit Another Response"
+──────────────────────────────────────────────── */
+function resetAll() {
+  selectedMode = '';
+  selectedDate = '';
+  selectedTime = '';
+  calYear      = new Date().getFullYear();
+  calMonth     = new Date().getMonth();
+
+  const textFields = [
+    'school_name','contact_person','position','email','phone',
+    'city_province','estimated_students','message',
+    'preferred_date','preferred_time_hidden','hp_website'
+  ];
+  textFields.forEach(id => { const el = $(id); if (el) el.value = ''; });
+
+  const selectFields = ['school_type','level_offered','region','heard_from'];
+  selectFields.forEach(id => { const el = $(id); if (el) el.selectedIndex = 0; });
+
+  $$('input[name="preferred_mode"]').forEach(r => r.checked = false);
+
+  $$('.mode-card').forEach(c => {
+    c.classList.remove('selected');
+    c.setAttribute('aria-pressed', 'false');
+  });
+  $('onsiteWarn').style.display  = 'none';
+  $('calSection').style.display  = 'none';
+  $('timeSection').style.display = 'none';
+  $('selSummary').style.display  = 'none';
+  if ($('timeGrid')) $('timeGrid').innerHTML = '';
+
+  $('progressBar').style.width = '0%';
+  $('progressPct').textContent = '0% Complete';
+
+  $('submitBtn').disabled         = false;
+  $('submitText').textContent     = 'Submit Inquiry ✉️';
+
+  const sum = $('successSummary');
+  if (sum) sum.innerHTML = '';
+
+  $('successPage').classList.remove('active');
+  $('successPage').setAttribute('aria-hidden', 'true');
+  $('formPage').classList.remove('active');
+  $('formPage').setAttribute('aria-hidden', 'true');
+  $('landingPage').style.display = '';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+/* ────────────────────────────────────────────────
+   TOAST NOTIFICATION
+──────────────────────────────────────────────── */
+let _toastTimer = null;
+
+function showToast(message, type = 'error') {
+  const el = $('toastEl');
+  el.textContent = message;
+  el.className   = `show toast-${type}`;
+
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    el.classList.remove('show');
+  }, 4000);
+}

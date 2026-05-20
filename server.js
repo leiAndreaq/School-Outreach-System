@@ -118,17 +118,19 @@ app.use(session({
 }));
 
 // ── AUTH MIDDLEWARE ──
-// Protects all /api routes except login and inquiries
+// Protects all /api routes except login, session, availability, and public inquiry POST
 function requireAuth(req, res, next) {
-  const publicRoutes = [
+  const publicPaths = [
     "/login",
     "/logout",
-    "/inquiries",
     "/availability",
     "/session"
   ];
 
-  const isPublic = publicRoutes.some(route =>
+  // Only the inquiry submission endpoint is public — GET /api/inquiries requires auth
+  const isPublicInquiryPost = req.method === 'POST' && req.path === '/inquiries';
+
+  const isPublic = isPublicInquiryPost || publicPaths.some(route =>
     req.path.startsWith(route)
   );
 
@@ -369,6 +371,123 @@ app.get("/api/schools/:id", (req, res) => {
   });
 });
 
+// ── UPDATE SCHOOL DETAILS ──
+app.put("/api/schools/:id", [
+  body("school_name")
+    .trim()
+    .notEmpty().withMessage("School name is required")
+    .isLength({ max: 200 }).withMessage("School name too long")
+    .escape(),
+  body("email")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isEmail().withMessage("Invalid email address"),
+  body("phone")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 50 }),
+  body("estimated_students")
+    .optional({ nullable: true, checkFalsy: true })
+    .isInt({ min: 1, max: 100000 })
+    .withMessage("Invalid student count"),
+  body("contact_person")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 200 })
+    .escape(),
+  body("notes")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 1000 })
+    .escape(),
+  body("address")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 300 })
+    .escape(),
+  body("city_province")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 100 })
+    .escape(),
+  body("website")
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 300 }),
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg, code: "VALIDATION_ERROR" });
+  }
+
+  const s = req.body;
+  db.run(
+    `UPDATE schools SET
+      school_name = ?, contact_person = ?, email = ?, phone = ?,
+      website = ?, facebook_page = ?, address = ?, city_province = ?,
+      region = ?, school_type = ?, level_offered = ?, estimated_students = ?,
+      assigned_to = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`,
+    [
+      s.school_name,
+      s.contact_person  || null, s.email           || null, s.phone        || null,
+      s.website         || null, s.facebook_page   || null, s.address      || null,
+      s.city_province   || null, s.region          || null, s.school_type  || null,
+      s.level_offered   || null, s.estimated_students || null, s.assigned_to || null,
+      s.notes           || null,
+      req.params.id
+    ],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: "School not found" });
+      logActivity(req.params.id, "DETAILS_UPDATED", "School details edited by admin.");
+      res.json({ message: "School updated" });
+    }
+  );
+});
+
+// ── BULK DELETE SCHOOLS ──
+app.delete("/api/schools", (req, res) => {
+  const { ids, reason } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: "No school IDs provided" });
+  }
+
+  const validIds = ids.map(Number).filter(n => Number.isInteger(n) && n > 0);
+  if (!validIds.length) {
+    return res.status(400).json({ error: "Invalid school IDs" });
+  }
+
+  const deleteReason = (reason || '').trim() || 'Bulk delete by admin';
+  let deleted = 0;
+  let processed = 0;
+
+  validIds.forEach(id => {
+    db.get(`SELECT * FROM schools WHERE id = ?`, [id], (err, school) => {
+      if (err || !school) {
+        processed++;
+        if (processed === validIds.length) res.json({ deleted });
+        return;
+      }
+
+      db.run(
+        `INSERT INTO deletion_history (record_type, record_name, reason) VALUES (?, ?, ?)`,
+        ['SCHOOL', school.school_name, deleteReason]
+      );
+      db.run(`DELETE FROM email_drafts WHERE school_id = ?`, [id]);
+      db.run(`DELETE FROM meetings WHERE school_id = ?`, [id]);
+      db.run(`DELETE FROM activity_logs WHERE school_id = ?`, [id]);
+
+      db.run(`DELETE FROM schools WHERE id = ?`, [id], function (err) {
+        if (!err) deleted++;
+        processed++;
+        if (processed === validIds.length) res.json({ deleted });
+      });
+    });
+  });
+});
+
 // ── DELETE SCHOOL (Right to Erasure) ──
 app.delete("/api/schools/:id", (req, res) => {
   const { reason } = req.body;
@@ -565,33 +684,63 @@ app.post("/api/email-drafts/:id/send", (req, res) => {
 app.post("/api/import-csv", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "CSV file is required" });
 
-  let imported = 0;
-  const errors = [];
+  const filename = req.file.originalname || 'unknown.csv';
+  const rows = [];
 
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on("data", (row) => {
-      if (!row.school_name) return;
-
-      db.run(
-        `INSERT INTO schools 
-        (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          row.school_name, row.contact_person, row.email, row.phone, row.website, row.facebook_page,
-          row.address, row.city_province, row.region, row.school_type, row.level_offered,
-          row.estimated_students, row.assigned_to, row.notes
-        ],
-        function (err) {
-          if (err) errors.push(err.message);
-          else imported++;
-        }
-      );
+      if (row.school_name) rows.push(row);
     })
     .on("end", () => {
       fs.unlinkSync(req.file.path);
-      res.json({ message: "CSV import completed", imported, errors });
+
+      if (!rows.length) {
+        db.run(`INSERT INTO import_logs (filename, imported_count, error_count) VALUES (?, 0, 0)`, [filename]);
+        return res.json({ message: "CSV import completed", imported: 0, errors: [] });
+      }
+
+      let imported = 0;
+      const errors = [];
+      let processed = 0;
+
+      rows.forEach(row => {
+        db.run(
+          `INSERT INTO schools
+          (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            row.school_name, row.contact_person, row.email, row.phone, row.website, row.facebook_page,
+            row.address, row.city_province, row.region, row.school_type, row.level_offered,
+            row.estimated_students, row.assigned_to, row.notes
+          ],
+          function (err) {
+            if (err) errors.push(err.message);
+            else imported++;
+
+            processed++;
+            if (processed === rows.length) {
+              db.run(
+                `INSERT INTO import_logs (filename, imported_count, error_count) VALUES (?, ?, ?)`,
+                [filename, imported, errors.length]
+              );
+              res.json({ message: "CSV import completed", imported, errors });
+            }
+          }
+        );
+      });
     });
+});
+
+app.get("/api/import-logs", (_req, res) => {
+  db.all(
+    `SELECT * FROM import_logs ORDER BY imported_at DESC LIMIT 50`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
 });
 
 app.get("/api/activity-logs/:schoolId", (req, res) => {
@@ -617,6 +766,72 @@ app.get("/api/schools/check-email/:email", (req, res) => {
       } else {
         res.json({ exists: false });
       }
+    }
+  );
+});
+
+// Get meetings for a specific school
+app.get("/api/schools/:id/meetings", (req, res) => {
+  db.all(
+    `SELECT * FROM meetings WHERE school_id = ?
+     ORDER BY meeting_date DESC, meeting_time DESC`,
+    [req.params.id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+// ── ANALYTICS ──
+app.get("/api/analytics", (_req, res) => {
+  const data = {};
+  let pending = 5;
+  const done = () => { if (--pending === 0) res.json(data); };
+
+  db.all(
+    `SELECT date(created_at) as day, COUNT(*) as count
+     FROM schools WHERE date(created_at) >= date('now', '-6 days')
+     GROUP BY day ORDER BY day`,
+    [], (_err, rows) => { data.weekly_leads = rows || []; done(); }
+  );
+
+  db.all(
+    `SELECT date(created_at) as day, COUNT(*) as count
+     FROM schools WHERE date(created_at) >= date('now', '-29 days')
+     GROUP BY day ORDER BY day`,
+    [], (_err, rows) => { data.monthly_leads = rows || []; done(); }
+  );
+
+  db.all(
+    `SELECT COALESCE(status, 'NEW_LEAD') as status, COUNT(*) as count
+     FROM schools GROUP BY status ORDER BY count DESC`,
+    [], (_err, rows) => { data.status_dist = rows || []; done(); }
+  );
+
+  db.get(
+    `SELECT
+       (SELECT COUNT(*) FROM activity_logs WHERE activity_type='EMAIL_SENT' AND date(created_at) >= date('now','-6 days'))  AS weekly_emails,
+       (SELECT COUNT(*) FROM activity_logs WHERE activity_type='EMAIL_SENT' AND date(created_at) >= date('now','-29 days')) AS monthly_emails,
+       (SELECT COUNT(*) FROM meetings WHERE date(meeting_date) >= date('now','-6 days')  AND date(meeting_date) <= date('now','+1 day')) AS weekly_meetings,
+       (SELECT COUNT(*) FROM meetings WHERE date(meeting_date) >= date('now','-29 days') AND date(meeting_date) <= date('now','+1 day')) AS monthly_meetings`,
+    [], (_err, row) => {
+      data.weekly_emails    = (row && row.weekly_emails)    || 0;
+      data.monthly_emails   = (row && row.monthly_emails)   || 0;
+      data.weekly_meetings  = (row && row.weekly_meetings)  || 0;
+      data.monthly_meetings = (row && row.monthly_meetings) || 0;
+      done();
+    }
+  );
+
+  db.get(
+    `SELECT
+       (SELECT COUNT(*) FROM inquiries WHERE date(created_at) >= date('now','-6 days'))  AS weekly_inquiries,
+       (SELECT COUNT(*) FROM inquiries WHERE date(created_at) >= date('now','-29 days')) AS monthly_inquiries`,
+    [], (_err, row) => {
+      data.weekly_inquiries  = (row && row.weekly_inquiries)  || 0;
+      data.monthly_inquiries = (row && row.monthly_inquiries) || 0;
+      done();
     }
   );
 });
@@ -676,8 +891,7 @@ app.post("/api/inquiries", inquiryLimiter, [
   body("email")
     .trim()
     .notEmpty().withMessage("Email is required")
-    .isEmail().withMessage("Invalid email address")
-    .normalizeEmail(),
+    .isEmail().withMessage("Invalid email address"),
   body("phone")
     .optional()
     .trim()
@@ -772,7 +986,7 @@ app.post("/api/inquiries", inquiryLimiter, [
   );
 });
 
-// Approve inquiry → convert to school lead
+// Approve inquiry → convert to school lead + auto-generate PROPOSAL email
 app.post("/api/inquiries/:id/approve", (req, res) => {
   db.get(
     `SELECT * FROM inquiries WHERE id = ?`,
@@ -806,7 +1020,7 @@ app.post("/api/inquiries/:id/approve", (req, res) => {
            Heard from: ${inquiry.heard_from || 'Not specified'}.
            Message: ${inquiry.message || 'None'}.`
         ],
-        function (err) {
+        async function (err) {
           if (err) return res.status(500).json({ error: err.message });
 
           const schoolId = this.lastID;
@@ -824,10 +1038,93 @@ app.post("/api/inquiries/:id/approve", (req, res) => {
             `School lead created from public inquiry form.`
           );
 
-          res.json({
-            message: "Inquiry approved and converted to school lead",
-            school_id: schoolId
-          });
+          // Auto-create meeting from inquiry's preferred date/time (non-fatal)
+          if (inquiry.preferred_date) {
+            const meetTime = convertTimeTo24hr(inquiry.preferred_time) || '09:00';
+            db.run(
+              `INSERT INTO meetings
+               (school_id, school_name, contact_person, meeting_type,
+                meeting_date, meeting_time, meeting_mode, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED')`,
+              [
+                schoolId,
+                inquiry.school_name,
+                inquiry.contact_person,
+                'PRESENTATION',
+                inquiry.preferred_date,
+                meetTime,
+                inquiry.preferred_mode || 'ONLINE'
+              ],
+              function (meetErr) {
+                if (!meetErr) {
+                  logActivity(
+                    schoolId,
+                    'MEETING_SCHEDULED',
+                    `Presentation auto-scheduled on ${inquiry.preferred_date} at ${meetTime} from inquiry preferred date.`
+                  );
+                }
+              }
+            );
+          }
+
+          // Auto-generate PROPOSAL email immediately
+          const school = {
+            id: schoolId,
+            school_name:        inquiry.school_name,
+            contact_person:     inquiry.contact_person,
+            email:              inquiry.email,
+            phone:              inquiry.phone,
+            city_province:      inquiry.city_province,
+            region:             inquiry.region,
+            school_type:        inquiry.school_type,
+            level_offered:      inquiry.level_offered,
+            estimated_students: inquiry.estimated_students,
+            status:             'NEW_LEAD'
+          };
+
+          try {
+            const email = await generateEmail(school, 'PROPOSAL');
+
+            db.run(
+              `INSERT INTO email_drafts (school_id, email_type, subject, body)
+               VALUES (?, ?, ?, ?)`,
+              [schoolId, 'PROPOSAL', email.subject, email.body],
+              function (draftErr) {
+                if (draftErr) {
+                  return res.json({
+                    message:   "Inquiry approved and converted to school lead",
+                    school_id: schoolId
+                  });
+                }
+
+                db.run(
+                  `UPDATE schools SET status = 'PROPOSAL_GENERATED',
+                   updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                  [schoolId]
+                );
+
+                logActivity(
+                  schoolId,
+                  'EMAIL_GENERATED',
+                  'PROPOSAL email generated after inquiry approval.'
+                );
+
+                res.json({
+                  message:   "Inquiry approved and converted to school lead",
+                  school_id: schoolId,
+                  draft_id:  this.lastID,
+                  subject:   email.subject,
+                  body:      email.body
+                });
+              }
+            );
+          } catch (emailErr) {
+            // Email generation failed — still return school creation success
+            res.json({
+              message:   "Inquiry approved and converted to school lead",
+              school_id: schoolId
+            });
+          }
         }
       );
     }
@@ -880,6 +1177,23 @@ app.get("/api/meetings", (req, res) => {
   );
 });
 
+// Get today's meetings — must be registered BEFORE /:id to avoid route collision
+app.get("/api/meetings/today", (req, res) => {
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meeting_date = DATE('now', '+8 hours')
+     AND meetings.status IN ('SCHEDULED', 'RESCHEDULED')
+     ORDER BY meeting_time ASC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
 // Get single meeting
 app.get("/api/meetings/:id", (req, res) => {
   db.get(
@@ -913,6 +1227,20 @@ app.get("/api/meetings/month/:year/:month", (req, res) => {
     }
   );
 });
+
+// ── HELPER: Convert 12-hour time string (e.g. "2:00 PM") to 24-hour "HH:MM" ──
+function convertTimeTo24hr(timeStr) {
+  if (!timeStr) return null;
+  if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+  const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+  if (!match) return null;
+  let hours = parseInt(match[1]);
+  const mins = match[2];
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return String(hours).padStart(2, '0') + ':' + mins;
+}
 
 // ── HELPER: Convert time string to minutes ──
 function timeToMinutes(timeStr) {
@@ -1134,23 +1462,6 @@ app.patch("/api/meetings/:id/reschedule", (req, res) => {
       }
     );
   });
-});
-
-// Get today's meetings
-app.get("/api/meetings/today", (req, res) => {
-  db.all(
-    `SELECT meetings.*, schools.email as school_email
-     FROM meetings
-     LEFT JOIN schools ON meetings.school_id = schools.id
-     WHERE meeting_date = DATE('now', '+8 hours')
-     AND meetings.status IN ('SCHEDULED', 'RESCHEDULED')
-     ORDER BY meeting_time ASC`,
-    [],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    }
-  );
 });
 
 // Public time slot availability for a specific date

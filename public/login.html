@@ -5,89 +5,148 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AccoutureAI — Login</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap"
+    rel="stylesheet"
+  />
 
-  <!-- Login Styles -->
-  <link rel="stylesheet" href="/css/login.css"/>
+  <!-- External CSS -->
+  <link rel="stylesheet" href="/css/login.css" />
 </head>
+
 <body>
 
-  <!-- Background Pattern -->
-  <div class="bg-pattern"></div>
-
-  <!-- Login Card -->
-  <div class="login-card">
-
-    <!-- Header -->
-    <div class="login-header">
-      <div class="login-logo">
-        ACCOUTURE<span>AI</span>
-      </div>
-      <div class="login-tagline">Powered by ThinkTANQ</div>
-      <div class="login-subtitle">
-        School Outreach CRM — Secure Access
-      </div>
-    </div>
-
-    <!-- Body -->
-    <div class="login-body">
-      <div class="login-title">Welcome Back 👋</div>
-      <div class="login-desc">
-        Enter your password to access the CRM dashboard.
-      </div>
-
-      <!-- Password Field -->
-      <div>
-        <label class="login-label">Password</label>
-        <div class="password-wrapper">
-          <input
-            type="password"
-            id="passwordInput"
-            class="login-input"
-            placeholder="Enter your password"
-            onkeydown="handleKeyDown(event)"
-            oninput="clearError()"
-            autofocus
-          />
-          <button
-            type="button"
-            class="toggle-password"
-            onclick="togglePassword()"
-            id="toggleBtn">
-            👁
-          </button>
-        </div>
-      </div>
-
-      <!-- Error Message -->
-      <div class="login-error" id="loginError"></div>
-
-      <!-- Attempts Warning -->
-      <div class="attempts-warning" id="attemptsWarning"></div>
-
-      <!-- Login Button -->
-      <button
-        class="login-btn"
-        id="loginBtn"
-        onclick="handleLogin()">
-        <span id="loginBtnText">Login to CRM</span>
-      </button>
-
-    </div>
-
-    <!-- Footer -->
-    <div class="login-footer">
-      🔒 This is a private system. Unauthorized access is prohibited.<br/>
-      © 2026 ThinkTANQ Business Creation & Management OPC
-    </div>
-
+  <div class="bg-layer">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
   </div>
 
-  <!-- Login JS -->
+  <div class="bg-grid"></div>
+
+  <div class="login-card card">
+
+    <!-- LEFT -->
+    <div class="panel-left">
+      
+      <div>
+        <div class="brand-badge">
+          <span class="badge-dot"></span>
+          ThinkTANQ Platform
+        </div>
+
+        <div class="brand-title">
+          ACCOUTRE<span>  Ai</span>
+        </div>
+
+        <p class="brand-tagline">
+          Partnership And Training Hub System
+          
+        </p>
+      </div>
+       <div class="logo-container">
+  <img src="images/accoutre.png" alt="ThinkTANQ Logo" class="logo">
+</div>
+     
+
+      <div class="deco-stats">
+        <div class="deco-stat">
+          <div class="deco-stat-icon">🏫</div>
+          <div>
+            <div class="deco-stat-val">School Outreach CRM & Pipeline Tracking</div>
+           
+          </div>
+        </div>
+
+        <div class="deco-stat">
+          <div class="deco-stat-icon">🔒</div>
+          <div>
+            <div class="deco-stat-val">Secure Portal Enterprise-grade Access</div>
+        
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="panel-right">
+
+      <div class="form-wrap">
+
+        <div class="avatar">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke="currentColor"
+               stroke-width="1.6"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zm4.5 13.5a8.25 8.25 0 10-16.5 0"/>
+          </svg>
+        </div>
+
+        <div class="form-title">Welcome Back</div>
+        <div class="form-sub">Enter your password to continue</div>
+
+        <div class="form-body">
+
+          <label class="field-label" for="passwordInput">
+            Password
+          </label>
+
+          <div class="field-wrap">
+
+            <input
+              type="password"
+              id="passwordInput"
+              class="field-input"
+              placeholder="Enter your password"
+              onkeydown="handleKeyDown(event)"
+              oninput="clearError()"
+              autofocus
+            />
+
+            <button
+              class="eye-btn"
+              type="button"
+              onclick="togglePassword()"
+              id="toggleBtn"
+              aria-label="Toggle password visibility"
+            >
+              👁
+            </button>
+
+          </div>
+
+          <!-- JS ERROR ELEMENTS -->
+          <div class="error-msg" id="loginError"></div>
+          <div class="attempts-txt" id="attemptsWarning"></div>
+
+          <button
+            class="submit-btn"
+            id="loginBtn"
+            onclick="handleLogin()"
+          >
+            <div class="btn-inner">
+              <span id="loginBtnText">Login</span>
+            </div>
+          </button>
+
+        </div>
+
+      </div>
+
+      <div class="panel-footer">
+        <strong>Private system.</strong>
+        Unauthorized access is prohibited.<br/>
+        © 2026 ThinkTANQ Business Creation and Management OPC
+      </div>
+
+    </div>
+  </div>
+
+  <!-- External JS -->
   <script src="/js/login.js"></script>
 
 </body>
