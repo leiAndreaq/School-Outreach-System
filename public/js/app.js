@@ -2,6 +2,30 @@
 let currentSchoolId = null;
 let statusTargetId = null;
 
+// ── GENERIC CONFIRM MODAL ──
+let _confirmResolve = null;
+
+function showConfirmModal(title, message, confirmLabel = 'Confirm', confirmClass = 'btn-navy') {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById('confirmModalTitle').innerHTML = title;
+    document.getElementById('confirmModalMessage').innerHTML = message;
+    const btn = document.getElementById('confirmModalBtn');
+    btn.textContent = confirmLabel;
+    btn.className = confirmClass + ' text-sm';
+    openModal('confirmModal');
+    lucide.createIcons();
+  });
+}
+
+function resolveConfirm(result) {
+  closeModal('confirmModal');
+  if (_confirmResolve) {
+    _confirmResolve(result);
+    _confirmResolve = null;
+  }
+}
+
 // ── CLOCK ──
 function updateClock() {
   const el = document.getElementById('clockDisplay');
@@ -147,13 +171,18 @@ function fmtDate(dateStr) {
   });
 }
 
+// ── ICON HELPER (for dynamic HTML) ──
+function licon(name, size = 14) {
+  return `<i data-lucide="${name}" style="width:${size}px;height:${size}px;display:inline-block;vertical-align:middle;flex-shrink:0;"></i>`;
+}
+
 // ── EMPTY STATE HTML ──
-function emptyState(icon, title, sub = '') {
+function emptyState(iconName, title, sub = '') {
   return `
     <tr>
       <td colspan="99">
         <div class="empty-state">
-          <div class="icon">${icon}</div>
+          <div class="icon"><i data-lucide="${iconName}" style="width:36px;height:36px;color:#9ca3af;stroke-width:1.5;"></i></div>
           <div class="title">${title}</div>
           ${sub ? `<div class="sub">${sub}</div>` : ''}
         </div>
@@ -242,19 +271,19 @@ window.addEventListener('load', async () => {
 
   loadDashboard();
 
-  // Auto refresh every 10 seconds
+  // Auto refresh every 30 seconds
   setInterval(() => {
     const active = document.querySelector('.tab-section.active');
     if (!active) return;
     const id = active.id;
     if (id === 'tab-dashboard')  loadDashboard();
     if (id === 'tab-analytics')  loadAnalytics();
-    if (id === 'tab-schools')    loadSchools();
+    if (id === 'tab-schools')    loadSchools(true);
     if (id === 'tab-archived')   { loadDrafts(); loadHistory(); }
     if (id === 'tab-calendar')   loadCalendar();
     if (id === 'tab-inquiries')  loadInquiries();
     checkPendingInquiries();
-  }, 10000);
+  }, 30000);
 
   // ── SESSION EXPIRY CHECK ──
   async function checkSession() {
@@ -294,8 +323,13 @@ function switchArchivedView(view) {
 
 // ── LOGOUT ──
 async function handleLogout() {
-  const confirmed = confirm('Are you sure you want to logout?');
-  if (!confirmed) return;
+  const ok = await showConfirmModal(
+    '<i data-lucide="log-out" style="width:15px;height:15px;display:inline-block;vertical-align:middle;margin-right:5px;"></i> Logout',
+    'Are you sure you want to logout?',
+    'Logout',
+    'btn-navy'
+  );
+  if (!ok) return;
 
   try {
     await fetch('/api/logout', { method: 'POST' });
@@ -349,7 +383,7 @@ async function submitChangePassword() {
       return;
     }
 
-    showToast('✅ Password changed successfully!', 'success');
+    showToast('Password changed successfully!', 'success');
     document.getElementById('currentPassword').value = '';
     document.getElementById('newPassword').value = '';
     document.getElementById('confirmPassword').value = '';
@@ -366,8 +400,8 @@ async function triggerBackup() {
 
   // Disable button to prevent spam clicking
   if (btn) {
-    btn.disabled        = true;
-    btn.textContent     = '💾 Backing up...';
+    btn.disabled   = true;
+    btn.innerHTML  = `${licon('loader', 16)} Backing up...`;
   }
 
   try {
@@ -379,16 +413,16 @@ async function triggerBackup() {
       return;
     }
 
-    showToast('💾 Backup created successfully!', 'success');
+    showToast('Backup created successfully!', 'success');
 
   } catch (e) {
     showToast('Backup failed', 'error');
   } finally {
-    // Re-enable after 5 seconds
     if (btn) {
       setTimeout(() => {
-        btn.disabled    = false;
-        btn.textContent = '💾 Backup';
+        btn.disabled  = false;
+        btn.innerHTML = `${licon('database-backup', 16)} Backup Data`;
+        lucide.createIcons();
       }, 5000);
     }
   }

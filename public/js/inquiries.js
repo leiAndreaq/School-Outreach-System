@@ -3,6 +3,11 @@ let allInquiries = [];
 let currentInquiryId = null;
 let currentFilter = 'PENDING';
 
+// ── PAGINATION STATE ──
+const INQUIRIES_PAGE_SIZE = 5;
+let inquiriesCurrentPage  = 1;
+let inquiriesFilteredList = [];
+
 // ── LOAD ALL INQUIRIES ──
 async function loadInquiries() {
   try {
@@ -18,11 +23,16 @@ async function loadInquiries() {
 // ── FILTER INQUIRIES ──
 function filterInquiries(status) {
   currentFilter = status;
+  inquiriesCurrentPage = 1;
 
   ['PENDING','APPROVED','DISMISSED','ALL'].forEach(s => {
     const btn = document.getElementById('filter-' + s);
     if (!btn) return;
-    btn.className = s === status ? 'btn-navy text-sm' : 'btn-ghost text-sm';
+    if (s === status) {
+      btn.classList.add('inq-filter-active');
+    } else {
+      btn.classList.remove('inq-filter-active');
+    }
   });
 
   renderInquiries(status);
@@ -31,10 +41,13 @@ function filterInquiries(status) {
 // ── RENDER INQUIRIES TABLE ──
 function renderInquiries(filter) {
   const tbody = document.getElementById('inquiriesTable');
+  const pagEl = document.getElementById('inquiriesPagination');
 
   const filtered = filter === 'ALL'
     ? allInquiries
     : allInquiries.filter(i => i.status === filter);
+
+  inquiriesFilteredList = filtered;
 
   const countEl = document.getElementById('inquiryCount');
   if (countEl) countEl.textContent = filtered.length;
@@ -47,14 +60,23 @@ function renderInquiries(filter) {
       ALL:       'No inquiries yet'
     };
     tbody.innerHTML = emptyState(
-      '📥',
+      'inbox',
       messages[filter] || 'No inquiries',
       filter === 'PENDING' ? 'New form submissions will appear here' : ''
     );
+    if (pagEl) pagEl.style.display = 'none';
+    lucide.createIcons();
     return;
   }
 
-  tbody.innerHTML = filtered.map(i => `
+  const total      = filtered.length;
+  const totalPages = Math.ceil(total / INQUIRIES_PAGE_SIZE);
+  if (inquiriesCurrentPage > totalPages) inquiriesCurrentPage = totalPages;
+
+  const start    = (inquiriesCurrentPage - 1) * INQUIRIES_PAGE_SIZE;
+  const pageSlice = filtered.slice(start, start + INQUIRIES_PAGE_SIZE);
+
+  tbody.innerHTML = pageSlice.map(i => `
     <tr>
       <td class="px-6 py-4 font-medium text-gray-900">${i.school_name}</td>
       <td class="px-6 py-4 text-gray-600">${i.contact_person}</td>
@@ -79,6 +101,73 @@ function renderInquiries(filter) {
       </td>
     </tr>
   `).join('');
+
+  renderInquiriesPagination(total, totalPages);
+  lucide.createIcons();
+}
+
+// ── PAGINATION RENDER ──
+function renderInquiriesPagination(total, totalPages) {
+  const el = document.getElementById('inquiriesPagination');
+  if (!el) return;
+
+  if (totalPages <= 1) {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.style.display = 'flex';
+
+  const start = (inquiriesCurrentPage - 1) * INQUIRIES_PAGE_SIZE + 1;
+  const end   = Math.min(inquiriesCurrentPage * INQUIRIES_PAGE_SIZE, total);
+
+  const btnBase = 'width:32px;height:32px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.15s;';
+
+  const MAX_VISIBLE = 5;
+  let winStart = Math.max(1, inquiriesCurrentPage - Math.floor(MAX_VISIBLE / 2));
+  let winEnd   = winStart + MAX_VISIBLE - 1;
+  if (winEnd > totalPages) {
+    winEnd   = totalPages;
+    winStart = Math.max(1, winEnd - MAX_VISIBLE + 1);
+  }
+
+  let pageButtons = '';
+  for (let i = winStart; i <= winEnd; i++) {
+    const active = i === inquiriesCurrentPage;
+    pageButtons += `<button onclick="goToInquiriesPage(${i})" style="${btnBase}
+      font-weight:${active ? '700' : '500'};
+      background:${active ? '#201658' : 'transparent'};
+      color:${active ? '#fff' : '#374151'};
+      border:1px solid ${active ? '#201658' : '#d1d5db'};">${i}</button>`;
+  }
+
+  const onFirst = inquiriesCurrentPage === 1;
+  const onLast  = inquiriesCurrentPage === totalPages;
+
+  const navBtn = (onclick, disabled, label) =>
+    `<button onclick="${onclick}" ${disabled ? 'disabled' : ''}
+      style="${btnBase} background:transparent; border:1px solid #d1d5db;
+        color:${disabled ? '#9ca3af' : '#374151'};
+        cursor:${disabled ? 'not-allowed' : 'pointer'}; font-size:11px;">${label}</button>`;
+
+  el.innerHTML = `
+    <div style="display:flex;gap:4px;align-items:center;">
+      ${navBtn(`goToInquiriesPage(1)`,                       onFirst, '&laquo;')}
+      ${navBtn(`goToInquiriesPage(${inquiriesCurrentPage - 1})`, onFirst, '&lsaquo;')}
+      ${pageButtons}
+      ${navBtn(`goToInquiriesPage(${inquiriesCurrentPage + 1})`, onLast,  '&rsaquo;')}
+      ${navBtn(`goToInquiriesPage(${totalPages})`,            onLast,  '&raquo;')}
+    </div>
+    <span>${start}–${end} of ${total} inquir${total !== 1 ? 'ies' : 'y'}</span>
+  `;
+}
+
+// ── GO TO PAGE ──
+function goToInquiriesPage(page) {
+  const totalPages = Math.ceil(inquiriesFilteredList.length / INQUIRIES_PAGE_SIZE);
+  if (page < 1 || page > totalPages) return;
+  inquiriesCurrentPage = page;
+  renderInquiries(currentFilter);
 }
 
 // ── VIEW INQUIRY ──
@@ -168,8 +257,8 @@ async function viewInquiry(id) {
       footer.innerHTML = `
         <button onclick="closeModal('inquiryModal')" class="btn-ghost">Close</button>
         <button onclick="deleteInquiry(${i.id}, '${i.contact_person}')"
-          class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto;">
-          🗑 Delete
+          class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto; display:inline-flex; align-items:center; gap:4px;">
+          ${licon('trash-2')} Delete
         </button>
         <button onclick="openDismissModal()" class="btn-red text-sm" style="color:#ffffff;">
           Dismiss
@@ -182,13 +271,14 @@ async function viewInquiry(id) {
       footer.innerHTML = `
         <button onclick="closeModal('inquiryModal')" class="btn-ghost">Close</button>
         <button onclick="deleteInquiry(${i.id}, '${i.contact_person}')"
-          class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto;">
-          🗑 Delete
+          class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto; display:inline-flex; align-items:center; gap:4px;">
+          ${licon('trash-2')} Delete
         </button>
       `;
     }
 
     openModal('inquiryModal');
+    lucide.createIcons();
   } catch (e) {
     showToast('Could not load inquiry', 'error');
   }
@@ -210,7 +300,7 @@ async function approveInquiry() {
       return;
     }
 
-    showToast('✅ Inquiry approved! School lead created.', 'success');
+    showToast('Inquiry approved! School lead created.', 'success');
     closeModal('inquiryModal');
     loadInquiries();
     loadDashboard();
@@ -314,7 +404,7 @@ async function confirmDeleteInquiry() {
       return;
     }
 
-    showToast('🗑 Inquiry permanently deleted', 'success');
+    showToast('Inquiry permanently deleted', 'success');
     closeModal('deleteInquiryModal');
     loadInquiries();
     checkPendingInquiries();

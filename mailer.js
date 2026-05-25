@@ -1,5 +1,6 @@
 require("dotenv").config();
 const nodemailer = require("nodemailer");
+const { htmlWrap } = require("./emailTemplates");
 
 function canSendEmail() {
   return (
@@ -7,7 +8,7 @@ function canSendEmail() {
     process.env.SMTP_HOST &&
     process.env.SMTP_USER &&
     process.env.SMTP_PASS &&
-    process.env.COMPANY_EMAIL
+    (process.env.SMTP_FROM_EMAIL || process.env.COMPANY_EMAIL)
   );
 }
 
@@ -18,7 +19,8 @@ async function sendEmail({ to, subject, body }) {
     if (!process.env.SMTP_HOST)               reasons.push("SMTP_HOST is missing");
     if (!process.env.SMTP_USER)               reasons.push("SMTP_USER is missing");
     if (!process.env.SMTP_PASS)               reasons.push("SMTP_PASS is missing");
-    if (!process.env.COMPANY_EMAIL)           reasons.push("COMPANY_EMAIL is missing");
+    if (!process.env.SMTP_FROM_EMAIL && !process.env.COMPANY_EMAIL) reasons.push("SMTP_FROM_EMAIL is missing");
+    console.warn(`[MAILER] Send blocked → ${reasons.join("; ")}`);
     return { sent: false, reason: reasons.join("; ") };
   }
 
@@ -35,16 +37,20 @@ async function sendEmail({ to, subject, body }) {
     }
   });
 
-  const senderName = process.env.COMPANY_NAME || "ThinkTANQ";
-  const senderEmail = process.env.COMPANY_EMAIL;
+  const senderName  = process.env.COMPANY_NAME || "ThinkTANQ";
+  const senderEmail = process.env.SMTP_FROM_EMAIL || process.env.COMPANY_EMAIL;
+
+  console.log(`[MAILER] Sending email → to: ${to} | from: ${senderEmail} | subject: ${subject}`);
 
   const info = await transporter.sendMail({
     from: `"${senderName}" <${senderEmail}>`,
     to,
     subject,
-    text: body
+    text: body,
+    html: htmlWrap(body)
   });
 
+  console.log(`[MAILER] Accepted by SMTP → messageId: ${info.messageId} | response: ${info.response}`);
   return { sent: true, messageId: info.messageId };
 }
 

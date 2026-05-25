@@ -93,7 +93,12 @@ const apiLimiter = rateLimit({
 
 const db = require("./database");
 const { generateEmail, hasApiKey } = require("./ai");
+const { chat: claudeChat, hasApiKey: hasClaudeKey } = require("./claude-chat");
 const { sendEmail, canSendEmail } = require("./mailer");
+const {
+  meetingDayReminderTemplate,
+  meetingHourReminderTemplate
+} = require("./emailTemplates");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -268,6 +273,24 @@ app.post("/api/backup", (req, res) => {
     res.json({ message: "Backup created successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── AI CHAT ──
+app.post("/api/chat", async (req, res) => {
+  const { messages } = req.body;
+  if (!Array.isArray(messages) || !messages.length)
+    return res.status(400).json({ error: "No messages provided" });
+
+  if (!hasClaudeKey())
+    return res.status(503).json({ error: "AI chat is not configured." });
+
+  try {
+    const reply = await claudeChat(messages);
+    res.json({ reply });
+  } catch (e) {
+    console.error("[CHAT]", e.message);
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -681,6 +704,111 @@ app.post("/api/email-drafts/:id/send", (req, res) => {
   );
 });
 
+// ── CSV PREVIEW (parse only, no DB write) ──
+app.post("/api/import-csv/preview", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "CSV file is required" });
+
+  const rows = [];
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on("data", (row) => { if (row.school_name) rows.push(row); })
+    .on("end", () => {
+      fs.unlinkSync(req.file.path);
+      res.json({ rows, filename: req.file.originalname || 'import.csv' });
+    })
+    .on("error", () => {
+      fs.unlinkSync(req.file.path);
+      res.status(400).json({ error: "Could not parse CSV" });
+    });
+});
+
+// ── CSV CONFIRM (save rows to DB, return school IDs) ──
+app.post("/api/import-csv/confirm", (req, res) => {
+  const { rows, filename } = req.body;
+  if (!Array.isArray(rows) || !rows.length)
+    return res.status(400).json({ error: "No rows to import" });
+
+  let imported = 0;
+  const errors = [];
+  const schoolIds = [];
+  let processed = 0;
+
+  rows.forEach(row => {
+    db.run(
+      `INSERT INTO schools
+       (school_name, contact_person, email, phone, website, facebook_page, address,
+        city_province, region, school_type, level_offered, estimated_students, assigned_to, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [row.school_name, row.contact_person, row.email, row.phone, row.website,
+       row.facebook_page, row.address, row.city_province, row.region,
+       row.school_type, row.level_offered, row.estimated_students, row.assigned_to, row.notes],
+      function (err) {
+        if (err) { errors.push(err.message); }
+        else { imported++; schoolIds.push(this.lastID); }
+        processed++;
+        if (processed === rows.length) {
+          db.run(`INSERT INTO import_logs (filename, imported_count, error_count) VALUES (?, ?, ?)`,
+            [filename || 'import.csv', imported, errors.length]);
+          res.json({ imported, errors, school_ids: schoolIds });
+        }
+      }
+    );
+  });
+});
+
+// ── BULK PROMOTIONAL EMAIL ──
+app.post("/api/bulk-promo-email", async (req, res) => {
+  const { school_ids } = req.body;
+  if (!Array.isArray(school_ids) || !school_ids.length)
+    return res.status(400).json({ error: "No school IDs provided" });
+
+  const results = { sent: 0, failed: 0, errors: [] };
+
+  for (const id of school_ids) {
+    try {
+      const school = await new Promise((resolve, reject) => {
+        db.get(`SELECT * FROM schools WHERE id = ?`, [id], (err, row) => {
+          if (err || !row) reject(new Error('School not found'));
+          else resolve(row);
+        });
+      });
+
+      if (!school.email) {
+        results.failed++;
+        results.errors.push(`${school.school_name}: no email address`);
+        continue;
+      }
+
+      const email = await generateEmail(school, 'PROMOTIONAL');
+
+      const draftId = await new Promise((resolve, reject) => {
+        db.run(
+          `INSERT INTO email_drafts (school_id, email_type, subject, body) VALUES (?, ?, ?, ?)`,
+          [school.id, 'PROMOTIONAL', email.subject, email.body],
+          function (err) { if (err) reject(err); else resolve(this.lastID); }
+        );
+      });
+
+      const result = await sendEmail({ to: school.email, subject: email.subject, body: email.body });
+
+      if (result.sent) {
+        db.run(`UPDATE email_drafts SET status = 'SENT' WHERE id = ?`, [draftId]);
+        db.run(`UPDATE schools SET status = 'EMAIL_SENT', last_contacted = DATE('now'), updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [school.id]);
+        logActivity(school.id, 'EMAIL_SENT', 'Bulk promotional email sent.');
+        results.sent++;
+      } else {
+        results.failed++;
+        results.errors.push(`${school.school_name}: ${result.reason || 'not sent'}`);
+      }
+    } catch (e) {
+      results.failed++;
+      results.errors.push(`ID ${id}: ${e.message}`);
+    }
+  }
+
+  res.json(results);
+});
+
 app.post("/api/import-csv", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "CSV file is required" });
 
@@ -786,7 +914,7 @@ app.get("/api/schools/:id/meetings", (req, res) => {
 // ── ANALYTICS ──
 app.get("/api/analytics", (_req, res) => {
   const data = {};
-  let pending = 5;
+  let pending = 6;
   const done = () => { if (--pending === 0) res.json(data); };
 
   db.all(
@@ -833,6 +961,14 @@ app.get("/api/analytics", (_req, res) => {
       data.monthly_inquiries = (row && row.monthly_inquiries) || 0;
       done();
     }
+  );
+
+  db.all(
+    `SELECT heard_from as source, COUNT(*) as count
+     FROM inquiries
+     WHERE heard_from IS NOT NULL AND heard_from != ''
+     GROUP BY heard_from ORDER BY count DESC`,
+    [], (_err, rows) => { data.heard_from_dist = rows || []; done(); }
   );
 });
 
@@ -1562,6 +1698,90 @@ app.get("/api/meetings/upcoming/week", (req, res) => {
     }
   );
 });
+
+// ── MEETING REMINDER COLUMNS (migration guard) ──
+db.run(`ALTER TABLE meetings ADD COLUMN reminder_day_sent  INTEGER DEFAULT 0`, () => {});
+db.run(`ALTER TABLE meetings ADD COLUMN reminder_hour_sent INTEGER DEFAULT 0`, () => {});
+
+// ── MEETING REMINDERS ──
+
+// 6 AM PHT (= 10 PM UTC) — send day-of reminder to every meeting today
+cron.schedule("0 22 * * *", () => {
+  console.log("⏰ Running 6 AM PHT meeting day reminders...");
+
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meeting_date = DATE('now', '+8 hours')
+       AND status IN ('SCHEDULED','RESCHEDULED')
+       AND reminder_day_sent = 0`,
+    [],
+    async (err, meetings) => {
+      if (err || !meetings || !meetings.length) return;
+
+      for (const meeting of meetings) {
+        if (!meeting.school_email) continue;
+        try {
+          const email  = meetingDayReminderTemplate(meeting);
+          const result = await sendEmail({ to: meeting.school_email, subject: email.subject, body: email.body });
+          if (result.sent) {
+            db.run(`UPDATE meetings SET reminder_day_sent = 1 WHERE id = ?`, [meeting.id]);
+            logActivity(meeting.school_id, 'REMINDER_SENT',
+              `Day-of reminder sent for meeting on ${meeting.meeting_date} at ${meeting.meeting_time}.`);
+            console.log(`✅ Day reminder sent → ${meeting.school_name} (${meeting.school_email})`);
+          }
+        } catch (e) {
+          console.error(`❌ Day reminder failed for ${meeting.school_name}:`, e.message);
+        }
+      }
+    }
+  );
+});
+
+// Every 5 minutes — send 1-hour-before reminder when meeting is 55–65 min away (PHT)
+cron.schedule("*/5 * * * *", () => {
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meeting_date = DATE('now', '+8 hours')
+       AND status IN ('SCHEDULED','RESCHEDULED')
+       AND reminder_hour_sent = 0
+       AND (
+         CAST(strftime('%H', meeting_time) AS INTEGER) * 60 +
+         CAST(strftime('%M', meeting_time) AS INTEGER)
+       ) BETWEEN (
+         CAST(strftime('%H', TIME('now', '+8 hours')) AS INTEGER) * 60 +
+         CAST(strftime('%M', TIME('now', '+8 hours')) AS INTEGER) + 55
+       ) AND (
+         CAST(strftime('%H', TIME('now', '+8 hours')) AS INTEGER) * 60 +
+         CAST(strftime('%M', TIME('now', '+8 hours')) AS INTEGER) + 65
+       )`,
+    [],
+    async (err, meetings) => {
+      if (err || !meetings || !meetings.length) return;
+
+      for (const meeting of meetings) {
+        if (!meeting.school_email) continue;
+        try {
+          const email  = meetingHourReminderTemplate(meeting);
+          const result = await sendEmail({ to: meeting.school_email, subject: email.subject, body: email.body });
+          if (result.sent) {
+            db.run(`UPDATE meetings SET reminder_hour_sent = 1 WHERE id = ?`, [meeting.id]);
+            logActivity(meeting.school_id, 'REMINDER_SENT',
+              `1-hour reminder sent for meeting at ${meeting.meeting_time}.`);
+            console.log(`✅ 1-hour reminder sent → ${meeting.school_name} (${meeting.school_email})`);
+          }
+        } catch (e) {
+          console.error(`❌ 1-hour reminder failed for ${meeting.school_name}:`, e.message);
+        }
+      }
+    }
+  );
+});
+
+console.log("✅ Meeting reminder scheduler started — day reminder at 6 AM PHT, 1-hour check every 5 min");
 
 // ── DATABASE BACKUP SYSTEM ──
 

@@ -10,14 +10,21 @@ let selectedDate = '';
 let selectedTime = '';
 let calYear      = new Date().getFullYear();
 let calMonth     = new Date().getMonth();
+let currentStep  = 1;
+const TOTAL_STEPS = 4;
 
-/* ── Progress bar fields ── */
+/* ── Progress bar fields (required fields only — excludes optional Additional Info) ── */
 const PROGRESS_FIELDS = [
   'school_name', 'school_type', 'level_offered',
-  'estimated_students', 'city_province', 'region',
-  'contact_person', 'position', 'email', 'phone',
-  'heard_from', 'message'
+  'estimated_students', 'region', 'city_municipality',
+  'contact_person', 'position', 'email', 'phone'
 ];
+
+/* ── PSGC API ── */
+const PSGC_BASE = 'https://psgc.gitlab.io/api';
+const NCR_CODE  = '130000000';
+let psgcRegionCode   = '';
+let psgcProvinceCode = '';
 
 /* ── Month labels ── */
 const MONTHS = [
@@ -36,6 +43,123 @@ const TIME_SLOTS = [
   { label: '3:00 PM',  value: '15:00', avail: true  },
   { label: '4:00 PM',  value: '16:00', avail: true  },
 ];
+
+
+/* ────────────────────────────────────────────────
+   PSGC API — Cascading Region / Province / City
+──────────────────────────────────────────────── */
+async function loadPsgcRegions() {
+  const sel = $('region');
+  if (!sel) return;
+  try {
+    const res  = await fetch(PSGC_BASE + '/regions/');
+    const data = await res.json();
+    const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+    sel.innerHTML = '<option value="">-- Select Region --</option>' +
+      sorted.map(r => `<option value="${r.code}">${r.name}</option>`).join('');
+  } catch (_) {
+    sel.innerHTML = '<option value="">Could not load regions</option>';
+  }
+}
+
+async function onRegionChange() {
+  const sel  = $('region');
+  const code = sel.value;
+  psgcRegionCode   = code;
+  psgcProvinceCode = '';
+
+  // Reset downstream selects
+  resetSelect('province', '-- Select Province --');
+  resetSelect('city_municipality', '-- Select City / Municipality --');
+  $('city_province').value = '';
+  $('provinceField').style.display = 'none';
+  $('cityField').style.display     = 'none';
+
+  // Regional partner warning
+  const warn = $('regionalWarning');
+  if (warn) warn.style.display = (code && code !== NCR_CODE) ? 'block' : 'none';
+
+  if (!code) { updateProgress(); return; }
+
+  if (code === NCR_CODE) {
+    // NCR has no provinces — load cities directly
+    await loadCitiesForRegion(NCR_CODE);
+  } else {
+    await loadProvinces(code);
+  }
+  updateProgress();
+}
+
+async function loadProvinces(regionCode) {
+  const sel = $('province');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  $('provinceField').style.display = 'block';
+  try {
+    const res  = await fetch(`${PSGC_BASE}/regions/${regionCode}/provinces/`);
+    const data = await res.json();
+    const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+    sel.innerHTML = '<option value="">-- Select Province --</option>' +
+      sorted.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
+  } catch (_) {
+    sel.innerHTML = '<option value="">Could not load provinces</option>';
+  }
+}
+
+async function onProvinceChange() {
+  const sel  = $('province');
+  const code = sel.value;
+  psgcProvinceCode = code;
+
+  resetSelect('city_municipality', '-- Select City / Municipality --');
+  $('city_province').value = '';
+  $('cityField').style.display = 'none';
+
+  if (!code) { updateProgress(); return; }
+  await loadCitiesForProvince(code);
+  updateProgress();
+}
+
+async function loadCitiesForRegion(regionCode) {
+  const sel = $('city_municipality');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  $('cityField').style.display = 'block';
+  try {
+    const res  = await fetch(`${PSGC_BASE}/regions/${regionCode}/cities-municipalities/`);
+    const data = await res.json();
+    const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+    sel.innerHTML = '<option value="">-- Select City / Municipality --</option>' +
+      sorted.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+  } catch (_) {
+    sel.innerHTML = '<option value="">Could not load cities</option>';
+  }
+}
+
+async function loadCitiesForProvince(provinceCode) {
+  const sel = $('city_municipality');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  $('cityField').style.display = 'block';
+  try {
+    const res  = await fetch(`${PSGC_BASE}/provinces/${provinceCode}/cities-municipalities/`);
+    const data = await res.json();
+    const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+    sel.innerHTML = '<option value="">-- Select City / Municipality --</option>' +
+      sorted.map(c => `<option value="${c.code}">${c.name}</option>`).join('');
+  } catch (_) {
+    sel.innerHTML = '<option value="">Could not load cities</option>';
+  }
+}
+
+function onCityChange() {
+  const sel = $('city_municipality');
+  const selectedOption = sel.options[sel.selectedIndex];
+  $('city_province').value = selectedOption ? selectedOption.text : '';
+  updateProgress();
+}
+
+function resetSelect(id, placeholder) {
+  const el = $(id);
+  if (el) el.innerHTML = `<option value="">${placeholder}</option>`;
+}
 
 
 /* ────────────────────────────────────────────────
@@ -104,7 +228,7 @@ function updateProgress() {
     return el && el.value.trim() !== '';
   }).length;
 
-  const total = PROGRESS_FIELDS.length + 3; // + mode + date + time
+  const total = PROGRESS_FIELDS.length + 3;
   const extra = (selectedMode ? 1 : 0) +
                 (selectedDate ? 1 : 0) +
                 (selectedTime ? 1 : 0);
@@ -133,7 +257,139 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  loadPsgcRegions();
+  updateProgress();
 });
+
+
+/* ────────────────────────────────────────────────
+   STEP NAVIGATION
+──────────────────────────────────────────────── */
+function showStep(n) {
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const el = $('step-' + i);
+    if (el) el.style.display = i === n ? 'block' : 'none';
+  }
+  currentStep = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (!validateStep(currentStep)) return;
+  if (currentStep < TOTAL_STEPS) showStep(currentStep + 1);
+}
+
+function prevStep() {
+  if (currentStep > 1) showStep(currentStep - 1);
+}
+
+function validateStep(step) {
+  if (step === 1) {
+    if (!$('school_name').value.trim()) {
+      showToast('Please enter your school name.', 'error');
+      $('school_name').focus(); return false;
+    }
+    if (!$('school_type').value) {
+      showToast('Please select the school type.', 'error');
+      $('school_type').focus(); return false;
+    }
+    if (!$('level_offered').value) {
+      showToast('Please select the level offered.', 'error');
+      $('level_offered').focus(); return false;
+    }
+    if (!$('estimated_students').value) {
+      showToast('Please enter the estimated number of students.', 'error');
+      $('estimated_students').focus(); return false;
+    }
+    if (!$('region').value) {
+      showToast('Please select your region.', 'error');
+      $('region').focus(); return false;
+    }
+    if ($('provinceField').style.display !== 'none' && !$('province').value) {
+      showToast('Please select your province.', 'error');
+      $('province').focus(); return false;
+    }
+    if (!$('city_municipality').value) {
+      showToast('Please select your city or municipality.', 'error');
+      $('city_municipality').focus(); return false;
+    }
+  } else if (step === 2) {
+    if (!$('contact_person').value.trim()) {
+      showToast('Please enter the contact person name.', 'error');
+      $('contact_person').focus(); return false;
+    }
+    if (!$('position').value.trim()) {
+      showToast('Please enter the contact person\'s position.', 'error');
+      $('position').focus(); return false;
+    }
+    const email = $('email').value.trim();
+    if (!email || !email.includes('@')) {
+      showToast('Please enter a valid email address.', 'error');
+      $('email').focus(); return false;
+    }
+    if (!$('phone').value.trim()) {
+      showToast('Please enter a phone number.', 'error');
+      $('phone').focus(); return false;
+    }
+  } else if (step === 3) {
+    if (!selectedMode) {
+      showToast('Please select a preferred meeting mode.', 'error'); return false;
+    }
+    if (!selectedDate) {
+      showToast('Please select a preferred date.', 'error'); return false;
+    }
+    if (!selectedTime) {
+      showToast('Please select a preferred time slot.', 'error'); return false;
+    }
+  }
+  // Step 4 is fully optional — always valid
+  return true;
+}
+
+function clearAdditional() {
+  selectedMode = '';
+  selectedDate = '';
+  selectedTime = '';
+  calYear  = new Date().getFullYear();
+  calMonth = new Date().getMonth();
+
+  const textFields = [
+    'school_name','contact_person','position','email','phone',
+    'city_province','estimated_students','message',
+    'preferred_date','preferred_time_hidden','hp_website'
+  ];
+  textFields.forEach(id => { const el = $(id); if (el) el.value = ''; });
+
+  const selectFields = ['school_type','level_offered','region','heard_from'];
+  selectFields.forEach(id => { const el = $(id); if (el) el.selectedIndex = 0; });
+
+  // Reset PSGC cascading fields
+  psgcRegionCode   = '';
+  psgcProvinceCode = '';
+  resetSelect('province', '-- Select Province --');
+  resetSelect('city_municipality', '-- Select City / Municipality --');
+  $('provinceField').style.display   = 'none';
+  $('cityField').style.display       = 'none';
+  $('regionalWarning').style.display = 'none';
+
+  $$('input[name="preferred_mode"]').forEach(r => r.checked = false);
+  $$('.mode-card').forEach(c => {
+    c.classList.remove('selected');
+    c.setAttribute('aria-pressed', 'false');
+  });
+
+  $('onsiteWarn').style.display  = 'none';
+  $('calSection').style.display  = 'none';
+  $('timeSection').style.display = 'none';
+  $('selSummary').style.display  = 'none';
+  if ($('timeGrid')) $('timeGrid').innerHTML = '';
+
+  currentStep = 1;
+  showStep(1);
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 
 /* ────────────────────────────────────────────────
@@ -387,47 +643,22 @@ async function submitForm(e) {
     fakeSuccess(); return;
   }
 
-  /* Client-side validation */
+  /* Safety-net validation (each step already validated before advancing) */
   const schoolName = $('school_name').value.trim();
   const contact    = $('contact_person').value.trim();
   const email      = $('email').value.trim();
 
-  if (!schoolName) {
-    showToast('Please enter your school name.', 'error');
-    $('school_name').focus(); return;
-  }
-  if (!contact) {
-    showToast('Please enter the contact person name.', 'error');
-    $('contact_person').focus(); return;
-  }
-  if (!email || !email.includes('@')) {
-    showToast('Please enter a valid email address.', 'error');
-    $('email').focus(); return;
-  }
-  if (!selectedMode) {
-    showToast('Please select a preferred meeting mode.', 'error'); return;
-  }
-  if (!selectedDate) {
-    showToast('Please select a preferred date.', 'error'); return;
-  }
-  if (!selectedTime) {
-    showToast('Please select a preferred time slot.', 'error'); return;
+  if (!schoolName || !contact || !email || !email.includes('@') ||
+      !selectedMode || !selectedDate || !selectedTime) {
+    showToast('Please complete all required fields.', 'error');
+    return;
   }
 
-  /* Onsite Metro Manila check */
-  if (selectedMode === 'ONSITE') {
-    const city = ($('city_province').value || '').toLowerCase();
-    const METRO = [
-      'manila','quezon city','makati','pasig','taguig',
-      'mandaluyong','marikina','pasay','caloocan','malabon',
-      'navotas','valenzuela','las pinas','las piñas',
-      'muntinlupa','paranaque','parañaque','pateros','san juan'
-    ];
-    if (city && !METRO.some(c => city.includes(c))) {
-      showToast('⚠️ Onsite visits are Metro Manila only. Switched to Online.', 'warn');
-      selectMode('online');
-      return;
-    }
+  /* Onsite Metro Manila check — use PSGC region code for accuracy */
+  if (selectedMode === 'ONSITE' && psgcRegionCode && psgcRegionCode !== NCR_CODE) {
+    showToast('⚠️ Onsite visits are Metro Manila only. Switched to Online.', 'warn');
+    selectMode('online');
+    return;
   }
 
   /* Disable submit button */
@@ -558,6 +789,15 @@ function resetAll() {
   const selectFields = ['school_type','level_offered','region','heard_from'];
   selectFields.forEach(id => { const el = $(id); if (el) el.selectedIndex = 0; });
 
+  // Reset PSGC cascading fields
+  psgcRegionCode   = '';
+  psgcProvinceCode = '';
+  resetSelect('province', '-- Select Province --');
+  resetSelect('city_municipality', '-- Select City / Municipality --');
+  $('provinceField').style.display  = 'none';
+  $('cityField').style.display      = 'none';
+  $('regionalWarning').style.display = 'none';
+
   $$('input[name="preferred_mode"]').forEach(r => r.checked = false);
 
   $$('.mode-card').forEach(c => {
@@ -570,8 +810,9 @@ function resetAll() {
   $('selSummary').style.display  = 'none';
   if ($('timeGrid')) $('timeGrid').innerHTML = '';
 
-  $('progressBar').style.width = '0%';
-  $('progressPct').textContent = '0% Complete';
+  currentStep = 1;
+  showStep(1);
+  updateProgress();
 
   $('submitBtn').disabled         = false;
   $('submitText').textContent     = 'Submit Inquiry ✉️';

@@ -67,7 +67,7 @@ async function generateEmail(school, emailType) {
   if (!hasApiKey()) {
     if (emailType === "FOLLOW_UP") return followUpTemplate(school);
     if (emailType === "MEETING_INVITE") return meetingInviteTemplate(school);
-    return proposalTemplate(school);
+    return proposalTemplate(school); // PROPOSAL and PROMOTIONAL both use this
   }
 
   return await generateWithOpenAI(school, emailType);

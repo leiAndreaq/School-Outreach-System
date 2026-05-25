@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ThinkTANQ — School Outreach CRM</title>
+  <title>PathFinder - Accoutre Ai</title>
+  <link rel="icon" type="image/x-icon" href="/images/paths.png">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -35,7 +36,7 @@
 <body class="bg-navy-light font-inter">
 
   <!-- SIDEBAR -->
-  <aside id="sidebar" class="fixed top-0 left-0 h-full w-56 bg-navy flex flex-col z-50 shadow-xl">
+  <aside id="sidebar" class="fixed top-0 left-0 h-full w-56 sidebar-gradient flex flex-col z-50 shadow-xl">
 
     <!-- Header -->
     <div class="px-4 py-5 flex flex-col items-center text-center border-b border-white/10">
@@ -96,7 +97,7 @@
     <!-- Logout -->
     <div class="border-t border-white/10 p-4 flex justify-center">
       <button onclick="handleLogout()"
-        class="flex items-center justify-center gap-2 bg-red-800 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-700 transition w-auto min-w-[150px]">
+        class="flex items-center justify-center gap-2 text-white text-sm font-medium px-4 py-2 rounded-lg transition w-auto min-w-[150px]" style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25);" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
         <i data-lucide="log-out" class="w-4 h-4"></i>
         Logout
       </button>
@@ -154,11 +155,11 @@
                 <p class="text-sm font-medium text-gray-500">Total Leads</p>
                 <div id="stat-total" class="mt-2 text-3xl font-black text-gray-900 tracking-tight">—</div>
               </div>
-              <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50">
-                <i data-lucide="users" class="w-5 h-5 text-red-600"></i>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(152,171,238,0.2);">
+                <i data-lucide="users" class="w-5 h-5" style="color:#98ABEE;"></i>
               </div>
             </div>
-            <div class="absolute top-0 left-0 h-1 w-full bg-red-600"></div>
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#98ABEE;"></div>
           </div>
 
           <!-- New Leads -->
@@ -168,11 +169,11 @@
                 <p class="text-sm font-medium text-gray-500">New Leads</p>
                 <div id="stat-new" class="mt-2 text-3xl font-black text-gray-900 tracking-tight">—</div>
               </div>
-              <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-navy/10">
-                <i data-lucide="user-plus" class="w-5 h-5 text-navy"></i>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(32,22,88,0.1);">
+                <i data-lucide="user-plus" class="w-5 h-5" style="color:#201658;"></i>
               </div>
             </div>
-            <div class="absolute top-0 left-0 h-1 w-full bg-navy"></div>
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#201658;"></div>
           </div>
 
           <!-- Emails Sent -->
@@ -182,11 +183,11 @@
                 <p class="text-sm font-medium text-gray-500">Emails Sent</p>
                 <div id="stat-sent" class="mt-2 text-3xl font-black text-gray-900 tracking-tight">—</div>
               </div>
-              <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50">
-                <i data-lucide="send" class="w-5 h-5 text-green-600"></i>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(29,36,202,0.1);">
+                <i data-lucide="send" class="w-5 h-5" style="color:#1D24CA;"></i>
               </div>
             </div>
-            <div class="absolute top-0 left-0 h-1 w-full bg-green-500"></div>
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#1D24CA;"></div>
           </div>
 
           <!-- Interested -->
@@ -196,11 +197,11 @@
                 <p class="text-sm font-medium text-gray-500">Interested</p>
                 <div id="stat-interested" class="mt-2 text-3xl font-black text-gray-900 tracking-tight">—</div>
               </div>
-              <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
-                <i data-lucide="badge-check" class="w-5 h-5 text-orange-500"></i>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(249,232,201,0.4);">
+                <i data-lucide="badge-check" class="w-5 h-5" style="color:#c49a3c;"></i>
               </div>
             </div>
-            <div class="absolute top-0 left-0 h-1 w-full bg-orange-400"></div>
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#F9E8C9;"></div>
           </div>
 
         </div>
@@ -276,29 +277,57 @@
 
         <!-- Stat Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
-          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5">
-            <div class="absolute top-0 left-0 h-1 w-full bg-navy"></div>
-            <p class="text-sm font-medium text-gray-500">New Leads</p>
-            <div id="an-new-leads" class="mt-2 text-3xl font-black text-gray-900">—</div>
-            <p id="an-leads-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md">
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#201658;"></div>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">New Leads</p>
+                <div id="an-new-leads" class="mt-2 text-3xl font-black text-gray-900">—</div>
+                <p id="an-leads-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+              </div>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(32,22,88,0.1);">
+                <i data-lucide="user-plus" class="w-5 h-5" style="color:#201658;"></i>
+              </div>
+            </div>
           </div>
-          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5">
-            <div class="absolute top-0 left-0 h-1 w-full bg-green-500"></div>
-            <p class="text-sm font-medium text-gray-500">Emails Sent</p>
-            <div id="an-emails" class="mt-2 text-3xl font-black text-gray-900">—</div>
-            <p id="an-emails-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md">
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#1D24CA;"></div>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Emails Sent</p>
+                <div id="an-emails" class="mt-2 text-3xl font-black text-gray-900">—</div>
+                <p id="an-emails-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+              </div>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(29,36,202,0.1);">
+                <i data-lucide="send" class="w-5 h-5" style="color:#1D24CA;"></i>
+              </div>
+            </div>
           </div>
-          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5">
-            <div class="absolute top-0 left-0 h-1 w-full bg-orange-400"></div>
-            <p class="text-sm font-medium text-gray-500">Meetings</p>
-            <div id="an-meetings" class="mt-2 text-3xl font-black text-gray-900">—</div>
-            <p id="an-meetings-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md">
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#98ABEE;"></div>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Meetings</p>
+                <div id="an-meetings" class="mt-2 text-3xl font-black text-gray-900">—</div>
+                <p id="an-meetings-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+              </div>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(152,171,238,0.2);">
+                <i data-lucide="calendar" class="w-5 h-5" style="color:#98ABEE;"></i>
+              </div>
+            </div>
           </div>
-          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5">
-            <div class="absolute top-0 left-0 h-1 w-full bg-red-500"></div>
-            <p class="text-sm font-medium text-gray-500">Inquiries</p>
-            <div id="an-inquiries" class="mt-2 text-3xl font-black text-gray-900">—</div>
-            <p id="an-inquiries-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md">
+            <div class="absolute top-0 left-0 h-1 w-full" style="background:#F9E8C9;"></div>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500">Inquiries</p>
+                <div id="an-inquiries" class="mt-2 text-3xl font-black text-gray-900">—</div>
+                <p id="an-inquiries-label" class="text-xs text-gray-400 mt-1">Last 7 days</p>
+              </div>
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl" style="background:rgba(249,232,201,0.4);">
+                <i data-lucide="inbox" class="w-5 h-5" style="color:#c49a3c;"></i>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -321,6 +350,22 @@
           </div>
         </div>
 
+        <!-- How Did You Find Us Chart -->
+        <div class="card" style="padding:20px; margin-top:24px;">
+          <div style="font-size:14px; font-weight:700; color:#1B1F6B; margin-bottom:4px;">
+            How Did Schools Find Us?
+          </div>
+          <div style="font-size:12px; color:#9ca3af; margin-bottom:16px;">
+            Based on all inquiry submissions (optional field)
+          </div>
+          <div id="heardFromEmpty" style="display:none; text-align:center; padding:32px 0; color:#9ca3af; font-size:13px;">
+            No data yet — submissions with this field filled will appear here.
+          </div>
+          <div style="position:relative; height:260px;">
+            <canvas id="heardFromChart"></canvas>
+          </div>
+        </div>
+
       </div>
 
       <!-- SCHOOLS TAB -->
@@ -331,7 +376,7 @@
             <input
               type="text"
               id="searchInput"
-              placeholder="🔍 Search schools..."
+              placeholder="Search schools..."
               oninput="filterSchools()"
               class="input-field w-56 text-sm"
             />
@@ -345,8 +390,8 @@
             padding:12px 16px; background:#fee2e2; border-bottom:1px solid #fca5a5; gap:12px;">
             <span id="selectedCount" style="font-size:13px; font-weight:600; color:#991b1b;"></span>
             <div style="display:flex; gap:8px;">
-              <button onclick="clearSelection()" class="btn-ghost text-sm">✕ Clear</button>
-              <button onclick="openBulkDeleteModal()" class="btn-red text-sm">🗑 Delete Selected</button>
+              <button onclick="clearSelection()" class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="x" style="width:13px;height:13px;"></i> Clear</button>
+              <button onclick="openBulkDeleteModal()" class="btn-red text-sm" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="trash-2" style="width:13px;height:13px;"></i> Delete Selected</button>
             </div>
           </div>
 
@@ -369,14 +414,19 @@
               <tbody id="schoolsTable"></tbody>
             </table>
           </div>
+          <div id="schoolsPagination" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-top:1px solid #e5e7eb; font-size:13px; color:#6b7280;"></div>
         </div>
       </div>
 
       <!-- ADD SCHOOL TAB -->
       <div id="tab-add" class="tab-section">
-        <div class="flex items-center justify-between mb-6">
-          <h1 class="section-title">Add School Lead</h1>
-        </div>
+        <div style="max-width:680px; margin:0 auto;">
+          <div style="position:relative; margin-bottom:24px; display:flex; align-items:center; justify-content:center;">
+            <h1 class="section-title">Add School Lead</h1>
+            <button onclick="showTab('schools')" class="modal-close" style="position:absolute; right:0; top:50%; transform:translateY(-50%);">
+              <i data-lucide="x" style="width:16px;height:16px;"></i>
+            </button>
+          </div>
         <div class="card">
           <div class="card-body">
             <div class="form-grid">
@@ -422,7 +472,7 @@
                   <option value="">-- Select --</option>
                   <option>Private</option>
                   <option>Semi-Private</option>
-                  <option>Non-Sectarian</option>
+                  <option>Public</option>
                   <option>Catholic</option>
                   <option>Christian</option>
                   <option>Other</option>
@@ -455,10 +505,11 @@
               </div>
             </div>
             <div class="flex gap-3 mt-6">
-              <button onclick="addSchool()" class="btn-red">💾 Save School Lead</button>
-              <button onclick="clearForm()" class="btn-ghost">✕ Clear</button>
+              <button onclick="addSchool()" class="btn-red" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="save" style="width:14px;height:14px;"></i> Save School Lead</button>
+              <button onclick="clearForm()" class="btn-ghost" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="x" style="width:13px;height:13px;"></i> Clear</button>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -474,7 +525,7 @@
             <div class="card-body">
               <p class="text-sm text-gray-400 mb-5">Upload a CSV file with school leads. Make sure the columns match the format below.</p>
               <div class="upload-area" onclick="document.getElementById('csvFile').click()">
-                <div class="text-4xl mb-3">📂</div>
+                <div class="text-4xl mb-3"><i data-lucide="folder-open" style="width:40px;height:40px;color:#9ca3af;"></i></div>
                 <div class="text-sm text-gray-400">
                   <span class="font-semibold text-navy">Click to choose a CSV file</span><br/>
                   or drag and drop here
@@ -498,7 +549,7 @@
           <div class="card">
             <div class="card-body">
               <div style="font-size:15px; font-weight:700; color:#1B1F6B; margin-bottom:16px;">
-                📋 Import History
+                <span style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="clipboard-list" style="width:15px;height:15px;"></i> Import History</span>
               </div>
               <div id="importHistoryList">
                 <div style="color:#9ca3af; font-size:13px; text-align:center; padding:32px 0;">
@@ -522,12 +573,12 @@
           <button id="archived-btn-drafts"
             onclick="switchArchivedView('drafts')"
             class="btn-navy text-sm">
-            ✉️ Email Drafts
+            <i data-lucide="mail" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Email Drafts
           </button>
           <button id="archived-btn-history"
             onclick="switchArchivedView('history')"
             class="btn-ghost text-sm">
-            🗂 Deletion History
+            <i data-lucide="archive" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Deletion History
           </button>
         </div>
 
@@ -549,6 +600,7 @@
                 <tbody id="draftsTable"></tbody>
               </table>
             </div>
+            <div id="draftsPagination" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-top:1px solid #e5e7eb; font-size:13px; color:#6b7280;"></div>
           </div>
         </div>
 
@@ -571,6 +623,7 @@
                 <tbody id="historyTable"></tbody>
               </table>
             </div>
+            <div id="historyPagination" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-top:1px solid #e5e7eb; font-size:13px; color:#6b7280;"></div>
           </div>
         </div>
       </div>
@@ -588,8 +641,28 @@
 
         <!-- Upcoming meetings this week -->
         <div class="card mb-6">
-          <div class="card-header">
-            <h3 class="font-semibold text-navy">📌 Upcoming This Week</h3>
+          <div class="card-header" style="justify-content:space-between;align-items:center;">
+            <h3 id="upcomingTitle" class="font-semibold text-navy" style="display:flex;align-items:center;gap:6px;">
+              <i data-lucide="map-pin" style="width:15px;height:15px;"></i> Upcoming This Week
+            </h3>
+            <div style="display:flex; background:#fff; border:1.5px solid #d1d5db;
+                        border-radius:10px; padding:3px; gap:2px; box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+              <button id="upcoming-btn-today" onclick="setUpcomingMode('today')"
+                style="padding:5px 14px; border-radius:8px; font-size:12px; font-weight:600;
+                       background:transparent; color:#6b7280; border:none; cursor:pointer; transition:all 0.15s;">
+                Today
+              </button>
+              <button id="upcoming-btn-weekly" onclick="setUpcomingMode('weekly')"
+                style="padding:5px 14px; border-radius:8px; font-size:12px; font-weight:600;
+                       background:#1B1F6B; color:#fff; border:none; cursor:pointer; transition:all 0.15s;">
+                Weekly
+              </button>
+              <button id="upcoming-btn-monthly" onclick="setUpcomingMode('monthly')"
+                style="padding:5px 14px; border-radius:8px; font-size:12px; font-weight:600;
+                       background:transparent; color:#6b7280; border:none; cursor:pointer; transition:all 0.15s;">
+                Monthly
+              </button>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -617,7 +690,6 @@
               <h3 id="calendarTitle" class="font-semibold text-navy text-lg"></h3>
               <button onclick="nextMonth()" class="btn-ghost text-sm">Next →</button>
             </div>
-            <button onclick="goToToday()" class="btn-outline text-sm">Today</button>
           </div>
           <div class="card-body">
 
@@ -728,6 +800,7 @@
               <tbody id="inquiriesTable" class="divide-y divide-gray-100 bg-white"></tbody>
             </table>
           </div>
+          <div id="inquiriesPagination" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-top:1px solid #e5e7eb; font-size:13px; color:#6b7280;"></div>
 
         </div>
 
@@ -741,7 +814,7 @@
         </div>
         <div class="card" style="max-width:480px;">
           <div class="card-header">
-            <h3 class="font-semibold text-navy">🔑 Change Password</h3>
+            <h3 class="font-semibold text-navy" style="display:flex;align-items:center;gap:6px;"><i data-lucide="key" style="width:15px;height:15px;"></i> Change Password</h3>
           </div>
           <div class="modal-body">
             <div class="flex flex-col gap-4 p-4">
@@ -759,7 +832,7 @@
               </div>
               <div id="passwordChangeError" style="display:none; padding:10px 14px; background:#fee2e2; border-radius:8px; font-size:12px; color:#991b1b;"></div>
               <button onclick="submitChangePassword()" class="bg-navy text-white font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
-                🔑 Update Password
+                <i data-lucide="key" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Update Password
               </button>
             </div>
           </div>
@@ -777,21 +850,19 @@
     <div class="modal modal-lg">
       <div class="modal-header">
         <h2 id="modalSchoolName" class="modal-title">School Details</h2>
-        <button onclick="closeModal('schoolModal')" class="modal-close">✕</button>
+        <button onclick="closeModal('schoolModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div id="schoolModalBody" class="modal-body"></div>
       <div class="modal-footer">
-        <button onclick="closeModal('schoolModal')"
-          class="btn-ghost">Close</button>
         <button onclick="deleteSchool(currentSchoolId)"
           class="btn-ghost text-sm"
           style="color:#991b1b; margin-right:auto;">
-          🗑 Delete Record
+          <i data-lucide="trash-2" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Delete Record
         </button>
         <button onclick="openEditModal(currentSchoolId)"
-          class="btn-ghost text-sm">✏ Edit Details</button>
+          class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="pencil" style="width:13px;height:13px;"></i> Edit Details</button>
         <button onclick="generateEmail(currentSchoolId, 'PROPOSAL')"
-          class="btn-red text-sm">⚡ Generate Proposal</button>
+          class="btn-red text-sm" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="zap" style="width:13px;height:13px;"></i> Generate Proposal</button>
       </div>
     </div>
   </div>
@@ -800,8 +871,8 @@
   <div id="editSchoolModal" class="modal-overlay">
     <div class="modal modal-lg">
       <div class="modal-header">
-        <h2 class="modal-title">✏ Edit School Details</h2>
-        <button onclick="closeModal('editSchoolModal')" class="modal-close">✕</button>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="pencil" style="width:16px;height:16px;"></i> Edit School Details</h2>
+        <button onclick="closeModal('editSchoolModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <div class="form-grid">
@@ -847,7 +918,7 @@
               <option value="">-- Select --</option>
               <option>Private</option>
               <option>Semi-Private</option>
-              <option>Non-Sectarian</option>
+              <option>Public</option>
               <option>Catholic</option>
               <option>Christian</option>
               <option>Other</option>
@@ -874,6 +945,23 @@
             <label class="form-label">Assigned To (Intern)</label>
             <input type="text" id="e-assigned_to" class="input-field"/>
           </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="e-status" class="input-field">
+              <option value="NEW_LEAD">NEW LEAD</option>
+              <option value="PROPOSAL_GENERATED">PROPOSAL GENERATED</option>
+              <option value="FOR_APPROVAL">FOR APPROVAL</option>
+              <option value="EMAIL_SENT">EMAIL SENT</option>
+              <option value="FOLLOW_UP_1">FOLLOW UP</option>
+              <option value="INTERESTED">INTERESTED</option>
+              <option value="PRESENTATION_SCHEDULED">PRESENTATION SCHEDULED</option>
+              <option value="PRESENTED">PRESENTED</option>
+              <option value="NEGOTIATION">NEGOTIATION</option>
+              <option value="CLOSED_WON">CLOSED WON</option>
+              <option value="CLOSED_LOST">CLOSED LOST</option>
+              <option value="DO_NOT_CONTACT">DO NOT CONTACT</option>
+            </select>
+          </div>
           <div class="form-group col-span-2">
             <label class="form-label">Notes</label>
             <textarea id="e-notes" class="input-field h-24"></textarea>
@@ -882,7 +970,7 @@
       </div>
       <div class="modal-footer">
         <button onclick="closeModal('editSchoolModal')" class="btn-ghost">Cancel</button>
-        <button onclick="submitEditSchool()" class="btn-navy">💾 Save Changes</button>
+        <button onclick="submitEditSchool()" class="btn-navy" style="display:inline-flex;align-items:center;gap:5px;"><i data-lucide="save" style="width:14px;height:14px;"></i> Save Changes</button>
       </div>
     </div>
   </div>
@@ -891,12 +979,11 @@
   <div id="emailModal" class="modal-overlay">
     <div class="modal modal-lg">
       <div class="modal-header">
-        <h2 class="modal-title">📧 Email Draft</h2>
-        <button onclick="closeModal('emailModal')" class="modal-close">✕</button>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="mail" style="width:16px;height:16px;"></i> Email Draft</h2>
+        <button onclick="closeModal('emailModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div id="emailModalBody" class="modal-body"></div>
       <div class="modal-footer">
-        <button onclick="closeModal('emailModal')" class="btn-ghost">Close</button>
         <div id="emailModalActions"></div>
       </div>
     </div>
@@ -907,7 +994,7 @@
     <div class="modal max-w-sm">
       <div class="modal-header">
         <h2 class="modal-title">Update Status</h2>
-        <button onclick="closeModal('statusModal')" class="modal-close">✕</button>
+        <button onclick="closeModal('statusModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -939,9 +1026,9 @@
   <div id="deleteSchoolModal" class="modal-overlay">
     <div class="modal" style="max-width:420px;">
       <div class="modal-header">
-        <h2 class="modal-title">🗑 Delete School Record</h2>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete School Record</h2>
         <button onclick="closeModal('deleteSchoolModal')"
-          class="modal-close">✕</button>
+          class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <div style="padding:12px 16px; background:#fee2e2;
@@ -949,7 +1036,7 @@
           border-left:3px solid #D01B1B;">
           <div style="font-size:13px; font-weight:700;
             color:#991b1b; margin-bottom:4px;">
-            ⚠️ This action cannot be undone
+            <i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> This action cannot be undone
           </div>
           <div style="font-size:12px; color:#991b1b;">
             This will permanently delete the school record and all
@@ -987,7 +1074,7 @@
         <div style="margin-top:12px; padding:10px 14px;
           background:#f9fafb; border-radius:8px;
           font-size:11px; color:#9ca3af; line-height:1.7;">
-          📋 Under the <strong>Data Privacy Act of 2012
+          Under the <strong>Data Privacy Act of 2012
           (RA 10173)</strong>, individuals have the right to
           request erasure of their personal data. This deletion
           is compliant with that right.
@@ -997,8 +1084,8 @@
         <button onclick="closeModal('deleteSchoolModal')"
           class="btn-ghost">Cancel</button>
         <button onclick="confirmDeleteSchool()"
-          class="btn-red">
-          🗑 Yes, Permanently Delete
+          class="btn-red" style="display:inline-flex;align-items:center;gap:5px;">
+          <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Yes, Permanently Delete
         </button>
       </div>
     </div>
@@ -1008,13 +1095,13 @@
   <div id="bulkDeleteModal" class="modal-overlay">
     <div class="modal" style="max-width:420px;">
       <div class="modal-header">
-        <h2 class="modal-title">🗑 Delete Selected Schools</h2>
-        <button onclick="closeModal('bulkDeleteModal')" class="modal-close">✕</button>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete Selected Schools</h2>
+        <button onclick="closeModal('bulkDeleteModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <div style="padding:12px 16px; background:#fee2e2; border-radius:8px; margin-bottom:16px;
           font-size:13px; color:#991b1b; font-weight:600;">
-          ⚠ You are about to permanently delete
+          <i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> You are about to permanently delete
           <span id="bulkDeleteCount" style="font-size:15px;">0</span> school record(s)
           and all associated emails, meetings, and activity logs.
           This cannot be undone.
@@ -1027,7 +1114,7 @@
       </div>
       <div class="modal-footer">
         <button onclick="closeModal('bulkDeleteModal')" class="btn-ghost">Cancel</button>
-        <button onclick="confirmBulkDelete()" class="btn-red">🗑 Yes, Delete All Selected</button>
+        <button onclick="confirmBulkDelete()" class="btn-red" style="display:inline-flex;align-items:center;gap:5px;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i> Yes, Delete All Selected</button>
       </div>
     </div>
   </div>
@@ -1036,9 +1123,9 @@
   <div id="deleteInquiryModal" class="modal-overlay">
     <div class="modal" style="max-width:420px;">
       <div class="modal-header">
-        <h2 class="modal-title">🗑 Delete Inquiry</h2>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete Inquiry</h2>
         <button onclick="closeModal('deleteInquiryModal')"
-          class="modal-close">✕</button>
+          class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <div style="padding:12px 16px; background:#fee2e2;
@@ -1046,7 +1133,7 @@
           border-left:3px solid #D01B1B;">
           <div style="font-size:13px; font-weight:700;
             color:#991b1b; margin-bottom:4px;">
-            ⚠️ This action cannot be undone
+            <i data-lucide="alert-triangle" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> This action cannot be undone
           </div>
           <div style="font-size:12px; color:#991b1b;">
             This will permanently delete this inquiry
@@ -1060,7 +1147,7 @@
         <div style="padding:10px 14px; background:#f9fafb;
           border-radius:8px; font-size:11px; color:#9ca3af;
           line-height:1.7;">
-          📋 Under the <strong>Data Privacy Act of 2012
+          Under the <strong>Data Privacy Act of 2012
           (RA 10173)</strong>, individuals have the right to
           request erasure of their personal data.
         </div>
@@ -1070,7 +1157,7 @@
           class="btn-ghost">Cancel</button>
         <button onclick="confirmDeleteInquiry()"
           class="btn-red">
-          🗑 Yes, Permanently Delete
+          <i data-lucide="trash-2" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Yes, Permanently Delete
         </button>
       </div>
     </div>
@@ -1082,7 +1169,7 @@
       <div class="modal-header">
         <h2 id="conflictTitle" class="modal-title">Scheduling Conflict</h2>
         <button onclick="closeModal('conflictModal')"
-          class="modal-close">✕</button>
+          class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <p id="conflictMessage"
@@ -1106,8 +1193,8 @@
   <div id="scheduleModal" class="modal-overlay">
     <div class="modal modal-lg">
       <div class="modal-header">
-        <h2 class="modal-title">📅 Schedule Presentation</h2>
-        <button onclick="closeModal('scheduleModal')" class="modal-close">✕</button>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="calendar" style="width:16px;height:16px;"></i> Schedule Presentation</h2>
+        <button onclick="closeModal('scheduleModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <div class="form-grid">
@@ -1164,7 +1251,7 @@
       </div>
       <div class="modal-footer">
         <button onclick="closeModal('scheduleModal')" class="btn-ghost">Cancel</button>
-        <button onclick="scheduleMeeting()" class="btn-red">📅 Schedule Meeting</button>
+        <button onclick="scheduleMeeting()" class="btn-red" style="display:inline-flex;align-items:center;gap:5px;"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Schedule Meeting</button>
       </div>
     </div>
   </div>
@@ -1174,7 +1261,7 @@
     <div class="modal modal-lg">
       <div class="modal-header">
         <h2 class="modal-title">Meeting Details</h2>
-        <button onclick="closeModal('meetingModal')" class="modal-close">✕</button>
+        <button onclick="closeModal('meetingModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div id="meetingModalBody" class="modal-body"></div>
       <div id="meetingModalFooter" class="modal-footer"></div>
@@ -1185,8 +1272,8 @@
   <div id="cancelModal" class="modal-overlay">
     <div class="modal" style="max-width:420px;">
       <div class="modal-header">
-        <h2 class="modal-title">🗑 Cancel Meeting</h2>
-        <button onclick="closeModal('cancelModal')" class="modal-close">✕</button>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> Cancel Meeting</h2>
+        <button onclick="closeModal('cancelModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <p style="font-size:13px; color:#4b5563; margin-bottom:16px;">
@@ -1221,8 +1308,8 @@
   <div id="rescheduleModal" class="modal-overlay">
     <div class="modal" style="max-width:460px;">
       <div class="modal-header">
-        <h2 class="modal-title">📅 Reschedule Meeting</h2>
-        <button onclick="closeModal('rescheduleModal')" class="modal-close">✕</button>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="calendar" style="width:16px;height:16px;"></i> Reschedule Meeting</h2>
+        <button onclick="closeModal('rescheduleModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <p style="font-size:13px; color:#4b5563; margin-bottom:16px;">
@@ -1255,7 +1342,7 @@
           Cancel
         </button>
         <button onclick="confirmReschedule()" class="btn-navy">
-          ✅ Confirm Reschedule
+          <i data-lucide="check" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Confirm Reschedule
         </button>
       </div>
     </div>
@@ -1265,9 +1352,9 @@
   <div id="inquiryModal" class="modal-overlay">
     <div class="modal modal-lg">
       <div class="modal-header">
-        <h2 class="modal-title">📥 Inquiry Details</h2>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="inbox" style="width:16px;height:16px;"></i> Inquiry Details</h2>
         <button onclick="closeModal('inquiryModal')"
-          class="modal-close">✕</button>
+          class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div id="inquiryModalBody" class="modal-body"></div>
       <div id="inquiryModalFooter" class="modal-footer"></div>
@@ -1278,9 +1365,9 @@
   <div id="dismissModal" class="modal-overlay">
     <div class="modal" style="max-width:420px;">
       <div class="modal-header">
-        <h2 class="modal-title">❌ Dismiss Inquiry</h2>
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;"><i data-lucide="x-circle" style="width:16px;height:16px;"></i> Dismiss Inquiry</h2>
         <button onclick="closeModal('dismissModal')"
-          class="modal-close">✕</button>
+          class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
       </div>
       <div class="modal-body">
         <p style="font-size:13px; color:#4b5563; margin-bottom:16px;">
@@ -1328,10 +1415,173 @@
     lucide.createIcons();
   </script>
 
+  <!-- MODAL: CSV Import Preview -->
+  <div id="importPreviewModal" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;">
+          <i data-lucide="file-spreadsheet" style="width:16px;height:16px;"></i> CSV Import Preview
+        </h2>
+        <button onclick="closeModal('importPreviewModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:13px; color:#6b7280; margin-bottom:12px;">
+          The following <strong id="previewCount">0</strong> school(s) were found in your CSV. Review before importing.
+        </div>
+        <div style="max-height:340px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:8px;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead style="background:#f9fafb; position:sticky; top:0;">
+              <tr>
+                <th style="padding:10px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">#</th>
+                <th style="padding:10px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">School Name</th>
+                <th style="padding:10px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Contact Person</th>
+                <th style="padding:10px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">Email</th>
+                <th style="padding:10px 12px; text-align:left; font-weight:600; color:#374151; border-bottom:1px solid #e5e7eb;">City / Province</th>
+              </tr>
+            </thead>
+            <tbody id="importPreviewTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeModal('importPreviewModal')" class="btn-ghost">Cancel</button>
+        <button onclick="confirmImport()" class="btn-navy" style="display:inline-flex;align-items:center;gap:6px;">
+          <i data-lucide="check" style="width:14px;height:14px;"></i> Confirm Imported Schools
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Bulk Promotional Email -->
+  <div id="bulkEmailModal" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;">
+          <i data-lucide="send" style="width:16px;height:16px;"></i> Send Promotional Emails
+        </h2>
+        <button onclick="closeModal('bulkEmailModal')" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="padding:12px 14px; background:#e8e9f5; border-radius:8px; margin-bottom:14px; font-size:13px; color:#1B1F6B;">
+          <strong><i data-lucide="mail" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Ready to send to <span id="bulkEmailCount">0</span> school(s)</strong><br/>
+          <span style="font-size:12px; opacity:0.85;">Each email will be automatically personalized with the school's name and contact person.</span>
+        </div>
+        <div style="font-size:12px; font-weight:600; color:#374151; margin-bottom:6px;">Email Template Preview</div>
+        <div id="bulkEmailPreview" style="background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:8px; padding:14px; font-size:12px; line-height:1.8; color:#374151; white-space:pre-wrap; max-height:280px; overflow-y:auto; font-family:'Inter',monospace;"></div>
+        <div id="bulkEmailProgress" style="display:none; margin-top:14px; padding:12px 14px; background:#fef3c7; border-radius:8px; font-size:13px; color:#92400e;">
+          <i data-lucide="loader" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Sending emails, please wait…
+        </div>
+        <div id="bulkEmailResult" style="display:none; margin-top:14px;"></div>
+      </div>
+      <div class="modal-footer" id="bulkEmailFooter">
+        <button onclick="closeModal('bulkEmailModal')" class="btn-ghost">Cancel</button>
+        <button onclick="sendBulkPromoEmails()" id="bulkSendBtn" class="btn-navy" style="display:inline-flex;align-items:center;gap:6px;">
+          <i data-lucide="send" style="width:14px;height:14px;"></i> Send to All Schools
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Generic Confirm -->
+  <div id="confirmModal" class="modal-overlay">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="confirmModalTitle" style="display:flex;align-items:center;gap:6px;"></h2>
+        <button onclick="resolveConfirm(false)" class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" style="font-size:13px; color:#374151; line-height:1.7;"></p>
+      </div>
+      <div class="modal-footer">
+        <button onclick="resolveConfirm(false)" class="btn-ghost">Cancel</button>
+        <button id="confirmModalBtn" onclick="resolveConfirm(true)" class="btn-navy" style="display:inline-flex;align-items:center;gap:5px;"></button>
+      </div>
+    </div>
+  </div>
+
   <!-- FLOATING CLOCK -->
   <div id="floatingClock" class="fixed bottom-6 right-6 z-50 bg-navy text-white font-mono font-semibold text-sm px-4 py-2 rounded-full shadow-lg">
     <span id="clockDisplay"></span>
   </div>
+
+  <!-- ── AI CHAT BUTTON ── -->
+  <button id="chatToggleBtn" onclick="toggleChat()"
+    style="position:fixed; bottom:80px; right:24px; z-index:1000;
+      width:52px; height:52px; border-radius:50%; border:none;
+      background:linear-gradient(135deg,#2334a8,#1B1F6B);
+      color:#fff; cursor:pointer; display:flex; align-items:center;
+      justify-content:center; box-shadow:0 4px 20px rgba(27,31,107,0.45);
+      transition:transform 0.2s;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  </button>
+
+  <!-- ── AI CHAT WINDOW ── -->
+  <div id="chatWindow"
+    style="display:none; position:fixed; bottom:144px; right:24px; z-index:1000;
+      width:360px; height:520px; border-radius:16px; overflow:hidden;
+      box-shadow:0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(27,31,107,0.1);
+      flex-direction:column; background:#fff;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#2334a8,#1B1F6B);
+      padding:14px 16px; display:flex; align-items:center; gap:10px;">
+      <div style="width:34px; height:34px; border-radius:50%;
+        background:rgba(255,255,255,0.15); display:flex;
+        align-items:center; justify-content:center; font-size:16px;">🤖</div>
+      <div style="flex:1;">
+        <div style="font-size:13px; font-weight:700; color:#fff;">PathFinder AI</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.6);">Powered by Claude</div>
+      </div>
+      <button onclick="clearChat()" title="Clear chat"
+        style="background:rgba(255,255,255,0.1); border:none; color:rgba(255,255,255,0.7);
+          border-radius:6px; padding:4px 8px; font-size:11px; cursor:pointer;">
+        Clear
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div id="chatBody"
+      style="flex:1; overflow-y:auto; padding:16px; display:flex;
+        flex-direction:column; background:#fafafa; scroll-behavior:smooth;">
+    </div>
+
+    <!-- Input -->
+    <div style="padding:12px; border-top:1px solid #e5e7eb; background:#fff;
+      display:flex; gap:8px; align-items:flex-end;">
+      <textarea id="chatInput" rows="1" placeholder="Ask anything..."
+        onkeydown="chatKeyDown(event)" oninput="chatInputResize(this)"
+        style="flex:1; resize:none; border:1.5px solid #e5e7eb; border-radius:10px;
+          padding:9px 12px; font-size:13px; font-family:inherit; line-height:1.5;
+          max-height:120px; overflow-y:auto; transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='#1B1F6B'"
+        onblur="this.style.borderColor='#e5e7eb'"></textarea>
+      <button onclick="sendChatMessage()"
+        style="width:36px; height:36px; border-radius:10px; border:none;
+          background:#1B1F6B; color:#fff; cursor:pointer; display:flex;
+          align-items:center; justify-content:center; flex-shrink:0;
+          transition:background 0.2s;"
+        onmouseover="this.style.background='#2334a8'"
+        onmouseout="this.style.background='#1B1F6B'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="/js/chat.js"></script>
+  <script>
+    // Initialize chat welcome screen
+    document.addEventListener('DOMContentLoaded', () => {
+      const body = document.getElementById('chatBody');
+      if (body) body.innerHTML = chatWelcome();
+    });
+  </script>
 
 </body>
 </html>

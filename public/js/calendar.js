@@ -3,6 +3,7 @@ let currentYear  = new Date().getFullYear();
 let currentMonth = new Date().getMonth(); // 0-indexed (0 = January)
 let allMeetings  = [];
 let currentMeetingId = null;
+let upcomingMode = 'weekly'; // cycles: 'weekly' → 'monthly' → 'today' → 'weekly'
 
 // ── MONTH NAMES ──
 const MONTHS = [
@@ -16,19 +17,61 @@ async function loadCalendar() {
   await renderCalendar(currentYear, currentMonth);
 }
 
-// ── LOAD UPCOMING MEETINGS THIS WEEK ──
+// ── SET UPCOMING MODE ──
+function setUpcomingMode(mode) {
+  upcomingMode = mode;
+
+  const titleMap = {
+    today:   'Today\'s Meetings',
+    weekly:  'Upcoming This Week',
+    monthly: 'Upcoming This Month',
+  };
+
+  const titleEl = document.getElementById('upcomingTitle');
+  if (titleEl) titleEl.innerHTML =
+    `<i data-lucide="map-pin" style="width:15px;height:15px;"></i> ${titleMap[mode]}`;
+
+  ['today', 'weekly', 'monthly'].forEach(m => {
+    const btn = document.getElementById('upcoming-btn-' + m);
+    if (!btn) return;
+    const active = m === mode;
+    btn.style.background = active ? '#1B1F6B' : 'transparent';
+    btn.style.color      = active ? '#fff'    : '#6b7280';
+  });
+
+  lucide.createIcons();
+  loadUpcoming();
+}
+
+// ── LOAD UPCOMING MEETINGS ──
 async function loadUpcoming() {
+  const tbody = document.getElementById('upcomingTable');
+  const emptyMessages = {
+    today:   ['No meetings today',        'Enjoy your day — nothing scheduled'],
+    weekly:  ['No meetings this week',    'Schedule a presentation to get started'],
+    monthly: ['No meetings this month',   'Nothing scheduled for this month yet'],
+  };
+
   try {
-    const res = await fetch('/api/meetings/upcoming/week');
-    const meetings = await res.json();
-    const tbody = document.getElementById('upcomingTable');
+    let meetings = [];
+
+    if (upcomingMode === 'today') {
+      const res = await fetch('/api/meetings/today');
+      meetings = await res.json();
+    } else if (upcomingMode === 'weekly') {
+      const res = await fetch('/api/meetings/upcoming/week');
+      meetings = await res.json();
+    } else {
+      const y = new Date().getFullYear();
+      const m = new Date().getMonth() + 1;
+      const res = await fetch(`/api/meetings/month/${y}/${m}`);
+      meetings = await res.json();
+    }
 
     if (!meetings.length) {
-      tbody.innerHTML = emptyState(
-        '📅',
-        'No meetings this week',
-        'Schedule a presentation to get started'
-      );
+      const [title, sub] = emptyMessages[upcomingMode];
+      tbody.innerHTML = emptyState('calendar', title, sub);
+      lucide.createIcons();
       return;
     }
 
@@ -43,13 +86,14 @@ async function loadUpcoming() {
         <td>
           <button
             onclick="viewMeeting(${m.id})"
-            class="btn-ghost text-xs py-1 px-3">
-            👁 View
+            class="btn-ghost text-xs py-1 px-3" style="display:inline-flex;align-items:center;gap:4px;">
+            ${licon('eye')} View
           </button>
         </td>
       </tr>
     `).join('');
 
+    lucide.createIcons();
   } catch (e) {
     showToast('Could not load upcoming meetings', 'error');
   }
@@ -217,7 +261,7 @@ async function scheduleMeeting() {
       return;
     }
 
-    showToast('✅ Meeting scheduled!', 'success');
+    showToast('Meeting scheduled!', 'success');
     closeModal('scheduleModal');
     clearScheduleForm();
     loadCalendar();
@@ -234,25 +278,25 @@ function handleSchedulingError(data) {
 
   if (type === 'SCHOOL_ALREADY_HAS_MEETING') {
     showConflictAlert(
-      '🏫 School Already Has a Meeting',
+      'School Already Has a Meeting',
       data.error,
       'Please go to the Calendar and cancel or reschedule the existing meeting first.'
     );
   } else if (type === 'MAX_MEETINGS_REACHED') {
     showConflictAlert(
-      '📅 Maximum Meetings Reached',
+      'Maximum Meetings Reached',
       data.error,
       'Only 3 meetings are allowed per day. Please choose a different date.'
     );
   } else if (type === 'TIME_SLOT_TAKEN') {
     showConflictAlert(
-      '⏰ Time Slot Conflict',
+      'Time Slot Conflict',
       data.error,
       'Please choose a time at least 30 minutes away from existing meetings.'
     );
   } else if (type === 'OUTSIDE_METRO_MANILA') {
     showConflictAlert(
-      '📍 Outside Metro Manila',
+      'Outside Metro Manila',
       data.error,
       'Switch to Online mode or contact your partner for areas outside Metro Manila.'
     );
@@ -284,15 +328,14 @@ async function checkDateAvailability(date) {
       indicator.innerHTML = `
         <div style="color:#991b1b; font-size:12px; margin-top:6px;
           padding:8px 12px; background:#fee2e2; border-radius:6px;">
-          ❌ This date is fully booked (3/3 meetings).
-          Please choose another date.
+          ${licon('x-circle', 13)} This date is fully booked (3/3 meetings). Please choose another date.
         </div>
       `;
     } else if (data.count === 0) {
       indicator.innerHTML = `
         <div style="color:#166534; font-size:12px; margin-top:6px;
           padding:8px 12px; background:#dcfce7; border-radius:6px;">
-          ✅ This date is available (0/3 meetings scheduled)
+          ${licon('check-circle', 13)} This date is available (0/3 meetings scheduled)
         </div>
       `;
     } else {
@@ -303,7 +346,7 @@ async function checkDateAvailability(date) {
       indicator.innerHTML = `
         <div style="color:#92400e; font-size:12px; margin-top:6px;
           padding:8px 12px; background:#fef3c7; border-radius:6px;">
-          ⚠️ ${data.count}/3 meetings on this date.
+          ${licon('alert-triangle', 13)} ${data.count}/3 meetings on this date.
           ${remaining} slot${remaining > 1 ? 's' : ''} remaining.<br/>
           <span style="color:#6b7280;">
             Existing: ${times}
@@ -311,6 +354,7 @@ async function checkDateAvailability(date) {
         </div>
       `;
     }
+    lucide.createIcons();
   } catch (e) {
     console.error('Could not check date availability');
   }
@@ -346,17 +390,17 @@ async function viewMeeting(id) {
       ${m.notes ? `
         <div style="margin-top:16px; padding:12px; background:#f9fafb;
           border-radius:8px; font-size:13px; color:#4b5563;">
-          📝 ${m.notes}
+          ${licon('file-text', 14)} ${m.notes}
         </div>` : ''}
       ${isCancelled ? `
         <div style="margin-top:16px; padding:12px; background:#fee2e2;
           border-radius:8px; font-size:13px; color:#991b1b;">
-          ⚠️ This meeting was cancelled.
+          ${licon('alert-triangle', 14)} This meeting was cancelled.
         </div>` : ''}
       ${isRescheduled ? `
         <div style="margin-top:16px; padding:12px; background:#fef3c7;
           border-radius:8px; font-size:13px; color:#92400e;">
-          🔄 This meeting has been rescheduled.
+          ${licon('refresh-cw', 14)} This meeting has been rescheduled.
         </div>` : ''}
     `;
 
@@ -380,20 +424,21 @@ async function viewMeeting(id) {
         <button onclick="closeModal('meetingModal')" class="btn-ghost">
           Close
         </button>
-        <button onclick="openRescheduleModal()" class="btn-outline text-sm">
-          🔄 Reschedule
+        <button onclick="openRescheduleModal()" class="btn-outline text-sm" style="display:inline-flex;align-items:center;gap:5px;">
+          ${licon('refresh-cw')} Reschedule
         </button>
-        <button onclick="markAsDone()" class="btn-navy text-sm">
-          ✅ Mark as Done
+        <button onclick="markAsDone()" class="btn-navy text-sm" style="display:inline-flex;align-items:center;gap:5px;">
+          ${licon('check-circle')} Mark as Done
         </button>
         <button onclick="openCancelModal()" class="btn-ghost text-sm"
-          style="color:#991b1b;">
-          🗑 Cancel Meeting
+          style="color:#991b1b;display:inline-flex;align-items:center;gap:5px;">
+          ${licon('trash-2')} Cancel Meeting
         </button>
       `;
     }
 
     openModal('meetingModal');
+    lucide.createIcons();
   } catch (e) {
     showToast('Could not load meeting details', 'error');
   }
@@ -407,7 +452,7 @@ async function markAsDone() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'DONE' })
     });
-    showToast('✅ Meeting marked as done!', 'success');
+    showToast('Meeting marked as done!', 'success');
     closeModal('meetingModal');
     loadCalendar();
   } catch (e) {
@@ -485,7 +530,7 @@ async function confirmReschedule() {
       return;
     }
 
-    showToast('✅ Meeting rescheduled!', 'success');
+    showToast('Meeting rescheduled!', 'success');
     closeModal('rescheduleModal');
     loadCalendar();
     loadDashboard();

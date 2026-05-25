@@ -1,8 +1,9 @@
 // ── ANALYTICS STATE ──
-let analyticsData      = null;
-let analyticsPeriod    = 'weekly';
-let leadsChartInstance = null;
+let analyticsData       = null;
+let analyticsPeriod     = 'weekly';
+let leadsChartInstance  = null;
 let statusChartInstance = null;
+let heardFromChartInstance = null;
 
 // ── LOAD ──
 async function loadAnalytics() {
@@ -34,17 +35,19 @@ function renderAnalytics() {
   if (!analyticsData) return;
   const isWeekly = analyticsPeriod === 'weekly';
 
-  const newLeads = isWeekly
-    ? analyticsData.weekly_leads.reduce((s, r) => s + r.count, 0)
-    : analyticsData.monthly_leads.reduce((s, r) => s + r.count, 0);
+  // New Leads = schools currently in NEW_LEAD status (matches dashboard definition)
+  const newLeads = (analyticsData.status_dist || [])
+    .filter(r => !r.status || r.status === 'NEW_LEAD')
+    .reduce((s, r) => s + r.count, 0);
 
   document.getElementById('an-new-leads').textContent  = newLeads;
+  document.getElementById('an-leads-label').textContent = 'Awaiting outreach';
+
   document.getElementById('an-emails').textContent     = isWeekly ? analyticsData.weekly_emails    : analyticsData.monthly_emails;
   document.getElementById('an-meetings').textContent   = isWeekly ? analyticsData.weekly_meetings  : analyticsData.monthly_meetings;
   document.getElementById('an-inquiries').textContent  = isWeekly ? analyticsData.weekly_inquiries : analyticsData.monthly_inquiries;
 
   const label = isWeekly ? 'Last 7 days' : 'Last 30 days';
-  document.getElementById('an-leads-label').textContent    = label;
   document.getElementById('an-emails-label').textContent   = label;
   document.getElementById('an-meetings-label').textContent = label;
   document.getElementById('an-inquiries-label').textContent = label;
@@ -55,6 +58,7 @@ function renderAnalytics() {
 
   renderLeadsChart();
   renderStatusChart();
+  renderHeardFromChart();
 }
 
 // ── LEADS BAR CHART ──
@@ -124,29 +128,87 @@ function renderLeadsChart() {
   });
 }
 
+// ── HOW DID YOU FIND US — HORIZONTAL BAR ──
+function renderHeardFromChart() {
+  const dist = (analyticsData && analyticsData.heard_from_dist) || [];
+  const emptyEl = document.getElementById('heardFromEmpty');
+  const canvas  = document.getElementById('heardFromChart');
+
+  if (!dist.length) {
+    if (emptyEl) emptyEl.style.display = 'block';
+    if (canvas)  canvas.style.display  = 'none';
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (canvas)  canvas.style.display  = 'block';
+
+  const labels = dist.map(r => r.source === 'LinkedIn' ? 'TikTok' : r.source);
+  const values = dist.map(r => r.count);
+  const total  = values.reduce((s, v) => s + v, 0);
+
+  const palette = [
+    '#1B1F6B','#2563eb','#7c3aed','#db2777','#d97706',
+    '#16a34a','#0891b2','#374151'
+  ];
+  const colors = labels.map((_, i) => palette[i % palette.length]);
+
+  const ctx = canvas.getContext('2d');
+  if (heardFromChartInstance) heardFromChartInstance.destroy();
+
+  heardFromChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Responses',
+        data: values,
+        backgroundColor: colors,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const pct = total ? Math.round((ctx.parsed.x / total) * 100) : 0;
+              return ` ${ctx.parsed.x} response${ctx.parsed.x !== 1 ? 's' : ''} (${pct}%)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { precision: 0, stepSize: 1 },
+          grid: { color: '#f3f4f6' }
+        },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
 // ── STATUS DOUGHNUT CHART ──
 function renderStatusChart() {
-  const dist = analyticsData.status_dist;
-  if (!dist || !dist.length) return;
+  const isWeekly = analyticsPeriod === 'weekly';
 
-  const colorMap = {
-    'NEW_LEAD':                '#1B1F6B',
-    'PROPOSAL_GENERATED':      '#4f46e5',
-    'FOR_APPROVAL':            '#7c3aed',
-    'EMAIL_SENT':              '#0ea5e9',
-    'FOLLOW_UP_1':             '#06b6d4',
-    'INTERESTED':              '#10b981',
-    'PRESENTATION_SCHEDULED':  '#84cc16',
-    'PRESENTED':               '#eab308',
-    'NEGOTIATION':             '#f97316',
-    'CLOSED_WON':              '#22c55e',
-    'CLOSED_LOST':             '#D01B1B',
-    'DO_NOT_CONTACT':          '#6b7280',
-  };
+  const newLeads  = isWeekly
+    ? analyticsData.weekly_leads.reduce((s, r) => s + r.count, 0)
+    : analyticsData.monthly_leads.reduce((s, r) => s + r.count, 0);
+  const emails    = isWeekly ? analyticsData.weekly_emails    : analyticsData.monthly_emails;
+  const meetings  = isWeekly ? analyticsData.weekly_meetings  : analyticsData.monthly_meetings;
+  const inquiries = isWeekly ? analyticsData.weekly_inquiries : analyticsData.monthly_inquiries;
 
-  const labels = dist.map(r => (r.status || 'NEW_LEAD').replace(/_/g, ' '));
-  const values = dist.map(r => r.count);
-  const colors = dist.map(r => colorMap[r.status] || '#9ca3af');
+  const labels = ['New Leads', 'Email Sent', 'Meetings', 'Inquiries'];
+  const values = [newLeads, emails, meetings, inquiries];
+  const colors = ['#201658', '#1D24CA', '#98ABEE', '#F9E8C9'];
 
   const ctx = document.getElementById('statusChart').getContext('2d');
   if (statusChartInstance) statusChartInstance.destroy();

@@ -1,7 +1,12 @@
+// ── DRAFTS PAGINATION STATE ──
+const DRAFTS_PAGE_SIZE = 5;
+let draftsCurrentPage  = 1;
+let draftsAllList      = [];
+
 // ── GENERATE EMAIL ──
 async function generateEmail(id, type) {
   closeModal('schoolModal');
-  showToast('⚡ Generating ' + type + ' email...', '');
+  showToast('Generating ' + type + ' email...', '');
 
   try {
     const res = await fetch('/api/schools/' + id + '/generate-email', {
@@ -16,16 +21,15 @@ async function generateEmail(id, type) {
       return;
     }
 
-    showToast('✅ Email generated!', 'success');
+    showToast('Email generated!', 'success');
 
     // Show email preview in modal — now editable!
     document.getElementById('emailModalBody').innerHTML = `
       <div class="email-subject">
         Subject: ${data.subject}
       </div>
-      <div style="font-size:12px; color:#9ca3af; margin-bottom:8px;">
-        ✏️ You can edit the email below before sending.
-        Paste your Google Meet link where needed.
+      <div style="font-size:12px; color:#9ca3af; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+        ${licon('pencil', 12)} You can edit the email below before sending. Paste your Google Meet link where needed.
       </div>
       <textarea
         id="editableEmailBody"
@@ -40,21 +44,44 @@ async function generateEmail(id, type) {
       <div id="meetLinkWarning" style="display:none; margin-top:8px;
         padding:10px 12px; background:#fef3c7; border-radius:6px;
         font-size:12px; color:#92400e;">
-        ⚠️ No meeting link detected. Please paste your
+        ${licon('alert-triangle', 13)} No meeting link detected. Please paste your
         Google Meet or Zoom link in the email before sending.
       </div>
     `;
 
-    // Show send button
+    // Show send button — disabled for 5 seconds so user reviews the email first
     document.getElementById('emailModalActions').innerHTML = `
       <button
+        id="sendEmailBtn"
         onclick="saveAndSendDraft(${data.draft_id})"
-        class="btn-navy text-sm">
-        📤 Send Email
+        class="btn-navy text-sm" disabled
+        style="display:inline-flex;align-items:center;gap:6px;opacity:0.5;cursor:not-allowed;">
+        ${licon('send', 14)} Send Email <span id="sendEmailCountdown" style="font-size:11px;margin-left:2px;">(5s)</span>
       </button>
     `;
 
     openModal('emailModal');
+    lucide.createIcons();
+
+    // Countdown to enable send button
+    let secondsLeft = 5;
+    const countdownInterval = setInterval(() => {
+      secondsLeft--;
+      const countdownEl = document.getElementById('sendEmailCountdown');
+      if (countdownEl) countdownEl.textContent = '(' + secondsLeft + 's)';
+
+      if (secondsLeft <= 0) {
+        clearInterval(countdownInterval);
+        const btn = document.getElementById('sendEmailBtn');
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+          const cd = document.getElementById('sendEmailCountdown');
+          if (cd) cd.remove();
+        }
+      }
+    }, 1000);
 
     // Refresh data in background
     loadDashboard();
@@ -69,10 +96,13 @@ async function generateEmail(id, type) {
 
 // ── SEND DRAFT ──
 async function sendDraft(draftId) {
-  const confirmed = confirm(
-    'Are you sure you want to send this email?\n\nMake sure it has been approved first.'
+  const ok = await showConfirmModal(
+    '<i data-lucide="send" style="width:15px;height:15px;display:inline-block;vertical-align:middle;margin-right:5px;"></i> Send Email',
+    'Are you sure you want to send this email?<br><br>Make sure it has been <strong>approved</strong> before sending.',
+    'Send Email',
+    'btn-navy'
   );
-  if (!confirmed) return;
+  if (!ok) return;
 
   try {
     const res = await fetch('/api/email-drafts/' + draftId + '/send', {
@@ -83,7 +113,7 @@ async function sendDraft(draftId) {
     if (data.error) {
       showToast('SMTP Error: ' + data.error, 'error');
     } else if (data.sent) {
-      showToast('✅ Email sent successfully!', 'success');
+      showToast('Email sent successfully!', 'success');
       closeModal('emailModal');
       loadDrafts();
       loadDashboard();
@@ -104,45 +134,123 @@ async function loadDrafts() {
   try {
     const res = await fetch('/api/email-drafts');
     const drafts = await res.json();
-    const tbody = document.getElementById('draftsTable');
-
-    if (!drafts.length) {
-      tbody.innerHTML = emptyState(
-        '✉️',
-        'No drafts yet',
-        'Generate an email from a school lead first'
-      );
-      return;
-    }
 
     draftsCache = {};
     drafts.forEach(d => { draftsCache[d.id] = d; });
 
-    tbody.innerHTML = drafts.map(d => `
-      <tr>
-        <td>${d.school_name || '—'}</td>
-        <td>
-          <span class="badge badge-default">${d.email_type}</span>
-        </td>
-        <td style="max-width:260px; overflow:hidden;
-          text-overflow:ellipsis; white-space:nowrap;">
-          ${d.subject}
-        </td>
-        <td>${statusBadge(d.status)}</td>
-        <td>${fmtDate(d.created_at)}</td>
-        <td>
-          <button
-            onclick="previewDraft(${d.id})"
-            class="btn-ghost text-xs py-1 px-3">
-            👁 View
-          </button>
-        </td>
-      </tr>
-    `).join('');
+    draftsAllList    = drafts;
+    draftsCurrentPage = 1;
+    renderDrafts();
 
   } catch (e) {
     showToast('Could not load drafts', 'error');
   }
+}
+
+// ── RENDER DRAFTS PAGE ──
+function renderDrafts() {
+  const tbody = document.getElementById('draftsTable');
+  const total = draftsAllList.length;
+
+  if (!total) {
+    tbody.innerHTML = emptyState(
+      'mail',
+      'No drafts yet',
+      'Generate an email from a school lead first'
+    );
+    const pg = document.getElementById('draftsPagination');
+    if (pg) pg.style.display = 'none';
+    lucide.createIcons();
+    return;
+  }
+
+  const totalPages = Math.ceil(total / DRAFTS_PAGE_SIZE);
+  if (draftsCurrentPage > totalPages) draftsCurrentPage = totalPages;
+
+  const start = (draftsCurrentPage - 1) * DRAFTS_PAGE_SIZE;
+  const page  = draftsAllList.slice(start, start + DRAFTS_PAGE_SIZE);
+
+  tbody.innerHTML = page.map(d => `
+    <tr>
+      <td>${d.school_name || '—'}</td>
+      <td>
+        <span class="badge badge-default">${d.email_type}</span>
+      </td>
+      <td style="max-width:260px; overflow:hidden;
+        text-overflow:ellipsis; white-space:nowrap;">
+        ${d.subject}
+      </td>
+      <td>${statusBadge(d.status)}</td>
+      <td>${fmtDate(d.created_at)}</td>
+      <td>
+        <button
+          onclick="previewDraft(${d.id})"
+          class="btn-ghost text-xs py-1 px-3" style="display:inline-flex;align-items:center;gap:4px;">
+          ${licon('eye')} View
+        </button>
+      </td>
+    </tr>
+  `).join('');
+  lucide.createIcons();
+
+  renderDraftsPagination(total, totalPages);
+}
+
+// ── RENDER DRAFTS PAGINATION ──
+function renderDraftsPagination(total, totalPages) {
+  const pg = document.getElementById('draftsPagination');
+  if (!pg) return;
+
+  if (totalPages <= 1) {
+    pg.style.display = 'none';
+    return;
+  }
+
+  pg.style.display = 'flex';
+
+  const MAX_VISIBLE = 5;
+  let winStart = Math.max(1, draftsCurrentPage - Math.floor(MAX_VISIBLE / 2));
+  let winEnd   = winStart + MAX_VISIBLE - 1;
+  if (winEnd > totalPages) {
+    winEnd   = totalPages;
+    winStart = Math.max(1, winEnd - MAX_VISIBLE + 1);
+  }
+
+  const btnStyle = (active) =>
+    `style="min-width:30px; height:30px; padding:0 8px; border-radius:6px; border:1px solid ${active ? '#1B1F6B' : '#e5e7eb'}; background:${active ? '#1B1F6B' : '#fff'}; color:${active ? '#fff' : '#374151'}; font-size:12px; font-weight:600; cursor:${active ? 'default' : 'pointer'};"`;
+
+  const navBtn = (label, onclick, disabled) =>
+    `<button onclick="${onclick}" ${disabled ? 'disabled' : ''} style="min-width:30px; height:30px; padding:0 8px; border-radius:6px; border:1px solid #e5e7eb; background:#fff; color:${disabled ? '#d1d5db' : '#374151'}; font-size:12px; font-weight:700; cursor:${disabled ? 'default' : 'pointer'};">${label}</button>`;
+
+  const pageButtons = [];
+  for (let i = winStart; i <= winEnd; i++) {
+    const isActive = i === draftsCurrentPage;
+    pageButtons.push(
+      `<button onclick="goToDraftsPage(${i})" ${isActive ? 'disabled' : ''} ${btnStyle(isActive)}>${i}</button>`
+    );
+  }
+
+  const start = (draftsCurrentPage - 1) * DRAFTS_PAGE_SIZE + 1;
+  const end   = Math.min(draftsCurrentPage * DRAFTS_PAGE_SIZE, total);
+
+  pg.innerHTML = `
+    <div style="display:flex; gap:4px; align-items:center;">
+      ${navBtn('«', 'goToDraftsPage(1)', draftsCurrentPage === 1)}
+      ${navBtn('‹', `goToDraftsPage(${draftsCurrentPage - 1})`, draftsCurrentPage === 1)}
+      ${pageButtons.join('')}
+      ${navBtn('›', `goToDraftsPage(${draftsCurrentPage + 1})`, draftsCurrentPage === totalPages)}
+      ${navBtn('»', `goToDraftsPage(${totalPages})`, draftsCurrentPage === totalPages)}
+    </div>
+    <span>${start}–${end} of ${total} drafts</span>
+  `;
+}
+
+// ── GO TO DRAFTS PAGE ──
+function goToDraftsPage(page) {
+  const totalPages = Math.ceil(draftsAllList.length / DRAFTS_PAGE_SIZE);
+  if (page < 1 || page > totalPages) return;
+  draftsCurrentPage = page;
+  renderDrafts();
 }
 
 // ── PREVIEW DRAFT ──
@@ -154,14 +262,13 @@ function previewDraft(id) {
     <div style="margin-top:12px; padding:14px; background:#f9fafb;
       border:1.5px solid #e5e7eb; border-radius:8px;
       font-size:13px; line-height:1.8; color:#374151;
-      font-family:'Inter',sans-serif; white-space:pre-wrap;">
+      font-family:'Inter',sans-serif; white-space:pre-wrap;
+      user-select:none; -webkit-user-select:none; pointer-events:none;">
       ${d.body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
     </div>
   `;
 
-  document.getElementById('emailModalActions').innerHTML = `
-    <button onclick="closeModal('emailModal')" class="btn-ghost text-sm">Close</button>
-  `;
+  document.getElementById('emailModalActions').innerHTML = '';
 
   openModal('emailModal');
 }

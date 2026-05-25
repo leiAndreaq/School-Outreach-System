@@ -1,6 +1,12 @@
 // ── GLOBAL SCHOOLS DATA ──
 let allSchools = [];
 let selectedSchoolIds = new Set();
+let currentSchoolStatus = 'NEW_LEAD';
+
+// ── PAGINATION STATE ──
+const SCHOOLS_PAGE_SIZE = 5;
+let schoolsCurrentPage   = 1;
+let schoolsFilteredList  = [];
 
 // ── LOAD DASHBOARD ──
 async function loadDashboard() {
@@ -24,10 +30,11 @@ async function loadDashboard() {
 
     if (!recent.length) {
       tbody.innerHTML = emptyState(
-        '🏫',
+        'school',
         'No leads yet',
         'Add your first school lead to get started'
       );
+      lucide.createIcons();
       return;
     }
 
@@ -47,7 +54,7 @@ async function loadDashboard() {
       </tr>
     `).join('');
 
-    // Load today's meetings alert
+    lucide.createIcons();
     loadTodaysMeetings();
 
   } catch (e) {
@@ -56,8 +63,12 @@ async function loadDashboard() {
 }
 
 // ── LOAD ALL SCHOOLS ──
-async function loadSchools() {
+async function loadSchools(preserveSelection = false) {
   try {
+    if (!preserveSelection) {
+      schoolsCurrentPage = 1;
+      selectedSchoolIds.clear();
+    }
     const res = await fetch('/api/schools');
     allSchools = await res.json();
     renderSchools(allSchools);
@@ -68,27 +79,34 @@ async function loadSchools() {
 
 // ── RENDER SCHOOLS TABLE ──
 function renderSchools(schools) {
-  selectedSchoolIds.clear();
-  const master = document.getElementById('selectAllCheckbox');
-  if (master) { master.checked = false; master.indeterminate = false; }
-  updateBulkActionBar();
+  schoolsFilteredList = schools;
 
   const tbody = document.getElementById('schoolsTable');
+  const pagEl = document.getElementById('schoolsPagination');
 
   if (!schools.length) {
     tbody.innerHTML = emptyState(
-      '📋',
+      'clipboard-list',
       'No schools found',
       'Try a different search or add a new school'
     );
+    lucide.createIcons();
+    pagEl.style.display = 'none';
     return;
   }
 
-  tbody.innerHTML = schools.map(s => `
+  const totalPages = Math.ceil(schools.length / SCHOOLS_PAGE_SIZE);
+  if (schoolsCurrentPage > totalPages) schoolsCurrentPage = totalPages;
+
+  const start      = (schoolsCurrentPage - 1) * SCHOOLS_PAGE_SIZE;
+  const pageSlice  = schools.slice(start, start + SCHOOLS_PAGE_SIZE);
+
+  tbody.innerHTML = pageSlice.map(s => `
     <tr>
       <td style="width:40px; padding:8px 0 8px 16px;">
         <input type="checkbox" class="school-checkbox" value="${s.id}"
           onchange="toggleSchoolSelect(${s.id}, this)"
+          ${selectedSchoolIds.has(s.id) ? 'checked' : ''}
           style="width:16px; height:16px; cursor:pointer; accent-color:#1B1F6B;">
       </td>
       <td>${s.school_name}</td>
@@ -97,21 +115,80 @@ function renderSchools(schools) {
       <td>${s.level_offered || '—'}</td>
       <td>${statusBadge(s.status)}</td>
       <td>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <button
-            onclick="viewSchool(${s.id})"
-            class="btn-ghost text-xs py-1 px-3">
-            👁 View
-          </button>
-          <button
-            onclick="openStatusModal(${s.id}, '${s.status || 'NEW_LEAD'}')"
-            class="btn-outline text-xs py-1 px-3">
-            ✏ Status
-          </button>
-        </div>
+        <button
+          onclick="viewSchool(${s.id})"
+          class="btn-ghost text-xs py-1 px-3" style="display:inline-flex;align-items:center;gap:4px;">
+          ${licon('eye')} View
+        </button>
       </td>
     </tr>
   `).join('');
+
+  renderSchoolsPagination(schools.length, totalPages);
+  updateSelectAllState();
+  lucide.createIcons();
+}
+
+// ── PAGINATION RENDER ──
+function renderSchoolsPagination(total, totalPages) {
+  const el = document.getElementById('schoolsPagination');
+  if (totalPages <= 1) {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.style.display = 'flex';
+
+  const start = (schoolsCurrentPage - 1) * SCHOOLS_PAGE_SIZE + 1;
+  const end   = Math.min(schoolsCurrentPage * SCHOOLS_PAGE_SIZE, total);
+
+  const btnBase = 'width:32px;height:32px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.15s;';
+
+  const MAX_VISIBLE = 5;
+  let winStart = Math.max(1, schoolsCurrentPage - Math.floor(MAX_VISIBLE / 2));
+  let winEnd   = winStart + MAX_VISIBLE - 1;
+  if (winEnd > totalPages) {
+    winEnd   = totalPages;
+    winStart = Math.max(1, winEnd - MAX_VISIBLE + 1);
+  }
+
+  let pageButtons = '';
+  for (let i = winStart; i <= winEnd; i++) {
+    const active = i === schoolsCurrentPage;
+    pageButtons += `<button onclick="goToSchoolsPage(${i})" style="${btnBase}
+      font-weight:${active ? '700' : '500'};
+      background:${active ? '#201658' : 'transparent'};
+      color:${active ? '#fff' : '#374151'};
+      border:1px solid ${active ? '#201658' : '#d1d5db'};">${i}</button>`;
+  }
+
+  const onFirst = schoolsCurrentPage === 1;
+  const onLast  = schoolsCurrentPage === totalPages;
+
+  const navBtn = (onclick, disabled, label) =>
+    `<button onclick="${onclick}" ${disabled ? 'disabled' : ''}
+      style="${btnBase} background:transparent; border:1px solid #d1d5db;
+        color:${disabled ? '#9ca3af' : '#374151'};
+        cursor:${disabled ? 'not-allowed' : 'pointer'}; font-size:11px;">${label}</button>`;
+
+  el.innerHTML = `
+    <div style="display:flex;gap:4px;align-items:center;">
+      ${navBtn(`goToSchoolsPage(1)`,                    onFirst, '&laquo;')}
+      ${navBtn(`goToSchoolsPage(${schoolsCurrentPage - 1})`, onFirst, '&lsaquo;')}
+      ${pageButtons}
+      ${navBtn(`goToSchoolsPage(${schoolsCurrentPage + 1})`, onLast,  '&rsaquo;')}
+      ${navBtn(`goToSchoolsPage(${totalPages})`,         onLast,  '&raquo;')}
+    </div>
+    <span>${start}–${end} of ${total} school${total !== 1 ? 's' : ''}</span>
+  `;
+}
+
+// ── GO TO PAGE ──
+function goToSchoolsPage(page) {
+  const totalPages = Math.ceil(schoolsFilteredList.length / SCHOOLS_PAGE_SIZE);
+  if (page < 1 || page > totalPages) return;
+  schoolsCurrentPage = page;
+  renderSchools(schoolsFilteredList);
 }
 
 // ── MULTI-SELECT ──
@@ -123,11 +200,14 @@ function toggleSchoolSelect(id, cb) {
 }
 
 function toggleSelectAll(masterCb) {
+  if (masterCb.checked) {
+    schoolsFilteredList.forEach(s => selectedSchoolIds.add(s.id));
+  } else {
+    schoolsFilteredList.forEach(s => selectedSchoolIds.delete(s.id));
+  }
+  // Reflect on currently visible checkboxes
   document.querySelectorAll('.school-checkbox').forEach(cb => {
     cb.checked = masterCb.checked;
-    const id = parseInt(cb.value);
-    if (masterCb.checked) selectedSchoolIds.add(id);
-    else selectedSchoolIds.delete(id);
   });
   updateBulkActionBar();
 }
@@ -135,18 +215,19 @@ function toggleSelectAll(masterCb) {
 function updateSelectAllState() {
   const master = document.getElementById('selectAllCheckbox');
   if (!master) return;
-  const all     = document.querySelectorAll('.school-checkbox');
-  const checked = document.querySelectorAll('.school-checkbox:checked');
-  if (checked.length === 0) {
+  const total   = schoolsFilteredList.length;
+  const selected = schoolsFilteredList.filter(s => selectedSchoolIds.has(s.id)).length;
+  if (selected === 0) {
     master.checked = false;
     master.indeterminate = false;
-  } else if (checked.length === all.length) {
+  } else if (selected === total) {
     master.checked = true;
     master.indeterminate = false;
   } else {
     master.checked = false;
     master.indeterminate = true;
   }
+  updateBulkActionBar();
 }
 
 function updateBulkActionBar() {
@@ -199,7 +280,7 @@ async function confirmBulkDelete() {
     }
 
     showToast(
-      `🗑 ${data.deleted} school${data.deleted !== 1 ? 's' : ''} permanently deleted`,
+      `${data.deleted} school${data.deleted !== 1 ? 's' : ''} permanently deleted`,
       'success'
     );
     closeModal('bulkDeleteModal');
@@ -216,6 +297,8 @@ async function confirmBulkDelete() {
 
 // ── SEARCH / FILTER ──
 function filterSchools() {
+  schoolsCurrentPage = 1;
+  selectedSchoolIds.clear();
   const query = document.getElementById('searchInput').value.toLowerCase();
   const filtered = allSchools.filter(s =>
     (s.school_name    || '').toLowerCase().includes(query) ||
@@ -231,7 +314,8 @@ async function viewSchool(id) {
     const schoolRes = await fetch('/api/schools/' + id);
     if (!schoolRes.ok) throw new Error('School not found');
     const s = await schoolRes.json();
-    currentSchoolId = id;
+    currentSchoolId     = id;
+    currentSchoolStatus = s.status || 'NEW_LEAD';
 
     // Fetch meetings separately — non-fatal, school details still show if this fails
     let meetings = [];
@@ -254,8 +338,8 @@ async function viewSchool(id) {
           background:#e8e9f5; border:1.5px solid #1B1F6B;
           border-radius:8px; font-size:13px; color:#1B1F6B;
           display:flex; align-items:center; justify-content:space-between;">
-          <div>
-            <strong>📅 Meeting Scheduled</strong> —
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${licon('calendar', 15)} <strong>Meeting Scheduled</strong> —
             ${formatDateDisplay(upcoming.meeting_date)} at ${formatTime(upcoming.meeting_time)}
             · ${upcoming.meeting_mode}
           </div>
@@ -269,7 +353,7 @@ async function viewSchool(id) {
         <div style="margin-bottom:14px; padding:12px 14px;
           background:#dcfce7; border:1.5px solid #16a34a;
           border-radius:8px; font-size:13px; color:#166534;">
-          ✅ Presentation completed on ${formatDateDisplay(lastDone.meeting_date)}
+          ${licon('check-circle', 14)} Presentation completed on ${formatDateDisplay(lastDone.meeting_date)}
         </div>`;
     }
 
@@ -295,11 +379,30 @@ async function viewSchool(id) {
       ${s.notes ? `
         <div style="margin-top:16px; padding:12px; background:#f9fafb;
           border-radius:8px; font-size:13px; color:#4b5563;">
-          📝 ${s.notes}
+          ${licon('file-text', 14)} ${s.notes}
         </div>` : ''}
     `;
 
+    // Disable Generate Proposal if an email has already been sent
+    const emailSent = ['EMAIL_SENT','INTERESTED','NOT_INTERESTED','WON','LOST']
+      .includes(s.status);
+    const genBtn = document.querySelector('#schoolModal .btn-red');
+    if (genBtn) {
+      if (emailSent) {
+        genBtn.disabled = true;
+        genBtn.style.opacity = '0.4';
+        genBtn.style.cursor  = 'not-allowed';
+        genBtn.title = 'Email already sent to this school';
+      } else {
+        genBtn.disabled = false;
+        genBtn.style.opacity = '1';
+        genBtn.style.cursor  = 'pointer';
+        genBtn.title = '';
+      }
+    }
+
     openModal('schoolModal');
+    lucide.createIcons();
   } catch (e) {
     showToast('Could not load school details', 'error');
   }
@@ -334,6 +437,7 @@ async function openEditModal(id) {
     document.getElementById('e-level_offered').value      = s.level_offered      || '';
     document.getElementById('e-estimated_students').value = s.estimated_students || '';
     document.getElementById('e-assigned_to').value        = s.assigned_to        || '';
+    document.getElementById('e-status').value             = s.status             || 'NEW_LEAD';
     document.getElementById('e-notes').value              = s.notes              || '';
 
     closeModal('schoolModal');
@@ -365,6 +469,7 @@ async function submitEditSchool() {
     level_offered:      document.getElementById('e-level_offered').value,
     estimated_students: document.getElementById('e-estimated_students').value || null,
     assigned_to:        document.getElementById('e-assigned_to').value.trim(),
+    status:             document.getElementById('e-status').value,
     notes:              document.getElementById('e-notes').value.trim(),
   };
 
@@ -383,7 +488,7 @@ async function submitEditSchool() {
       return;
     }
 
-    showToast('✅ School details updated!', 'success');
+    showToast('School details updated!', 'success');
     closeModal('editSchoolModal');
     loadSchools();
     loadDashboard();
@@ -412,12 +517,11 @@ async function addSchool() {
       const checkData = await checkRes.json();
 
       if (checkData.exists) {
-        const proceed = confirm(
-          `⚠️ Duplicate Email Detected!\n\n` +
-          `The email "${email}" is already registered under:\n` +
-          `"${checkData.school_name}"\n\n` +
-          `This might be a duplicate entry.\n` +
-          `Do you still want to add this school?`
+        const proceed = await showConfirmModal(
+          '<i data-lucide="alert-triangle" style="width:15px;height:15px;display:inline-block;vertical-align:middle;margin-right:5px;color:#d97706;"></i> Duplicate Email Detected',
+          `The email <strong>${email}</strong> is already registered under <strong>${checkData.school_name}</strong>.<br><br>This might be a duplicate entry. Do you still want to add this school?`,
+          'Add Anyway',
+          'btn-navy'
         );
         if (!proceed) return;
       }
@@ -456,7 +560,7 @@ async function addSchool() {
       return;
     }
 
-    showToast('✅ School lead saved!', 'success');
+    showToast('School lead saved!', 'success');
     clearForm();
     showTab('schools');
 
@@ -501,8 +605,8 @@ async function loadTodaysMeetings() {
           cursor:pointer; transition:background 0.15s;"
         onmouseover="this.style.background='#d4d6eb'"
         onmouseout="this.style.background='#e8e9f5'">
-        <div style="font-size:13px; font-weight:700; color:#1B1F6B;">
-          📅 You have ${meetings.length} meeting${meetings.length > 1 ? 's' : ''} today
+        <div style="font-size:13px; font-weight:700; color:#1B1F6B; display:flex; align-items:center; gap:6px;">
+          ${licon('calendar', 15)} You have ${meetings.length} meeting${meetings.length > 1 ? 's' : ''} today
         </div>
         <div style="font-size:12px; color:#1B1F6B; opacity:0.7;">
           View Calendar →
@@ -548,7 +652,7 @@ async function confirmDeleteSchool() {
       return;
     }
 
-    showToast('🗑 Record permanently deleted', 'success');
+    showToast('Record permanently deleted', 'success');
     closeModal('deleteSchoolModal');
     loadSchools();
     loadDashboard();

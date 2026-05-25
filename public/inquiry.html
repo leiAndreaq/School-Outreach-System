@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>PATHFinder — School Partnership Inquiry</title>
+<title>PathFinder - Accoutre Ai</title>
+  <link rel="icon" type="image/x-icon" href="/images/paths.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/css/inquiry.css"/>
 </head>
@@ -104,236 +106,242 @@
       <div class="logo-divider"></div>
       <img src="/images/accoutre.png" alt="Accoutre AI" class="logo-img"/>
     </div>
+    <div class="form-topbar-center">
+      <div class="form-topbar-title">Partnership Inquiry Form</div>
+      <div class="form-topbar-sub">All fields marked with <span class="req-star">*</span> are required</div>
+    </div>
     <div class="form-topbar-right">
-      School Partnership Inquiry &nbsp;·&nbsp; <span>No Commitment Required</span>
+      <button onclick="goBackToLanding()" aria-label="Close form" class="form-close-btn">✕</button>
     </div>
   </header>
+
+  <!-- Progress Bar (sticky, floats below topbar while scrolling) -->
+  <div class="progress-wrap">
+    <div class="progress-inner">
+      <div class="progress-meta">
+        <span>Form Progress</span>
+        <span id="progressPct">0% Complete</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="form-wrap">
     <div class="form-card">
 
-      <!-- Card Header -->
-      <div class="form-card-head">
-        <center>
-          <h1>Partnership Inquiry Form</h1>
-          <p>All fields marked with <span class="req-star">*</span> are required</p>
-        </center>
-        <button class="back-btn" onclick="goBackToLanding()" aria-label="Back to home">
-          ← Back
-        </button>
-      </div>
-
-      <!-- Progress Bar -->
-      <div class="progress-wrap">
-        <div class="progress-meta">
-          <span>Form Progress</span>
-          <span id="progressPct">0% Complete</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-bar" id="progressBar"></div>
-        </div>
-      </div>
-
       <!-- Form Body -->
       <form class="form-body" id="inquiryForm" onsubmit="submitForm(event)" novalidate>
 
-        <!-- ── SECTION 1: School Info ── -->
-        <div class="section-title">🏫 School Information</div>
-        <div class="form-grid g1">
-          <div class="field">
-            <label for="school_name">School Name <span class="req-star">*</span></label>
-            <input type="text" id="school_name" name="school_name"
-              placeholder="e.g. St. John's Academy" required autocomplete="organization"/>
-          </div>
-        </div>
-        <div class="form-grid g2">
-          <div class="field">
-            <label for="school_type">School Type</label>
-            <select id="school_type" name="school_type">
-              <option value="">-- Select --</option>
-              <option>Private</option><option>Semi-Private</option>
-              <option>Non-Sectarian</option><option>Catholic</option>
-              <option>Christian</option><option>Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="level_offered">Level Offered</label>
-            <select id="level_offered" name="level_offered">
-              <option value="">-- Select --</option>
-              <option>Preschool</option><option>Elementary</option>
-              <option>Junior High School</option><option>Senior High School</option>
-              <option>K-12</option><option>College</option><option>K-12 + College</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="estimated_students">Estimated No. of Students</label>
-            <input type="number" id="estimated_students" name="estimated_students"
-              placeholder="e.g. 500" min="1"/>
-          </div>
-          <div class="field">
-            <label for="city_province">City / Province</label>
-            <input type="text" id="city_province" name="city_province"
-              placeholder="e.g. Quezon City"/>
-          </div>
-          <div class="field" style="grid-column:1/-1">
-            <label for="region">Region</label>
-            <select id="region" name="region">
-              <option value="">-- Select Region --</option>
-              <option>NCR - National Capital Region</option>
-              <option>Region I - Ilocos Region</option>
-              <option>Region II - Cagayan Valley</option>
-              <option>Region III - Central Luzon</option>
-              <option>Region IV-A - CALABARZON</option>
-              <option>Region IV-B - MIMAROPA</option>
-              <option>Region V - Bicol Region</option>
-              <option>Region VI - Western Visayas</option>
-              <option>Region VII - Central Visayas</option>
-              <option>Region VIII - Eastern Visayas</option>
-              <option>Region IX - Zamboanga Peninsula</option>
-              <option>Region X - Northern Mindanao</option>
-              <option>Region XI - Davao Region</option>
-              <option>Region XII - SOCCSKSARGEN</option>
-              <option>Region XIII - Caraga</option>
-              <option>CAR - Cordillera Administrative Region</option>
-              <option>BARMM - Bangsamoro</option>
-            </select>
-          </div>
-        </div>
-
-        <hr class="divider"/>
-
-        <!-- ── SECTION 2: Contact ── -->
-        <div class="section-title">👤 Contact Person</div>
-        <div class="form-grid g2">
-          <div class="field">
-            <label for="contact_person">Full Name <span class="req-star">*</span></label>
-            <input type="text" id="contact_person" name="contact_person"
-              placeholder="e.g. Mrs. Maria Santos" required autocomplete="name"/>
-          </div>
-          <div class="field">
-            <label for="position">Position / Role</label>
-            <input type="text" id="position" name="position"
-              placeholder="e.g. School Principal"/>
-          </div>
-          <div class="field">
-            <label for="email">Email Address <span class="req-star">*</span></label>
-            <input type="email" id="email" name="email"
-              placeholder="e.g. principal@school.edu.ph" required autocomplete="email"/>
-          </div>
-          <div class="field">
-            <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" name="phone"
-              placeholder="e.g. 09XX-XXX-XXXX" autocomplete="tel"/>
-          </div>
-        </div>
-
-        <hr class="divider"/>
-
-        <!-- ── SECTION 3: Schedule ── -->
-        <div class="section-title">📅 Schedule Preference</div>
-        <p class="section-note">Select your preferred meeting mode and schedule. Our team will confirm the final details. This is not a confirmed booking.</p>
-
-        <!-- Meeting Mode -->
-        <div class="field" style="margin-bottom:16px">
-          <label style="display:block;margin-bottom:8px">
-            Preferred Meeting Mode <span class="req-star">*</span>
-          </label>
-          <p class="mode-note">Online meetings are available nationwide. Onsite visits are within Metro Manila only.</p>
-
-          <!-- Hidden radios for form serialisation -->
-          <input type="radio" name="preferred_mode" value="ONLINE" style="display:none" id="radio_online"/>
-          <input type="radio" name="preferred_mode" value="ONSITE" style="display:none" id="radio_onsite"/>
-
-          <div class="mode-grid">
-            <div class="mode-card" id="mode-online" onclick="selectMode('online')" role="button" tabindex="0" aria-pressed="false">
-              <div class="mode-card-icon" aria-hidden="true">💻</div>
-              <div class="mode-card-title">Online</div>
-              <div class="mode-card-sub">Google Meet / Zoom</div>
-              <div class="mode-card-avail avail-green">✓ Available Nationwide</div>
-            </div>
-            <div class="mode-card" id="mode-onsite" onclick="selectMode('onsite')" role="button" tabindex="0" aria-pressed="false">
-              <div class="mode-card-icon" aria-hidden="true">🏫</div>
-              <div class="mode-card-title">Onsite</div>
-              <div class="mode-card-sub">At your school</div>
-              <div class="mode-card-avail avail-amber">⚠ Metro Manila Only</div>
-            </div>
-          </div>
-          <div class="onsite-warn" id="onsiteWarn" role="alert">
-            ⚠️ Onsite visits are only available within Metro Manila. If your school is outside Metro Manila, please select Online instead or we will refer you to our regional partner.
-          </div>
-        </div>
-
-        <!-- Calendar (shown after mode selected) -->
-        <div class="cal-section" id="calSection">
-          <div class="sel-summary" id="selSummary"></div>
-          <div class="cal-card">
-            <div class="cal-head">
-              <button type="button" class="cal-nav" onclick="calPrev()" aria-label="Previous month">← Prev</button>
-              <div class="cal-head-title" id="calTitle" aria-live="polite"></div>
-              <button type="button" class="cal-nav" onclick="calNext()" aria-label="Next month">Next →</button>
-            </div>
-            <div class="cal-days" aria-hidden="true">
-              <div class="cal-day-label">SUN</div><div class="cal-day-label">MON</div>
-              <div class="cal-day-label">TUE</div><div class="cal-day-label">WED</div>
-              <div class="cal-day-label">THU</div><div class="cal-day-label">FRI</div>
-              <div class="cal-day-label">SAT</div>
-            </div>
-            <div class="cal-grid" id="calGrid" role="grid" aria-label="Select a date"></div>
-            <div class="cal-legend" aria-hidden="true">
-              <div class="leg-item"><div class="leg-dot" style="background:#bbf7d0;border:1px solid #86efac"></div>Available</div>
-              <div class="leg-item"><div class="leg-dot" style="background:#fde68a;border:1px solid #fcd34d"></div>Limited</div>
-              <div class="leg-item"><div class="leg-dot" style="background:#fecaca;border:1px solid #fca5a5"></div>Fully Booked</div>
-              <div class="leg-item"><div class="leg-dot" style="background:#1B1F6B"></div>Selected</div>
-            </div>
-          </div>
-
-          <!-- Time Slots -->
-          <div class="time-section" id="timeSection">
+        <!-- ── STEP 1: School Information ── -->
+        <div id="step-1" class="form-step">
+          <div class="section-title">🏫 School Information</div>
+          <div class="form-grid g1">
             <div class="field">
-              <label>Preferred Time <span class="req-star">*</span></label>
-              <div class="time-grid" id="timeGrid" role="group" aria-label="Select a time slot"></div>
+              <label for="school_name">School Name <span class="req-star">*</span></label>
+              <input type="text" id="school_name" name="school_name"
+                placeholder="e.g. St. John's Academy" required autocomplete="organization"/>
+            </div>
+          </div>
+          <div class="form-grid g2">
+            <div class="field">
+              <label for="school_type">School Type <span class="req-star">*</span></label>
+              <select id="school_type" name="school_type" required>
+                <option value="">-- Select --</option>
+                <option>Private</option><option>Semi-Private</option>
+                <option>Public</option><option>Catholic</option>
+                <option>Christian</option><option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="level_offered">Level Offered <span class="req-star">*</span></label>
+              <select id="level_offered" name="level_offered" required>
+                <option value="">-- Select --</option>
+                <option>Preschool</option><option>Elementary</option>
+                <option>Junior High School</option><option>Senior High School</option>
+                <option>K-12</option><option>College</option><option>K-12 + College</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="estimated_students">Estimated No. of Students <span class="req-star">*</span></label>
+              <input type="number" id="estimated_students" name="estimated_students"
+                placeholder="e.g. 500" min="1" required/>
+            </div>
+            <div class="field">
+              <label for="region">Region <span class="req-star">*</span></label>
+              <select id="region" name="region" required onchange="onRegionChange()">
+                <option value="">-- Select Region --</option>
+              </select>
+            </div>
+            <div class="field" id="provinceField" style="display:none; grid-column:1/-1">
+              <label for="province">Province <span class="req-star">*</span></label>
+              <select id="province" onchange="onProvinceChange()">
+                <option value="">-- Select Province --</option>
+              </select>
+            </div>
+            <div class="field" id="cityField" style="display:none; grid-column:1/-1">
+              <label for="city_municipality">City / Municipality <span class="req-star">*</span></label>
+              <select id="city_municipality" onchange="onCityChange()">
+                <option value="">-- Select City / Municipality --</option>
+              </select>
+            </div>
+            <input type="hidden" id="city_province" name="city_province"/>
+            <div id="regionalWarning" style="display:none; grid-column:1/-1; padding:0;">
+              <div style="padding:12px 14px; background:#fef3c7; border:1.5px solid #f59e0b; border-radius:10px; font-size:13px; color:#92400e; line-height:1.6;">
+                🌏 <strong>Outside Metro Manila:</strong> Your school will be assisted by our <strong>regional partner</strong> who will handle the presentation and partnership in your area.
+              </div>
+            </div>
+          </div>
+          <div class="step-nav">
+            <button type="button" onclick="nextStep()" class="btn-submit">Next →</button>
+          </div>
+        </div>
+
+        <!-- ── STEP 2: Contact Person ── -->
+        <div id="step-2" class="form-step" style="display:none">
+          <div class="section-title">👤 Contact Person</div>
+          <div class="form-grid g2">
+            <div class="field">
+              <label for="contact_person">Full Name <span class="req-star">*</span></label>
+              <input type="text" id="contact_person" name="contact_person"
+                placeholder="e.g. Mrs. Maria Santos" required autocomplete="name"/>
+            </div>
+            <div class="field">
+              <label for="position">Position / Role <span class="req-star">*</span></label>
+              <input type="text" id="position" name="position"
+                placeholder="e.g. School Principal" required/>
+            </div>
+            <div class="field">
+              <label for="email">Email Address <span class="req-star">*</span></label>
+              <input type="email" id="email" name="email"
+                placeholder="e.g. principal@school.edu.ph" required autocomplete="email"/>
+            </div>
+            <div class="field">
+              <label for="phone">Phone Number <span class="req-star">*</span></label>
+              <input type="tel" id="phone" name="phone"
+                placeholder="e.g. 09XX-XXX-XXXX" autocomplete="tel" required/>
+            </div>
+          </div>
+          <div class="step-nav">
+            <button type="button" onclick="prevStep()" class="btn-step-back">← Back</button>
+            <button type="button" onclick="nextStep()" class="btn-submit">Next →</button>
+          </div>
+        </div>
+
+        <!-- ── STEP 3: Schedule Preference ── -->
+
+        <div id="step-3" class="form-step" style="display:none">
+          <div class="section-title">📅 Schedule Preference</div>
+          <p class="section-note">Select your preferred meeting mode and schedule. Our team will confirm the final details. This is not a confirmed booking.</p>
+
+          <div class="field" style="margin-bottom:16px">
+            <label style="display:block;margin-bottom:8px">
+              Preferred Meeting Mode <span class="req-star">*</span>
+            </label>
+            <p class="mode-note">Online meetings are available nationwide. Onsite visits are within Metro Manila only.</p>
+
+            <input type="radio" name="preferred_mode" value="ONLINE" style="display:none" id="radio_online"/>
+            <input type="radio" name="preferred_mode" value="ONSITE" style="display:none" id="radio_onsite"/>
+
+            <div class="mode-grid">
+              <div class="mode-card" id="mode-online" onclick="selectMode('online')" role="button" tabindex="0" aria-pressed="false">
+                <div class="mode-card-icon" aria-hidden="true">💻</div>
+                <div class="mode-card-title">Online</div>
+                <div class="mode-card-sub">Google Meet / Zoom</div>
+                <div class="mode-card-avail avail-green">✓ Available Nationwide</div>
+              </div>
+              <div class="mode-card" id="mode-onsite" onclick="selectMode('onsite')" role="button" tabindex="0" aria-pressed="false">
+                <div class="mode-card-icon" aria-hidden="true">🏫</div>
+                <div class="mode-card-title">Onsite</div>
+                <div class="mode-card-sub">At your school</div>
+                <div class="mode-card-avail avail-amber">⚠ Metro Manila Only</div>
+              </div>
+            </div>
+            <div class="onsite-warn" id="onsiteWarn" role="alert">
+              ⚠️ Onsite visits are only available within Metro Manila. If your school is outside Metro Manila, please select Online instead or we will refer you to our regional partner.
+            </div>
+          </div>
+
+          <div class="cal-section" id="calSection">
+            <div class="sel-summary" id="selSummary"></div>
+            <div class="cal-card">
+              <div class="cal-head">
+                <button type="button" class="cal-nav" onclick="calPrev()" aria-label="Previous month">← Prev</button>
+                <div class="cal-head-title" id="calTitle" aria-live="polite"></div>
+                <button type="button" class="cal-nav" onclick="calNext()" aria-label="Next month">Next →</button>
+              </div>
+              <div class="cal-days" aria-hidden="true">
+                <div class="cal-day-label">SUN</div><div class="cal-day-label">MON</div>
+                <div class="cal-day-label">TUE</div><div class="cal-day-label">WED</div>
+                <div class="cal-day-label">THU</div><div class="cal-day-label">FRI</div>
+                <div class="cal-day-label">SAT</div>
+              </div>
+              <div class="cal-grid" id="calGrid" role="grid" aria-label="Select a date"></div>
+              <div class="cal-legend" aria-hidden="true">
+                <div class="leg-item"><div class="leg-dot" style="background:#bbf7d0;border:1px solid #86efac"></div>Available</div>
+                <div class="leg-item"><div class="leg-dot" style="background:#fde68a;border:1px solid #fcd34d"></div>Limited</div>
+                <div class="leg-item"><div class="leg-dot" style="background:#fecaca;border:1px solid #fca5a5"></div>Fully Booked</div>
+                <div class="leg-item"><div class="leg-dot" style="background:#1B1F6B"></div>Selected</div>
+              </div>
+            </div>
+            <div class="time-section" id="timeSection">
+              <div class="field">
+                <label>Preferred Time <span class="req-star">*</span></label>
+                <div class="time-grid" id="timeGrid" role="group" aria-label="Select a time slot"></div>
+              </div>
+            </div>
+          </div>
+
+          <input type="hidden" id="preferred_date" name="preferred_date" value=""/>
+          <input type="hidden" id="preferred_time_hidden" name="preferred_time" value=""/>
+
+          <div class="step-nav">
+            <button type="button" onclick="prevStep()" class="btn-step-back">← Back</button>
+            <button type="button" onclick="nextStep()" class="btn-submit">Next →</button>
+          </div>
+        </div>
+
+        <!-- ── STEP 4: Additional Information ── -->
+        <div id="step-4" class="form-step" style="display:none">
+          <div class="section-title">💬 Additional Information</div>
+          <p class="section-note" style="margin-bottom:20px;">This section is completely optional. You may submit your inquiry without filling anything here.</p>
+          <div class="form-grid g1" style="margin-bottom:24px">
+            <div class="field">
+              <label for="heard_from">How did you hear about us? <span class="opt-label">(optional)</span></label>
+              <select id="heard_from" name="heard_from">
+                <option value="">-- Select --</option>
+                <option>Facebook</option><option>Instagram</option><option>TikTok</option>
+                <option>Referral from another school</option><option>Google Search</option>
+                <option>Email</option><option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="message">Message or Questions <span class="opt-label">(optional)</span></label>
+              <textarea id="message" name="message"
+                placeholder="Feel free to share anything you'd like us to know..."></textarea>
+            </div>
+          </div>
+
+          <div class="privacy-note">
+            🔒 <strong>Privacy Notice:</strong> The information you provide will only be used to contact you regarding the Accoutre AI School Management System presentation. We will never sell or share your data with third parties. You may opt out at any time by replying "unsubscribe" to any of our emails.
+          </div>
+
+          <!-- Honeypot -->
+          <div style="display:none" aria-hidden="true">
+            <input type="text" id="hp_website" name="website_url" tabindex="-1" autocomplete="off" value=""/>
+          </div>
+
+          <div class="step-nav">
+            <button type="button" onclick="prevStep()" class="btn-step-back">← Back</button>
+            <div style="display:flex; gap:10px;">
+              <button type="button" onclick="clearAdditional()" class="btn-step-clear">Clear</button>
+              <button type="submit" class="btn-submit" id="submitBtn">
+                <span id="submitText">Submit Inquiry ✉️</span>
+              </button>
             </div>
           </div>
         </div>
-
-        <!-- Hidden date/time values submitted with form -->
-        <input type="hidden" id="preferred_date" name="preferred_date" value=""/>
-        <input type="hidden" id="preferred_time_hidden" name="preferred_time" value=""/>
-
-        <hr class="divider"/>
-
-        <!-- ── SECTION 4: Additional ── -->
-        <div class="section-title">💬 Additional Information</div>
-        <div class="form-grid g1" style="margin-bottom:24px">
-          <div class="field">
-            <label for="heard_from">How did you hear about us? <span class="opt-label">(optional)</span></label>
-            <select id="heard_from" name="heard_from">
-              <option value="">-- Select --</option>
-              <option>Facebook</option><option>Instagram</option><option>LinkedIn</option>
-              <option>Referral from another school</option><option>Google Search</option>
-              <option>Email</option><option>Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="message">Message or Questions <span class="opt-label">(optional)</span></label>
-            <textarea id="message" name="message"
-              placeholder="Feel free to share anything you'd like us to know..."></textarea>
-          </div>
-        </div>
-
-        <!-- Honeypot (hidden from humans, catches bots) -->
-        <div style="display:none" aria-hidden="true">
-          <input type="text" id="hp_website" name="website_url" tabindex="-1" autocomplete="off" value=""/>
-        </div>
-
-        <!-- Privacy reminder -->
-        <div class="privacy-note">
-          🔒 <strong>Privacy Notice:</strong> The information you provide will only be used to contact you regarding the Accoutre AI School Management System presentation. We will never sell or share your data with third parties. You may opt out at any time by replying "unsubscribe" to any of our emails.
-        </div>
-
-        <button type="submit" class="btn-submit" id="submitBtn">
-          <span id="submitText">Submit Inquiry ✉️</span>
-        </button>
 
       </form><!-- /inquiryForm -->
     </div><!-- /form-card -->
@@ -359,38 +367,38 @@
       reach out within <strong>24 hours</strong> to confirm your presentation schedule.
     </p>
 
-    <div class="success-summary-card" id="successSummary">
-      <!-- Populated by JS after submit -->
-    </div>
+    <div style="display:flex; gap:16px; align-items:stretch; text-align:left;">
 
-    <div class="success-steps-card">
-      <div class="success-card-title">What Happens Next</div>
-      <div class="step-row">
-        <div class="step-num">1</div>
-        <div class="step-text">Our team reviews your inquiry and verifies your school details</div>
+      <div class="success-summary-card" id="successSummary" style="flex:1; margin-bottom:0;">
+        <!-- Populated by JS after submit -->
       </div>
-      <div class="step-row">
-        <div class="step-num">2</div>
-        <div class="step-text">We send you a confirmation email with the final meeting details</div>
+
+      <div class="success-steps-card" style="flex:1; margin-bottom:0;">
+        <div class="success-card-title">What Happens Next</div>
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-text">Our team reviews your inquiry and verifies your school details</div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-text">We send you a confirmation email with the final meeting details</div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-text">We present the Accoutre AI School Management System to your team</div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-text">You decide if it's a good fit — absolutely no pressure!</div>
+        </div>
       </div>
-      <div class="step-row">
-        <div class="step-num">3</div>
-        <div class="step-text">We present the Accoutre AI School Management System to your team</div>
-      </div>
-      <div class="step-row">
-        <div class="step-num">4</div>
-        <div class="step-text">You decide if it's a good fit — absolutely no pressure!</div>
-      </div>
+
     </div>
 
     <p class="success-email-note">
       Questions? Email us at
       <a href="mailto:accoutre.ai.ph@gmail.com">accoutre.ai.ph@gmail.com</a>
     </p>
-
-    <button class="btn-another" onclick="resetAll()">
-      ↩ Submit Another Response
-    </button>
 
   </div>
 </div><!-- /successPage -->

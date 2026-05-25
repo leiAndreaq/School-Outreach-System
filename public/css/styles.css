@@ -9,6 +9,16 @@
   --red:  #D01B1B;
 }
 
+/* ── SIDEBAR GRADIENT ── */
+.sidebar-gradient {
+  background: linear-gradient(175deg,
+    #1B1F6B 0%,
+    #1e1f5e 65%,
+    #3d1818 88%,
+    #5c1c1c 100%
+  );
+}
+
 /* ── SIDEBAR NAV ITEMS ── */
 .nav-item {
   display: flex;
@@ -258,22 +268,29 @@ textarea.input-field { resize: vertical; }
 .toast {
   position: fixed;
   bottom: 28px;
-  right: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
   background: var(--navy);
   color: white;
-  padding: 12px 20px;
+  padding: 12px 24px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-  transform: translateY(80px);
   opacity: 0;
   transition: all 0.25s;
-  z-index: 999;
+  z-index: 9999;
+  white-space: nowrap;
 }
-.toast.show   { transform: translateY(0); opacity: 1; }
+.toast.show    { transform: translateX(-50%) translateY(0); opacity: 1; }
 .toast.success { background: #16a34a; }
 .toast.error   { background: var(--red); }
+
+/* ── INQUIRY FILTER ACTIVE STATE ── */
+.inq-filter-active {
+  outline: 2.5px solid currentColor;
+  outline-offset: 2px;
+}
 
 /* ── MODAL ── */
 .modal-overlay {

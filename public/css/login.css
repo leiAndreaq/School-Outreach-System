@@ -257,17 +257,10 @@ body {
   justify-content: center;
   align-items: center;
   margin-bottom: 15px;
-
-  background: #e7e7e7;
-  padding: 5px 10px;
-  border-radius: 16px;
-
-  /* optional premium touch */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
 .logo {
-  width: var(--logo-size, 100px);
+  width: 100%;
   height: auto;
   object-fit: contain;
 
@@ -545,17 +538,21 @@ body {
 
 .eye-btn {
   position: absolute;
-
   right: 14px;
   top: 50%;
-
   transform: translateY(-50%);
-
   border: none;
   background: none;
-
   cursor: pointer;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
 }
+.eye-btn:hover { color: #1B1F6B; }
 
 .submit-btn {
   width: 100%;
