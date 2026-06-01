@@ -44,6 +44,9 @@ async function chat(messages) {
     messages:   messages
   });
 
+  if (!response.content || response.content.length === 0 || !response.content[0].text) {
+    throw new Error("AI returned an empty response. Please try again.");
+  }
   return response.content[0].text;
 }
 

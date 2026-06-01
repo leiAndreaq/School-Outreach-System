@@ -31,8 +31,7 @@ We also offer AI-assisted support for teachers, including lesson preparation, as
 
 We would like to invite your school to a short 20 to 30-minute online or onsite presentation so we can show how the system may support your school operations and academic delivery.
 
-You may choose a convenient schedule here:
-${process.env.CALENDLY_LINK || 'localhost:3000/inquiry.html'}
+Please reply to this email with your preferred date and time, and we will arrange a schedule that works best for you.
 
 We currently have an introductory presentation and possible pilot/promo arrangement for qualified schools.
 
@@ -59,8 +58,7 @@ The system is designed to help private schools manage enrollment, attendance, gr
 
 We would be glad to schedule a short presentation at your most convenient time.
 
-Schedule link:
-${process.env.CALENDLY_LINK || 'localhost:3000/inquiry.html'}
+Simply reply to this email with your preferred date and time.
 
 Thank you and we hope to have the opportunity to present to your school.
 
@@ -82,8 +80,7 @@ Thank you for your interest in ThinkTANQ's School Management System and Learning
 
 May we propose a 20 to 30-minute presentation to show the features of the system and how it can help your school administration, teachers, students, and parents?
 
-You may select your preferred schedule here:
-${process.env.CALENDLY_LINK || 'localhost:3000/inquiry.html'}
+Please reply to this email with your preferred date and time and we will confirm the schedule promptly.
 
 We may conduct the presentation online or onsite, depending on your preference.
 
@@ -226,11 +223,41 @@ ${companyBlock()}`
   };
 }
 
+function postMeetingFollowUpTemplate(meeting) {
+  const contact = meeting.contact_person || 'School Administrator';
+  const d = meeting.meeting_date
+    ? new Date(meeting.meeting_date + 'T00:00:00').toLocaleDateString('en-PH', {
+        month: 'long', day: 'numeric', year: 'numeric'
+      })
+    : 'recently';
+  const modeStr = meeting.meeting_mode === 'ONSITE' ? 'onsite visit' : 'online presentation';
+
+  return {
+    subject: `Thank You — Follow-up After Our Presentation with ${meeting.school_name}`,
+    body: `Dear ${contact},
+
+Good day.
+
+Thank you for taking the time to attend our ${modeStr} on ${d}. We truly appreciate the opportunity to present ThinkTANQ's School Management System and Learning Management System to ${meeting.school_name}.
+
+We hope the presentation gave you a clearer picture of how the platform can support your school's administration, teachers, students, and parents.
+
+If you have any questions or would like to see a more detailed walkthrough of specific features, we would be happy to arrange a follow-up session at your most convenient time.
+
+We look forward to hearing from you and hope to have the privilege of supporting your school.
+
+Respectfully,
+
+${companyBlock()}`
+  };
+}
+
 module.exports = {
   proposalTemplate,
   followUpTemplate,
   meetingInviteTemplate,
   meetingDayReminderTemplate,
   meetingHourReminderTemplate,
+  postMeetingFollowUpTemplate,
   htmlWrap
 };

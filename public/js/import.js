@@ -158,8 +158,7 @@ ThinkTANQ is built to help schools like [School Name] simplify day-to-day admini
 
 We would like to invite [School Name] to a free 20–30 minute online or onsite presentation — at absolutely no commitment — so we can demonstrate exactly how ThinkTANQ can benefit your institution.
 
-To schedule your preferred time, you may visit:
-${window.__CALENDLY__ || 'localhost:3000/inquiry.html'}
+Please reply to this email with your preferred date and time and we will arrange a convenient schedule.
 
 We currently offer an introductory arrangement for qualified partner schools and would be honoured to discuss how we can support your school's growth and future-readiness.
 
@@ -229,6 +228,11 @@ async function sendBulkPromoEmails() {
   }
 }
 
+// ── IMPORT HISTORY PAGINATION STATE ──
+const IMPORT_HISTORY_PAGE_SIZE = 5;
+let importHistoryPage    = 1;
+let importHistoryAllLogs = [];
+
 // ── IMPORT HISTORY ──
 async function loadImportHistory() {
   const container = document.getElementById('importHistoryList');
@@ -236,33 +240,99 @@ async function loadImportHistory() {
 
   try {
     const res  = await fetch('/api/import-logs');
-    const logs = await res.json();
-
-    if (!logs.length) {
-      container.innerHTML = `
-        <div style="color:#9ca3af; font-size:13px; text-align:center; padding:32px 0;">No imports yet</div>`;
-      return;
-    }
-
-    container.innerHTML = logs.map(log => `
-      <div style="display:flex; align-items:center; justify-content:space-between;
-        padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:13px;">
-        <div>
-          <div style="font-weight:600; color:#1B1F6B; margin-bottom:2px;">
-            ${licon('file', 14)} ${log.filename || 'CSV File'}
-          </div>
-          <div style="color:#6b7280; font-size:12px;">${fmtDate(log.imported_at)}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="color:#166534; font-weight:600;">+${log.imported_count} added</div>
-          ${log.error_count > 0 ? `<div style="color:#991b1b; font-size:12px;">${log.error_count} skipped</div>` : ''}
-        </div>
-      </div>
-    `).join('');
-    lucide.createIcons();
-
+    importHistoryAllLogs = await res.json();
+    importHistoryPage    = 1;
+    renderImportHistoryPage();
   } catch (e) {
     container.innerHTML = `
       <div style="color:#9ca3af; font-size:13px; text-align:center; padding:32px 0;">Could not load history</div>`;
   }
+}
+
+function renderImportHistoryPage() {
+  const container = document.getElementById('importHistoryList');
+  const pagEl     = document.getElementById('importHistoryPagination');
+  const logs      = importHistoryAllLogs;
+
+  if (!logs.length) {
+    container.innerHTML = `
+      <div style="color:#9ca3af; font-size:13px; text-align:center; padding:32px 0;">No imports yet</div>`;
+    if (pagEl) pagEl.style.display = 'none';
+    return;
+  }
+
+  const total      = logs.length;
+  const totalPages = Math.ceil(total / IMPORT_HISTORY_PAGE_SIZE);
+  if (importHistoryPage > totalPages) importHistoryPage = totalPages;
+
+  const start = (importHistoryPage - 1) * IMPORT_HISTORY_PAGE_SIZE;
+  const page  = logs.slice(start, start + IMPORT_HISTORY_PAGE_SIZE);
+
+  container.innerHTML = page.map(log => `
+    <div style="display:flex; align-items:center; justify-content:space-between;
+      padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:13px;">
+      <div>
+        <div style="font-weight:600; color:#1B1F6B; margin-bottom:2px;">
+          ${licon('file', 14)} ${log.filename || 'CSV File'}
+        </div>
+        <div style="color:#6b7280; font-size:12px;">${fmtDate(log.imported_at)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="color:#166534; font-weight:600;">+${log.imported_count} added</div>
+        ${log.error_count > 0 ? `<div style="color:#991b1b; font-size:12px;">${log.error_count} skipped</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+
+  if (!pagEl) return;
+
+  if (totalPages <= 1) {
+    pagEl.style.display = 'none';
+    return;
+  }
+
+  pagEl.style.display = 'flex';
+
+  const btnStyle = (active) =>
+    `style="min-width:28px; height:28px; padding:0 7px; border-radius:6px;
+      border:1px solid ${active ? '#1B1F6B' : '#e5e7eb'};
+      background:${active ? '#1B1F6B' : '#fff'};
+      color:${active ? '#fff' : '#374151'};
+      font-size:12px; font-weight:600; cursor:${active ? 'default' : 'pointer'};"`;
+
+  const navBtn = (label, onclick, disabled) =>
+    `<button onclick="${onclick}" ${disabled ? 'disabled' : ''}
+      style="min-width:28px; height:28px; padding:0 7px; border-radius:6px;
+        border:1px solid #e5e7eb; background:#fff;
+        color:${disabled ? '#d1d5db' : '#374151'};
+        font-size:12px; font-weight:700; cursor:${disabled ? 'default' : 'pointer'};">${label}</button>`;
+
+  const end = Math.min(importHistoryPage * IMPORT_HISTORY_PAGE_SIZE, total);
+
+  const pageButtons = [];
+  for (let i = 1; i <= totalPages; i++) {
+    const isActive = i === importHistoryPage;
+    pageButtons.push(
+      `<button onclick="goToImportHistoryPage(${i})" ${isActive ? 'disabled' : ''} ${btnStyle(isActive)}>${i}</button>`
+    );
+  }
+
+  pagEl.innerHTML = `
+    <span>${start + 1}–${end} of ${total} imports</span>
+    <div style="display:flex; gap:4px; align-items:center;">
+      ${navBtn('«', 'goToImportHistoryPage(1)', importHistoryPage === 1)}
+      ${navBtn('‹', `goToImportHistoryPage(${importHistoryPage - 1})`, importHistoryPage === 1)}
+      ${pageButtons.join('')}
+      ${navBtn('›', `goToImportHistoryPage(${importHistoryPage + 1})`, importHistoryPage === totalPages)}
+      ${navBtn('»', `goToImportHistoryPage(${totalPages})`, importHistoryPage === totalPages)}
+    </div>
+  `;
+}
+
+function goToImportHistoryPage(page) {
+  const totalPages = Math.ceil(importHistoryAllLogs.length / IMPORT_HISTORY_PAGE_SIZE);
+  if (page < 1 || page > totalPages) return;
+  importHistoryPage = page;
+  renderImportHistoryPage();
 }

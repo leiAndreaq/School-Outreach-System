@@ -25,6 +25,9 @@ function filterInquiries(status) {
   currentFilter = status;
   inquiriesCurrentPage = 1;
 
+  const searchEl = document.getElementById('inquirySearchInput');
+  if (searchEl) searchEl.value = '';
+
   ['PENDING','APPROVED','DISMISSED','ALL'].forEach(s => {
     const btn = document.getElementById('filter-' + s);
     if (!btn) return;
@@ -38,14 +41,31 @@ function filterInquiries(status) {
   renderInquiries(status);
 }
 
+// ── SEARCH INQUIRIES ──
+function searchInquiries() {
+  inquiriesCurrentPage = 1;
+  renderInquiries(currentFilter);
+}
+
 // ── RENDER INQUIRIES TABLE ──
 function renderInquiries(filter) {
   const tbody = document.getElementById('inquiriesTable');
   const pagEl = document.getElementById('inquiriesPagination');
 
-  const filtered = filter === 'ALL'
+  const query = (document.getElementById('inquirySearchInput')?.value || '').toLowerCase().trim();
+
+  const byStatus = filter === 'ALL'
     ? allInquiries
     : allInquiries.filter(i => i.status === filter);
+
+  const filtered = query
+    ? byStatus.filter(i =>
+        (i.school_name     || '').toLowerCase().includes(query) ||
+        (i.contact_person  || '').toLowerCase().includes(query) ||
+        (i.email           || '').toLowerCase().includes(query) ||
+        (i.city_province   || '').toLowerCase().includes(query)
+      )
+    : byStatus;
 
   inquiriesFilteredList = filtered;
 
@@ -233,8 +253,8 @@ async function viewInquiry(id) {
             Message
           </div>
           <div style="background:#f9fafb; border-radius:8px; padding:14px;
-            font-size:13px; color:#4b5563; line-height:1.7;">
-            ${i.message}
+            font-size:13px; color:#4b5563; line-height:1.7; white-space:pre-wrap;">
+            ${escapeHtml(i.message)}
           </div>
         </div>` : ''}
 
@@ -256,7 +276,7 @@ async function viewInquiry(id) {
     if (i.status === 'PENDING') {
       footer.innerHTML = `
         <button onclick="closeModal('inquiryModal')" class="btn-ghost">Close</button>
-        <button onclick="deleteInquiry(${i.id}, '${i.contact_person}')"
+        <button onclick="deleteInquiry(${i.id}, ${JSON.stringify(i.contact_person)})"
           class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto; display:inline-flex; align-items:center; gap:4px;">
           ${licon('trash-2')} Delete
         </button>
@@ -270,7 +290,7 @@ async function viewInquiry(id) {
     } else {
       footer.innerHTML = `
         <button onclick="closeModal('inquiryModal')" class="btn-ghost">Close</button>
-        <button onclick="deleteInquiry(${i.id}, '${i.contact_person}')"
+        <button onclick="deleteInquiry(${i.id}, ${JSON.stringify(i.contact_person)})"
           class="btn-ghost text-sm" style="color:#991b1b; margin-right:auto; display:inline-flex; align-items:center; gap:4px;">
           ${licon('trash-2')} Delete
         </button>
@@ -355,11 +375,21 @@ async function confirmDismiss() {
 
 function formatInquiryDate(dateStr) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-PH', {
+  const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-PH', {
     month: 'short',
     day:   'numeric',
     year:  'numeric'
   });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function inquiryStatusBadge(status) {

@@ -100,6 +100,7 @@ function showTab(name) {
   if (name === 'inquiries')  loadInquiries();
   if (name === 'import')     loadImportHistory();
   if (name === 'analytics')  loadAnalytics();
+  if (name === 'settings')   loadCompanyInfo();
 }
 
 // ── DASHBOARD DROPDOWN ──
@@ -237,11 +238,12 @@ function openStatusModal(id, currentStatus) {
 async function confirmStatusUpdate() {
   const status = document.getElementById('statusSelect').value;
   try {
-    await fetch('/api/schools/' + statusTargetId + '/status', {
+    const res = await fetch('/api/schools/' + statusTargetId + '/status', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
+    if (!res.ok) { showToast('Failed to update status', 'error'); return; }
     showToast('Status updated!', 'success');
     closeModal('statusModal');
     loadSchools();
@@ -270,6 +272,7 @@ window.addEventListener('load', async () => {
   }
 
   loadDashboard();
+  loadNotifications();
 
   // Auto refresh every 30 seconds
   setInterval(() => {
@@ -283,6 +286,7 @@ window.addEventListener('load', async () => {
     if (id === 'tab-calendar')   loadCalendar();
     if (id === 'tab-inquiries')  loadInquiries();
     checkPendingInquiries();
+    loadNotifications();
   }, 30000);
 
   // ── SESSION EXPIRY CHECK ──
@@ -305,6 +309,15 @@ window.addEventListener('load', async () => {
   // Re-validate immediately whenever the user returns to this tab
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') checkSession();
+  });
+
+  // Clear settings password error when user starts typing
+  ['currentPassword','newPassword','confirmPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => {
+      const errEl = document.getElementById('passwordChangeError');
+      if (errEl) errEl.style.display = 'none';
+    });
   });
 
 });
@@ -337,6 +350,198 @@ async function handleLogout() {
     console.error('Logout error');
   }
   window.location.href = '/login.html';
+}
+
+// ── SEARCH CLEAR BUTTON HELPERS ──
+function toggleClearBtn(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  const btn   = document.getElementById(btnId);
+  if (!input || !btn) return;
+  btn.style.display = input.value ? 'inline-flex' : 'none';
+  lucide.createIcons();
+}
+
+function clearSearchInput(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  const btn   = document.getElementById(btnId);
+  if (input) input.value = '';
+  if (btn)   btn.style.display = 'none';
+}
+
+// ── NOTIFICATIONS: PAST UNUPDATED MEETINGS ──
+let _notifPanelOpen = false;
+
+async function loadNotifications() {
+  try {
+    const res      = await fetch('/api/meetings/past-unupdated');
+    const meetings = await res.json();
+    const badge    = document.getElementById('notifBadge');
+    if (!badge) return;
+
+    if (meetings.length > 0) {
+      badge.textContent    = meetings.length > 9 ? '9+' : meetings.length;
+      badge.style.display  = 'flex';
+      badge.style.alignItems = 'center';
+      badge.style.justifyContent = 'center';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    renderNotifPanel(meetings);
+  } catch (e) {
+    // non-fatal
+  }
+}
+
+function renderNotifPanel(meetings) {
+  const content = document.getElementById('notifPanelContent');
+  if (!content) return;
+
+  if (!meetings.length) {
+    content.innerHTML = `
+      <div style="padding:24px 20px; text-align:center;">
+        <div style="width:44px;height:44px;background:#dcfce7;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+          <i data-lucide="check-circle" style="width:22px;height:22px;color:#16a34a;"></i>
+        </div>
+        <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:4px;">All caught up!</div>
+        <div style="font-size:12px;color:#9ca3af;">No past meetings need updating.</div>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  const rows = meetings.map(m => `
+    <div style="padding:11px 16px; border-bottom:1px solid #f3f4f6;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="min-width:0;">
+        <div style="font-size:13px; font-weight:600; color:#1B1F6B;
+          white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+          ${m.school_name}
+        </div>
+        <div style="font-size:11px; color:#9ca3af; margin-top:2px;">
+          ${m.meeting_date} &nbsp;·&nbsp; ${formatTime(m.meeting_time)}
+        </div>
+      </div>
+      <span style="flex-shrink:0; font-size:11px; background:#fef3c7; color:#92400e;
+        padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;">
+        ${m.status}
+      </span>
+    </div>
+  `).join('');
+
+  content.innerHTML = `
+    <div style="padding:14px 16px; border-bottom:1px solid #f0f0f8;
+      display:flex; align-items:center; gap:8px;">
+      <div style="width:30px;height:30px;background:#fee2e2;border-radius:8px;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i data-lucide="alert-circle" style="width:15px;height:15px;color:#ef4444;"></i>
+      </div>
+      <div>
+        <div style="font-size:13px; font-weight:700; color:#111827;">
+          ${meetings.length} past meeting${meetings.length > 1 ? 's' : ''} need updating
+        </div>
+        <div style="font-size:11px; color:#9ca3af;">These were auto-marked as Done overnight</div>
+      </div>
+    </div>
+    <div style="max-height:260px; overflow-y:auto;">
+      ${rows}
+    </div>
+    <div style="padding:12px 16px; border-top:1px solid #f0f0f8;">
+      <button onclick="markAllPastDone()"
+        style="width:100%; padding:9px 0; background:#1B1F6B; color:#fff; border:none;
+          border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
+          display:flex; align-items:center; justify-content:center; gap:6px;">
+        <i data-lucide="check-circle" style="width:14px;height:14px;"></i>
+        Mark All as Done
+      </button>
+    </div>`;
+  lucide.createIcons();
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  _notifPanelOpen = !_notifPanelOpen;
+  panel.style.display = _notifPanelOpen ? 'block' : 'none';
+}
+
+async function markAllPastDone() {
+  try {
+    const res  = await fetch('/api/meetings/mark-past-done', { method: 'POST' });
+    const data = await res.json();
+    if (data.error) { showToast('Error: ' + data.error, 'error'); return; }
+    showToast(data.updated + ' meeting(s) marked as Done', 'success');
+    _notifPanelOpen = false;
+    document.getElementById('notifPanel').style.display = 'none';
+    loadNotifications();
+    if (typeof loadCalendar === 'function') loadCalendar();
+    if (typeof loadDashboard === 'function') loadDashboard();
+  } catch (e) {
+    showToast('Failed to update meetings', 'error');
+  }
+}
+
+// Close notification panel when clicking outside
+document.addEventListener('click', (e) => {
+  const bell  = document.getElementById('notifBellBtn');
+  const panel = document.getElementById('notifPanel');
+  if (!bell || !panel || !_notifPanelOpen) return;
+  if (!bell.contains(e.target) && !panel.contains(e.target)) {
+    panel.style.display = 'none';
+    _notifPanelOpen = false;
+  }
+});
+
+// ── COMPANY INFO ──
+async function loadCompanyInfo() {
+  try {
+    const res  = await fetch('/api/settings/company');
+    const data = await res.json();
+    document.getElementById('settingCompanyName').value    = data.company_name    || '';
+    document.getElementById('settingCompanyEmail').value   = data.company_email   || '';
+    document.getElementById('settingCompanyPhone').value   = data.company_phone   || '';
+    document.getElementById('settingCompanyAddress').value = data.company_address || '';
+  } catch (e) {
+    // fields stay empty — non-fatal
+  }
+}
+
+async function saveCompanyInfo() {
+  const errorEl = document.getElementById('companyInfoError');
+  errorEl.style.display = 'none';
+
+  const payload = {
+    company_name:    document.getElementById('settingCompanyName').value.trim(),
+    company_email:   document.getElementById('settingCompanyEmail').value.trim(),
+    company_phone:   document.getElementById('settingCompanyPhone').value.trim(),
+    company_address: document.getElementById('settingCompanyAddress').value.trim(),
+  };
+
+  if (!payload.company_name) {
+    errorEl.textContent   = 'Company name is required.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res  = await fetch('/api/settings/company', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      errorEl.textContent   = data.error;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    showToast('Company info saved!', 'success');
+  } catch (e) {
+    showToast('Failed to save company info', 'error');
+  }
 }
 
 // ── CHANGE PASSWORD ──

@@ -97,7 +97,8 @@ const { chat: claudeChat, hasApiKey: hasClaudeKey } = require("./claude-chat");
 const { sendEmail, canSendEmail } = require("./mailer");
 const {
   meetingDayReminderTemplate,
-  meetingHourReminderTemplate
+  meetingHourReminderTemplate,
+  postMeetingFollowUpTemplate
 } = require("./emailTemplates");
 
 const app = express();
@@ -115,8 +116,7 @@ app.use(session({
   resave:            false,
   saveUninitialized: false,
   cookie: {
-    // No maxAge = session cookie: browser discards it when closed.
-    // Server enforces the 8-hour limit independently via loginTime.
+    maxAge:   SESSION_MAX_MS,
     httpOnly: true,
     sameSite: "strict"
   }
@@ -273,6 +273,60 @@ app.post("/api/backup", (req, res) => {
     res.json({ message: "Backup created successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET COMPANY INFO ──
+app.get("/api/settings/company", (req, res) => {
+  res.json({
+    company_name:    process.env.COMPANY_NAME    || '',
+    company_email:   process.env.COMPANY_EMAIL   || '',
+    company_phone:   process.env.COMPANY_PHONE   || '',
+    company_address: process.env.COMPANY_ADDRESS || '',
+  });
+});
+
+// ── UPDATE COMPANY INFO ──
+app.patch("/api/settings/company", (req, res) => {
+  const sanitize = (v) => (v || '').replace(/[\r\n]/g, ' ').trim();
+
+  const name    = sanitize(req.body.company_name);
+  const email   = sanitize(req.body.company_email);
+  const phone   = sanitize(req.body.company_phone);
+  const address = sanitize(req.body.company_address);
+
+  if (!name) return res.status(400).json({ error: 'Company name is required' });
+
+  const envPath = path.join(__dirname, '.env');
+
+  try {
+    let content = fs.readFileSync(envPath, 'utf8');
+
+    const setKey = (key, value) => {
+      const re = new RegExp(`^${key}=.*$`, 'm');
+      if (re.test(content)) {
+        content = content.replace(re, `${key}=${value}`);
+      } else {
+        content += `\n${key}=${value}`;
+      }
+    };
+
+    setKey('COMPANY_NAME',    name);
+    setKey('COMPANY_EMAIL',   email);
+    setKey('COMPANY_PHONE',   phone);
+    setKey('COMPANY_ADDRESS', address);
+
+    fs.writeFileSync(envPath, content, 'utf8');
+
+    // Reflect changes immediately without restart
+    process.env.COMPANY_NAME    = name;
+    process.env.COMPANY_EMAIL   = email;
+    process.env.COMPANY_PHONE   = phone;
+    process.env.COMPANY_ADDRESS = address;
+
+    res.json({ message: 'Company info updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not save: ' + err.message });
   }
 });
 
@@ -449,7 +503,7 @@ app.put("/api/schools/:id", [
       school_name = ?, contact_person = ?, email = ?, phone = ?,
       website = ?, facebook_page = ?, address = ?, city_province = ?,
       region = ?, school_type = ?, level_offered = ?, estimated_students = ?,
-      assigned_to = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      assigned_to = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [
       s.school_name,
@@ -457,6 +511,7 @@ app.put("/api/schools/:id", [
       s.website         || null, s.facebook_page   || null, s.address      || null,
       s.city_province   || null, s.region          || null, s.school_type  || null,
       s.level_offered   || null, s.estimated_students || null, s.assigned_to || null,
+      s.status          || 'NEW_LEAD',
       s.notes           || null,
       req.params.id
     ],
@@ -487,25 +542,27 @@ app.delete("/api/schools", (req, res) => {
   let processed = 0;
 
   validIds.forEach(id => {
-    db.get(`SELECT * FROM schools WHERE id = ?`, [id], (err, school) => {
-      if (err || !school) {
-        processed++;
-        if (processed === validIds.length) res.json({ deleted });
-        return;
-      }
+      db.serialize(() => {
+      db.get(`SELECT * FROM schools WHERE id = ?`, [id], (err, school) => {
+        if (err || !school) {
+          processed++;
+          if (processed === validIds.length) res.json({ deleted });
+          return;
+        }
 
-      db.run(
-        `INSERT INTO deletion_history (record_type, record_name, reason) VALUES (?, ?, ?)`,
-        ['SCHOOL', school.school_name, deleteReason]
-      );
-      db.run(`DELETE FROM email_drafts WHERE school_id = ?`, [id]);
-      db.run(`DELETE FROM meetings WHERE school_id = ?`, [id]);
-      db.run(`DELETE FROM activity_logs WHERE school_id = ?`, [id]);
+        db.run(
+          `INSERT INTO deletion_history (record_type, record_name, reason) VALUES (?, ?, ?)`,
+          ['SCHOOL', school.school_name, deleteReason]
+        );
+        db.run(`DELETE FROM email_drafts WHERE school_id = ?`, [id]);
+        db.run(`DELETE FROM meetings WHERE school_id = ?`, [id]);
+        db.run(`DELETE FROM activity_logs WHERE school_id = ?`, [id]);
 
-      db.run(`DELETE FROM schools WHERE id = ?`, [id], function (err) {
-        if (!err) deleted++;
-        processed++;
-        if (processed === validIds.length) res.json({ deleted });
+        db.run(`DELETE FROM schools WHERE id = ?`, [id], function (err) {
+          if (!err) deleted++;
+          processed++;
+          if (processed === validIds.length) res.json({ deleted });
+        });
       });
     });
   });
@@ -1330,6 +1387,51 @@ app.get("/api/meetings/today", (req, res) => {
   );
 });
 
+// Past meetings still SCHEDULED/RESCHEDULED — need status update
+app.get("/api/meetings/past-unupdated", (req, res) => {
+  db.all(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meeting_date < DATE('now', '+8 hours')
+     AND status IN ('SCHEDULED', 'RESCHEDULED')
+     ORDER BY meeting_date DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+// Mark all past unupdated meetings as DONE
+app.post("/api/meetings/mark-past-done", (req, res) => {
+  db.all(
+    `SELECT id, school_id, meeting_date, meeting_time FROM meetings
+     WHERE meeting_date < DATE('now', '+8 hours')
+     AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!rows.length) return res.json({ updated: 0 });
+
+      db.run(
+        `UPDATE meetings SET status = 'DONE', updated_at = CURRENT_TIMESTAMP
+         WHERE meeting_date < DATE('now', '+8 hours')
+         AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+        function(err) {
+          if (err) return res.status(500).json({ error: err.message });
+          rows.forEach(m => {
+            logActivity(m.school_id, 'MEETING_AUTO_DONE',
+              `Past meeting on ${m.meeting_date} auto-marked as Done.`);
+          });
+          res.json({ updated: this.changes });
+        }
+      );
+    }
+  );
+});
+
 // Get single meeting
 app.get("/api/meetings/:id", (req, res) => {
   db.get(
@@ -1367,15 +1469,20 @@ app.get("/api/meetings/month/:year/:month", (req, res) => {
 // ── HELPER: Convert 12-hour time string (e.g. "2:00 PM") to 24-hour "HH:MM" ──
 function convertTimeTo24hr(timeStr) {
   if (!timeStr) return null;
-  if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+  if (/^\d{2}:\d{2}$/.test(timeStr)) {
+    const [h, m] = timeStr.split(':').map(Number);
+    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) return timeStr;
+    return null;
+  }
   const match = timeStr.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
   if (!match) return null;
   let hours = parseInt(match[1]);
-  const mins = match[2];
+  const mins = parseInt(match[2]);
   const period = match[3].toUpperCase();
+  if (hours < 1 || hours > 12 || mins < 0 || mins > 59) return null;
   if (period === 'PM' && hours !== 12) hours += 12;
   if (period === 'AM' && hours === 12) hours = 0;
-  return String(hours).padStart(2, '0') + ':' + mins;
+  return String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
 }
 
 // ── HELPER: Convert time string to minutes ──
@@ -1600,6 +1707,39 @@ app.patch("/api/meetings/:id/reschedule", (req, res) => {
   });
 });
 
+// Generate post-meeting follow-up email draft
+app.post("/api/meetings/:id/follow-up", (req, res) => {
+  db.get(
+    `SELECT meetings.*, schools.email as school_email
+     FROM meetings
+     LEFT JOIN schools ON meetings.school_id = schools.id
+     WHERE meetings.id = ?`,
+    [req.params.id],
+    (err, meeting) => {
+      if (err || !meeting) return res.status(404).json({ error: "Meeting not found" });
+
+      const email = postMeetingFollowUpTemplate(meeting);
+
+      db.run(
+        `INSERT INTO email_drafts (school_id, email_type, subject, body) VALUES (?, ?, ?, ?)`,
+        [meeting.school_id, 'FOLLOW_UP', email.subject, email.body],
+        function (err) {
+          if (err) return res.status(500).json({ error: err.message });
+
+          logActivity(meeting.school_id, 'EMAIL_GENERATED', 'Post-meeting follow-up email generated.');
+
+          res.json({
+            message:  "Follow-up email generated",
+            draft_id: this.lastID,
+            subject:  email.subject,
+            body:     email.body
+          });
+        }
+      );
+    }
+  );
+});
+
 // Public time slot availability for a specific date
 app.get("/api/availability/slots/:date", (req, res) => {
   const { date } = req.params;
@@ -1782,6 +1922,30 @@ cron.schedule("*/5 * * * *", () => {
 });
 
 console.log("✅ Meeting reminder scheduler started — day reminder at 6 AM PHT, 1-hour check every 5 min");
+
+// ── AUTO-MARK PAST MEETINGS AS DONE (midnight PHT + 2 min) ──
+cron.schedule("2 16 * * *", () => {
+  db.all(
+    `SELECT id, school_id, meeting_date FROM meetings
+     WHERE meeting_date < DATE('now', '+8 hours')
+     AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+    [],
+    (err, rows) => {
+      if (err || !rows.length) return;
+      db.run(
+        `UPDATE meetings SET status = 'DONE', updated_at = CURRENT_TIMESTAMP
+         WHERE meeting_date < DATE('now', '+8 hours')
+         AND status IN ('SCHEDULED', 'RESCHEDULED')`,
+        function(err) {
+          if (err) return;
+          rows.forEach(m => logActivity(m.school_id, 'MEETING_AUTO_DONE',
+            `Past meeting on ${m.meeting_date} auto-marked as Done by nightly job.`));
+          console.log(`✅ Auto-marked ${rows.length} past meeting(s) as Done`);
+        }
+      );
+    }
+  );
+});;
 
 // ── DATABASE BACKUP SYSTEM ──
 

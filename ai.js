@@ -21,7 +21,6 @@ Name: ${process.env.COMPANY_NAME}
 Address: ${process.env.COMPANY_ADDRESS}
 Email: ${process.env.COMPANY_EMAIL}
 Phone: ${process.env.COMPANY_PHONE}
-Schedule link: ${process.env.CALENDLY_LINK}
 
 School details:
 School name: ${school.school_name}

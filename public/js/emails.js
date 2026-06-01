@@ -1,3 +1,11 @@
+// ── DRAFT STATUS BADGE ──
+function draftStatusBadge(status) {
+  if (status === 'SENT') {
+    return '<span class="badge badge-sent">SENT</span>';
+  }
+  return '<span class="badge badge-default">DRAFT</span>';
+}
+
 // ── DRAFTS PAGINATION STATE ──
 const DRAFTS_PAGE_SIZE = 5;
 let draftsCurrentPage  = 1;
@@ -180,7 +188,7 @@ function renderDrafts() {
         text-overflow:ellipsis; white-space:nowrap;">
         ${d.subject}
       </td>
-      <td>${statusBadge(d.status)}</td>
+      <td>${draftStatusBadge(d.status)}</td>
       <td>${fmtDate(d.created_at)}</td>
       <td>
         <button
@@ -264,7 +272,7 @@ function previewDraft(id) {
       font-size:13px; line-height:1.8; color:#374151;
       font-family:'Inter',sans-serif; white-space:pre-wrap;
       user-select:none; -webkit-user-select:none; pointer-events:none;">
-      ${d.body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+      ${d.body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
     </div>
   `;
 

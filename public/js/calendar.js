@@ -62,8 +62,8 @@ async function loadUpcoming() {
       const res = await fetch('/api/meetings/upcoming/week');
       meetings = await res.json();
     } else {
-      const y = new Date().getFullYear();
-      const m = new Date().getMonth() + 1;
+      const y = currentYear;
+      const m = currentMonth + 1;
       const res = await fetch(`/api/meetings/month/${y}/${m}`);
       meetings = await res.json();
     }
@@ -418,6 +418,10 @@ async function viewMeeting(id) {
         <button onclick="closeModal('meetingModal')" class="btn-ghost">
           Close
         </button>
+        <button onclick="generateFollowUpEmail()" class="btn-navy text-sm"
+          style="display:inline-flex;align-items:center;gap:5px;">
+          ${licon('mail')} Send Follow-up Email
+        </button>
       `;
     } else {
       footer.innerHTML = `
@@ -443,6 +447,79 @@ async function viewMeeting(id) {
     showToast('Could not load meeting details', 'error');
   }
 }
+// ── GENERATE POST-MEETING FOLLOW-UP EMAIL ──
+async function generateFollowUpEmail() {
+  if (!currentMeetingId) return;
+  closeModal('meetingModal');
+  showToast('Generating follow-up email...', '');
+
+  try {
+    const res = await fetch('/api/meetings/' + currentMeetingId + '/follow-up', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      showToast('Error: ' + data.error, 'error');
+      return;
+    }
+
+    showToast('Follow-up email ready!', 'success');
+
+    document.getElementById('emailModalBody').innerHTML = `
+      <div class="email-subject">Subject: ${data.subject}</div>
+      <div style="font-size:12px; color:#9ca3af; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+        ${licon('pencil', 12)} You can edit the email below before sending.
+      </div>
+      <textarea
+        id="editableEmailBody"
+        style="width:100%; min-height:320px; padding:14px;
+          border:1.5px solid #e5e7eb; border-radius:8px;
+          font-size:13px; line-height:1.8; color:#374151;
+          font-family:'Inter',sans-serif; resize:vertical; outline:none;"
+        onfocus="this.style.borderColor='#1B1F6B'"
+        onblur="this.style.borderColor='#e5e7eb'"
+      >${data.body}</textarea>
+    `;
+
+    document.getElementById('emailModalActions').innerHTML = `
+      <button
+        id="sendEmailBtn"
+        onclick="saveAndSendDraft(${data.draft_id})"
+        class="btn-navy text-sm" disabled
+        style="display:inline-flex;align-items:center;gap:6px;opacity:0.5;cursor:not-allowed;">
+        ${licon('send', 14)} Send Email <span id="sendEmailCountdown" style="font-size:11px;margin-left:2px;">(5s)</span>
+      </button>
+    `;
+
+    openModal('emailModal');
+    lucide.createIcons();
+
+    let secondsLeft = 5;
+    const countdownInterval = setInterval(() => {
+      secondsLeft--;
+      const countdownEl = document.getElementById('sendEmailCountdown');
+      if (countdownEl) countdownEl.textContent = '(' + secondsLeft + 's)';
+      if (secondsLeft <= 0) {
+        clearInterval(countdownInterval);
+        const btn = document.getElementById('sendEmailBtn');
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+          const cd = document.getElementById('sendEmailCountdown');
+          if (cd) cd.remove();
+        }
+      }
+    }, 1000);
+
+    loadDrafts();
+  } catch (e) {
+    showToast('Failed to generate follow-up email', 'error');
+  }
+}
+
 // ── MARK MEETING AS DONE ──
 async function markAsDone() {
   if (!currentMeetingId) return;
@@ -455,6 +532,7 @@ async function markAsDone() {
     showToast('Meeting marked as done!', 'success');
     closeModal('meetingModal');
     loadCalendar();
+    loadDashboard();
   } catch (e) {
     showToast('Failed to update meeting', 'error');
   }
@@ -500,8 +578,43 @@ function openRescheduleModal() {
   document.getElementById('r-meeting_date').value = '';
   document.getElementById('r-meeting_time').value = '';
   document.getElementById('r-notes').value = '';
+  const indicator = document.getElementById('reschedDateAvailability');
+  if (indicator) indicator.innerHTML = '';
   closeModal('meetingModal');
   openModal('rescheduleModal');
+}
+
+async function checkReschedDateAvailability(date) {
+  if (!date) return;
+  const indicator = document.getElementById('reschedDateAvailability');
+  if (!indicator) return;
+  try {
+    const res  = await fetch('/api/meetings/check/' + date);
+    const data = await res.json();
+    if (data.is_full) {
+      indicator.innerHTML = `
+        <div style="color:#991b1b; font-size:12px; margin-top:6px;
+          padding:8px 12px; background:#fee2e2; border-radius:6px;">
+          ${licon('x-circle', 13)} This date is fully booked (3/3 meetings). Please choose another date.
+        </div>`;
+    } else if (data.count === 0) {
+      indicator.innerHTML = `
+        <div style="color:#166534; font-size:12px; margin-top:6px;
+          padding:8px 12px; background:#dcfce7; border-radius:6px;">
+          ${licon('check-circle', 13)} This date is available (0/3 meetings scheduled)
+        </div>`;
+    } else {
+      const remaining = 3 - data.count;
+      indicator.innerHTML = `
+        <div style="color:#92400e; font-size:12px; margin-top:6px;
+          padding:8px 12px; background:#fef3c7; border-radius:6px;">
+          ${licon('alert-triangle', 13)} ${data.count}/3 meetings on this date. ${remaining} slot${remaining > 1 ? 's' : ''} remaining.
+        </div>`;
+    }
+    lucide.createIcons();
+  } catch (e) {
+    console.error('Could not check date availability');
+  }
 }
 
 // ── CONFIRM RESCHEDULE ──
@@ -542,11 +655,16 @@ async function confirmReschedule() {
 // ── CLEAR SCHEDULE FORM ──
 function clearScheduleForm() {
   ['m-school_id','m-meeting_date','m-meeting_time',
-   'm-meeting_type','m-meeting_mode','m-meeting_link',
+   'm-meeting_type','m-meeting_link',
    'm-meeting_address','m-notes'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const modeEl = document.getElementById('m-meeting_mode');
+  if (modeEl) modeEl.value = 'ONLINE';
+  const indicator = document.getElementById('dateAvailability');
+  if (indicator) indicator.innerHTML = '';
+  toggleMeetingMode();
 }
 
 // ── HELPERS ──

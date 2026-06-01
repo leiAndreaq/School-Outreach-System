@@ -22,10 +22,13 @@ async function loadDashboard() {
     document.getElementById('stat-sent').textContent =
       schools.filter(s => s.status === 'EMAIL_SENT').length;
     document.getElementById('stat-interested').textContent =
-      schools.filter(s => s.status === 'INTERESTED').length;
+      schools.filter(s => ['INTERESTED','PRESENTATION_SCHEDULED','PRESENTED','NEGOTIATION'].includes(s.status)).length;
 
-    // Show recent 5 schools
-    const recent = schools.slice(0, 5);
+    // Show 5 most recently added schools
+    const recent = schools
+      .slice()
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 5);
     const tbody = document.getElementById('dashboardTable');
 
     if (!recent.length) {
@@ -44,6 +47,7 @@ async function loadDashboard() {
         <td>${s.city_province || '—'}</td>
         <td>${s.school_type || '—'}</td>
         <td>${statusBadge(s.status)}</td>
+        <td>${fmtDate(s.created_at)}</td>
         <td>
           <button
             onclick="viewSchool(${s.id})"
@@ -75,6 +79,60 @@ async function loadSchools(preserveSelection = false) {
   } catch (e) {
     showToast('Could not load schools', 'error');
   }
+}
+
+// ── EXPORT SCHOOLS AS CSV ──
+function exportSchoolsCSV() {
+  if (!allSchools.length) {
+    showToast('No schools to export', 'error');
+    return;
+  }
+
+  const escape = (val) => {
+    if (val == null) return '';
+    const s = String(val);
+    return (s.includes(',') || s.includes('"') || s.includes('\n'))
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s;
+  };
+
+  const headers = [
+    'School Name', 'Contact Person', 'Email', 'Phone',
+    'Website', 'Facebook Page', 'Address', 'City/Province',
+    'Region', 'School Type', 'Level Offered', 'Est. Students',
+    'Assigned To', 'Status', 'Notes', 'Date Added'
+  ];
+
+  const rows = allSchools.map(s => [
+    escape(s.school_name),
+    escape(s.contact_person),
+    escape(s.email),
+    escape(s.phone),
+    escape(s.website),
+    escape(s.facebook_page),
+    escape(s.address),
+    escape(s.city_province),
+    escape(s.region),
+    escape(s.school_type),
+    escape(s.level_offered),
+    escape(s.estimated_students),
+    escape(s.assigned_to),
+    escape(s.status),
+    escape(s.notes),
+    escape(s.created_at ? s.created_at.split('T')[0] : '')
+  ].join(','));
+
+  const csv     = [headers.join(','), ...rows].join('\n');
+  const blob    = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url     = URL.createObjectURL(blob);
+  const today   = new Date().toISOString().split('T')[0];
+  const link    = document.createElement('a');
+  link.href     = url;
+  link.download = `school-leads-${today}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+
+  showToast(`Exported ${allSchools.length} school(s)`, 'success');
 }
 
 // ── RENDER SCHOOLS TABLE ──
@@ -237,9 +295,17 @@ function updateBulkActionBar() {
   if (selectedSchoolIds.size > 0) {
     bar.style.display = 'flex';
     count.textContent = `${selectedSchoolIds.size} school${selectedSchoolIds.size > 1 ? 's' : ''} selected`;
+    const allCountEl = document.getElementById('selectAllCount');
+    if (allCountEl) allCountEl.textContent = allSchools.length;
   } else {
     bar.style.display = 'none';
   }
+}
+
+function selectAllSchools() {
+  allSchools.forEach(s => selectedSchoolIds.add(s.id));
+  document.querySelectorAll('.school-checkbox').forEach(cb => { cb.checked = true; });
+  updateBulkActionBar();
 }
 
 function clearSelection() {
@@ -298,7 +364,6 @@ async function confirmBulkDelete() {
 // ── SEARCH / FILTER ──
 function filterSchools() {
   schoolsCurrentPage = 1;
-  selectedSchoolIds.clear();
   const query = document.getElementById('searchInput').value.toLowerCase();
   const filtered = allSchools.filter(s =>
     (s.school_name    || '').toLowerCase().includes(query) ||
@@ -384,7 +449,7 @@ async function viewSchool(id) {
     `;
 
     // Disable Generate Proposal if an email has already been sent
-    const emailSent = ['EMAIL_SENT','INTERESTED','NOT_INTERESTED','WON','LOST']
+    const emailSent = ['EMAIL_SENT','INTERESTED','NOT_INTERESTED','WON','LOST','PROPOSAL_GENERATED']
       .includes(s.status);
     const genBtn = document.querySelector('#schoolModal .btn-red');
     if (genBtn) {
@@ -455,6 +520,12 @@ async function submitEditSchool() {
     return;
   }
 
+  const editEmail = document.getElementById('e-email').value.trim();
+  if (editEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail)) {
+    showToast('Please enter a valid email address.', 'error');
+    return;
+  }
+
   const payload = {
     school_name:        name,
     contact_person:     document.getElementById('e-contact_person').value.trim(),
@@ -490,9 +561,10 @@ async function submitEditSchool() {
 
     showToast('School details updated!', 'success');
     closeModal('editSchoolModal');
+    closeModal('schoolModal');
     loadSchools();
     loadDashboard();
-    viewSchool(currentSchoolId);
+    await viewSchool(currentSchoolId);
   } catch (e) {
     showToast('Failed to update school', 'error');
   }
@@ -533,7 +605,7 @@ async function addSchool() {
   const payload = {
     school_name:        name,
     contact_person:     document.getElementById('f-contact_person').value,
-    email:              document.getElementById('f-email').value,
+    email:              document.getElementById('f-email').value.trim(),
     phone:              document.getElementById('f-phone').value,
     website:            document.getElementById('f-website').value,
     facebook_page:      document.getElementById('f-facebook_page').value,
@@ -597,22 +669,53 @@ async function loadTodaysMeetings() {
     }
 
     container.style.display = 'block';
+    const meetingList = meetings.map(m => `
+      <span style="display:inline-flex; align-items:center; gap:5px;
+        background:rgba(255,255,255,0.2); border-radius:6px;
+        padding:3px 9px; font-size:12px; font-weight:600; color:#fff;">
+        ${licon('clock', 12)}
+        ${m.school_name} &mdash; ${formatTime(m.meeting_time)}
+      </span>
+    `).join('');
+
     container.innerHTML = `
       <div onclick="showTab('calendar')"
-        style="background:#e8e9f5; border:1.5px solid #1B1F6B;
-          border-radius:10px; padding:14px 20px; margin-bottom:24px;
-          display:flex; align-items:center; justify-content:space-between;
-          cursor:pointer; transition:background 0.15s;"
-        onmouseover="this.style.background='#d4d6eb'"
-        onmouseout="this.style.background='#e8e9f5'">
-        <div style="font-size:13px; font-weight:700; color:#1B1F6B; display:flex; align-items:center; gap:6px;">
-          ${licon('calendar', 15)} You have ${meetings.length} meeting${meetings.length > 1 ? 's' : ''} today
+        style="background:linear-gradient(135deg,#1B1F6B 0%,#2d3494 100%);
+          border-radius:12px; padding:16px 20px; margin-bottom:24px;
+          display:flex; align-items:center; gap:16px;
+          cursor:pointer; transition:opacity 0.15s; box-shadow:0 4px 16px rgba(27,31,107,0.25);"
+        onmouseover="this.style.opacity='0.92'"
+        onmouseout="this.style.opacity='1'">
+
+        <!-- Icon badge -->
+        <div style="flex-shrink:0; width:46px; height:46px; border-radius:12px;
+          background:rgba(255,255,255,0.15); display:flex; align-items:center;
+          justify-content:center; border:1.5px solid rgba(255,255,255,0.25);">
+          <i data-lucide="calendar-clock" style="width:22px;height:22px;color:#fff;"></i>
         </div>
-        <div style="font-size:12px; color:#1B1F6B; opacity:0.7;">
-          View Calendar →
+
+        <!-- Text -->
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:14px; font-weight:700; color:#fff; margin-bottom:6px;">
+            You have ${meetings.length} meeting${meetings.length > 1 ? 's' : ''} today
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            ${meetingList}
+          </div>
         </div>
+
+        <!-- CTA -->
+        <div style="flex-shrink:0; display:flex; align-items:center; gap:6px;
+          background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.3);
+          border-radius:8px; padding:7px 14px;
+          font-size:12px; font-weight:700; color:#fff; white-space:nowrap;">
+          View Calendar
+          <i data-lucide="arrow-right" style="width:13px;height:13px;"></i>
+        </div>
+
       </div>
     `;
+    lucide.createIcons();
   } catch (e) {
     console.error('Could not load today meetings');
   }

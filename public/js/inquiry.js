@@ -324,7 +324,7 @@ function validateStep(step) {
       $('position').focus(); return false;
     }
     const email = $('email').value.trim();
-    if (!email || !email.includes('@')) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       showToast('Please enter a valid email address.', 'error');
       $('email').focus(); return false;
     }
@@ -562,9 +562,13 @@ async function renderTimeSlots() {
   let slots = TIME_SLOTS;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(`/api/availability/slots/${selectedDate}`, {
-      headers: { 'Accept': 'application/json' }
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.slots)) {
@@ -648,7 +652,7 @@ async function submitForm(e) {
   const contact    = $('contact_person').value.trim();
   const email      = $('email').value.trim();
 
-  if (!schoolName || !contact || !email || !email.includes('@') ||
+  if (!schoolName || !contact || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       !selectedMode || !selectedDate || !selectedTime) {
     showToast('Please complete all required fields.', 'error');
     return;
@@ -658,6 +662,7 @@ async function submitForm(e) {
   if (selectedMode === 'ONSITE' && psgcRegionCode && psgcRegionCode !== NCR_CODE) {
     showToast('⚠️ Onsite visits are Metro Manila only. Switched to Online.', 'warn');
     selectMode('online');
+    showStep(3);
     return;
   }
 

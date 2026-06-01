@@ -35,6 +35,9 @@
 </head>
 <body class="bg-navy-light font-inter">
 
+  <!-- ─── SIDEBAR OVERLAY (mobile tap-outside-to-close) ─── -->
+  <div id="sidebarOverlay" onclick="closeSidebar()"></div>
+
   <!-- SIDEBAR -->
   <aside id="sidebar" class="fixed top-0 left-0 h-full w-56 sidebar-gradient flex flex-col z-50 shadow-xl">
 
@@ -55,16 +58,16 @@
         <i data-lucide="chevron-down" id="dashChevron" class="nav-chevron"></i>
       </div>
       <div id="dashDropdown" class="nav-dropdown open">
-        <div id="subnav-overview" class="nav-sub-item active" onclick="showTab('dashboard')">
+        <div id="subnav-overview" class="nav-sub-item active" onclick="showTab('dashboard'); closeSidebar()">
           <i data-lucide="home" style="width:14px;height:14px;flex-shrink:0;"></i>
           Overview
         </div>
-        <div id="subnav-analytics" class="nav-sub-item" onclick="showTab('analytics')">
+        <div id="subnav-analytics" class="nav-sub-item" onclick="showTab('analytics'); closeSidebar()">
           <i data-lucide="bar-chart-2" style="width:14px;height:14px;flex-shrink:0;"></i>
           Analytics
         </div>
       </div>
-      <div class="nav-item" onclick="showTab('inquiries')">
+      <div class="nav-item" onclick="showTab('inquiries'); closeSidebar()">
         <i data-lucide="inbox" class="nav-icon"></i>
         Inquiries
         <span id="pendingBadge" class="ml-auto bg-brand text-white
@@ -72,23 +75,23 @@
           0
         </span>
       </div>
-      <div class="nav-item" onclick="showTab('schools')">
+      <div class="nav-item" onclick="showTab('schools'); closeSidebar()">
         <i data-lucide="school" class="nav-icon"></i>
         School Leads
       </div>
-      <div class="nav-item" onclick="showTab('calendar')">
+      <div class="nav-item" onclick="showTab('calendar'); closeSidebar()">
         <i data-lucide="calendar" class="nav-icon"></i>
         Calendar
       </div>
-      <div class="nav-item" onclick="showTab('import')">
+      <div class="nav-item" onclick="showTab('import'); closeSidebar()">
         <i data-lucide="upload" class="nav-icon"></i>
         Import CSV
       </div>
-      <div class="nav-item" onclick="showTab('archived')">
+      <div class="nav-item" onclick="showTab('archived'); closeSidebar()">
         <i data-lucide="archive" class="nav-icon"></i>
         Archived
       </div>
-      <div class="nav-item" onclick="showTab('settings')">
+      <div class="nav-item" onclick="showTab('settings'); closeSidebar()">
         <i data-lucide="settings" class="nav-icon"></i>
         Settings
       </div>
@@ -110,24 +113,76 @@
 
     <!-- TOPBAR -->
     <header class="bg-white border-b border-gray-200 px-8 h-24 flex items-center sticky top-0 z-40 relative">
-      <!-- Logos (left) -->
-      <div class="flex items-center gap-3 shrink-0">
+
+      <!-- Left: hamburger + logos -->
+      <div class="header-left flex items-center gap-3 shrink-0">
+        <button id="hamburgerBtn" onclick="openSidebar()" aria-label="Open menu">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
         <img src="/images/accoutre.png" alt="Accoutre AI" class="h-14 w-auto object-contain" />
         <img src="/images/thinks.png" alt="ThinkTANQ" class="h-14 w-auto object-contain" />
         <img src="/images/paths.png" alt="PATHS" class="h-14 w-auto object-contain" />
       </div>
 
+      <!-- Center: PathFinder branding -->
       <div class="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
         <img src="/images/finders.png" alt="PATH Partnership And Training Hub System"
              class="h-16 w-auto object-contain" />
       </div>
 
-      <!-- Backup button (right) -->
-      <div class="ml-auto shrink-0">
-        <button onclick="triggerBackup()" class="flex items-center gap-2 bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
-          <i data-lucide="database-backup" class="w-4 h-4"></i>
-          Backup Data
+      <!-- Right: notification bell + backup button -->
+      <div class="header-right ml-auto shrink-0" style="display:flex;align-items:center;gap:10px;">
+
+        <!-- Notification Bell -->
+        <div style="position:relative;">
+          <button id="notifBellBtn" onclick="toggleNotifPanel()"
+            style="position:relative; background:#fff; border:1.5px solid #e2e4f0;
+              border-radius:9px; width:38px; height:38px; cursor:pointer;
+              display:flex; align-items:center; justify-content:center;
+              box-shadow:0 1px 4px rgba(0,0,0,0.08); transition:border-color 0.15s;"
+            onmouseover="this.style.borderColor='#1B1F6B'"
+            onmouseout="this.style.borderColor='#e2e4f0'">
+            <i data-lucide="bell" style="width:17px;height:17px;color:#1B1F6B;"></i>
+            <span id="notifBadge"
+              style="display:none; position:absolute; top:-6px; right:-6px;
+                background:#ef4444; color:#fff; font-size:10px; font-weight:800;
+                border-radius:50%; min-width:18px; height:18px; line-height:18px;
+                text-align:center; padding:0 4px; border:2px solid #f3f4f6;">
+            </span>
+          </button>
+
+          <!-- Dropdown Panel -->
+          <div id="notifPanel"
+            style="display:none; position:absolute; right:0; top:calc(100% + 10px);
+              width:380px; background:#fff; border-radius:14px;
+              box-shadow:0 8px 40px rgba(0,0,0,0.16); border:1px solid #e5e7eb; z-index:9999;">
+            <div id="notifPanelContent">
+              <div style="padding:20px; text-align:center; color:#9ca3af; font-size:13px;">
+                Loading...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Chat Button -->
+        <button id="chatToggleBtn" onclick="toggleChat()"
+          style="background:linear-gradient(135deg,#2334a8,#1B1F6B); border:none;
+            border-radius:9px; width:38px; height:38px; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 2px 8px rgba(27,31,107,0.35); transition:opacity 0.15s;"
+          onmouseover="this.style.opacity='0.85'"
+          onmouseout="this.style.opacity='1'"
+          title="AI Assistant">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
         </button>
+
       </div>
     </header>
 
@@ -238,6 +293,7 @@
                   <th>City / Province</th>
                   <th>Type</th>
                   <th>Status</th>
+                  <th>Date Added</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -373,23 +429,44 @@
         <div class="flex items-center justify-between mb-6">
           <h1 class="section-title">School Leads</h1>
           <div class="flex gap-3 items-center">
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search schools..."
-              oninput="filterSchools()"
-              class="input-field w-56 text-sm"
-            />
+            <div style="position:relative; display:inline-block;">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search schools..."
+                oninput="filterSchools(); toggleClearBtn('searchInput','clearSchoolsBtn')"
+                class="input-field w-56 text-sm"
+                style="padding-right:28px;"
+              />
+              <button id="clearSchoolsBtn"
+                onclick="clearSearchInput('searchInput','clearSchoolsBtn'); filterSchools()"
+                style="display:none; position:absolute; right:8px; top:50%;
+                  transform:translateY(-50%); background:none; border:none;
+                  cursor:pointer; color:#9ca3af; padding:0; line-height:1;">
+                <i data-lucide="x" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+            <button onclick="exportSchoolsCSV()" class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:5px;">
+              <i data-lucide="download" style="width:14px;height:14px;"></i> Export CSV
+            </button>
             <button onclick="showTab('add')" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">+ Add School</button>
           </div>
         </div>
         <div class="card">
 
           <!-- Bulk Action Bar (visible when rows are selected) -->
-          <div id="bulkActionBar" style="display:none; align-items:center; justify-content:space-between;
-            padding:12px 16px; background:#fee2e2; border-bottom:1px solid #fca5a5; gap:12px;">
-            <span id="selectedCount" style="font-size:13px; font-weight:600; color:#991b1b;"></span>
-            <div style="display:flex; gap:8px;">
+          <div id="bulkActionBar" style="display:none; align-items:center;
+            padding:12px 16px; background:#fee2e2; border-bottom:1px solid #fca5a5;">
+            <div style="flex:1;">
+              <button onclick="selectAllSchools()"
+                style="font-size:12px; font-weight:600; color:#991b1b; background:none;
+                  border:1px solid #fca5a5; border-radius:6px; padding:4px 10px;
+                  cursor:pointer; white-space:nowrap;">
+                Select all <span id="selectAllCount"></span> schools
+              </button>
+            </div>
+            <span id="selectedCount" style="font-size:13px; font-weight:600; color:#991b1b; flex:1; text-align:center;"></span>
+            <div style="flex:1; display:flex; justify-content:flex-end; gap:8px;">
               <button onclick="clearSelection()" class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="x" style="width:13px;height:13px;"></i> Clear</button>
               <button onclick="openBulkDeleteModal()" class="btn-red text-sm" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="trash-2" style="width:13px;height:13px;"></i> Delete Selected</button>
             </div>
@@ -399,10 +476,7 @@
             <table class="w-full">
               <thead>
                 <tr class="table-head">
-                  <th style="width:40px; padding-left:16px;">
-                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"
-                      style="width:16px; height:16px; cursor:pointer; accent-color:#1B1F6B;">
-                  </th>
+                  <th style="width:40px; padding-left:16px;"></th>
                   <th>School Name</th>
                   <th>Contact Person</th>
                   <th>City / Province</th>
@@ -555,6 +629,11 @@
                 <div style="color:#9ca3af; font-size:13px; text-align:center; padding:32px 0;">
                   No imports yet
                 </div>
+              </div>
+              <div id="importHistoryPagination"
+                style="display:none; justify-content:space-between; align-items:center;
+                  margin-top:12px; padding-top:10px; border-top:1px solid #f3f4f6;
+                  font-size:12px; color:#6b7280;">
               </div>
             </div>
           </div>
@@ -726,10 +805,18 @@
           <div class="relative w-full max-w-sm">
             <i data-lucide="search"
                class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
-            <input type="text" placeholder="Search inquiries..."
-              class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white
+            <input type="text" id="inquirySearchInput" placeholder="Search inquiries..."
+              oninput="searchInquiries(); toggleClearBtn('inquirySearchInput','clearInquiriesBtn')"
+              class="w-full pl-10 pr-8 py-2.5 text-sm border border-gray-200 rounded-xl bg-white
                      focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy
                      transition shadow-sm" />
+            <button id="clearInquiriesBtn"
+              onclick="clearSearchInput('inquirySearchInput','clearInquiriesBtn'); searchInquiries()"
+              style="display:none; position:absolute; right:10px; top:50%;
+                transform:translateY(-50%); background:none; border:none;
+                cursor:pointer; color:#9ca3af; padding:0; line-height:1;">
+              <i data-lucide="x" style="width:14px;height:14px;"></i>
+            </button>
           </div>
         </div>
 
@@ -812,6 +899,40 @@
         <div class="flex items-center justify-between mb-6">
           <h1 class="section-title">Settings</h1>
         </div>
+
+        <!-- Company Info Card -->
+        <div class="card" style="max-width:480px; margin-bottom:20px;">
+          <div class="card-header">
+            <h3 class="font-semibold text-navy" style="display:flex;align-items:center;gap:6px;">
+              <i data-lucide="building-2" style="width:15px;height:15px;"></i> Company Information
+            </h3>
+          </div>
+          <div class="modal-body">
+            <div class="flex flex-col gap-4 p-4">
+              <div class="form-group">
+                <label class="form-label">Company Name *</label>
+                <input type="text" id="settingCompanyName" class="input-field" placeholder="e.g. ThinkTANQ OPC"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Company Email</label>
+                <input type="email" id="settingCompanyEmail" class="input-field" placeholder="e.g. info@company.com"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Company Phone</label>
+                <input type="text" id="settingCompanyPhone" class="input-field" placeholder="e.g. 09XX-XXX-XXXX"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Company Address</label>
+                <input type="text" id="settingCompanyAddress" class="input-field" placeholder="e.g. Unit 201, Parañaque City"/>
+              </div>
+              <div id="companyInfoError" style="display:none; padding:10px 14px; background:#fee2e2; border-radius:8px; font-size:12px; color:#991b1b;"></div>
+              <button onclick="saveCompanyInfo()" class="bg-navy text-white font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">
+                <i data-lucide="save" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Save Company Info
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="card" style="max-width:480px;">
           <div class="card-header">
             <h3 class="font-semibold text-navy" style="display:flex;align-items:center;gap:6px;"><i data-lucide="key" style="width:15px;height:15px;"></i> Change Password</h3>
@@ -837,6 +958,26 @@
             </div>
           </div>
         </div>
+
+        <!-- Backup Card -->
+        <div class="card" style="max-width:480px; margin-top:20px;">
+          <div class="card-header">
+            <h3 class="font-semibold text-navy" style="display:flex;align-items:center;gap:6px;">
+              <i data-lucide="database-backup" style="width:15px;height:15px;"></i> Database Backup
+            </h3>
+          </div>
+          <div class="modal-body">
+            <div class="flex flex-col gap-4 p-4">
+              <p style="font-size:13px; color:#6b7280; line-height:1.6;">
+                Manually create a backup of the database. Backups are also created automatically every midnight (PHT) and kept for 30 days.
+              </p>
+              <button onclick="triggerBackup()" class="bg-navy text-white font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition" style="display:inline-flex;align-items:center;gap:6px;align-self:flex-start;">
+                <i data-lucide="database-backup" style="width:14px;height:14px;"></i> Backup Now
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </main>
@@ -1318,7 +1459,9 @@
         <div class="form-grid">
           <div class="form-group">
             <label class="form-label">New Date *</label>
-            <input type="date" id="r-meeting_date" class="input-field"/>
+            <input type="date" id="r-meeting_date" class="input-field"
+              onchange="checkReschedDateAvailability(this.value)"/>
+            <div id="reschedDateAvailability"></div>
           </div>
           <div class="form-group">
             <label class="form-label">New Time *</label>
@@ -1504,23 +1647,10 @@
     <span id="clockDisplay"></span>
   </div>
 
-  <!-- ── AI CHAT BUTTON ── -->
-  <button id="chatToggleBtn" onclick="toggleChat()"
-    style="position:fixed; bottom:80px; right:24px; z-index:1000;
-      width:52px; height:52px; border-radius:50%; border:none;
-      background:linear-gradient(135deg,#2334a8,#1B1F6B);
-      color:#fff; cursor:pointer; display:flex; align-items:center;
-      justify-content:center; box-shadow:0 4px 20px rgba(27,31,107,0.45);
-      transition:transform 0.2s;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  </button>
 
   <!-- ── AI CHAT WINDOW ── -->
   <div id="chatWindow"
-    style="display:none; position:fixed; bottom:144px; right:24px; z-index:1000;
+    style="display:none; position:fixed; top:72px; right:24px; z-index:1000;
       width:360px; height:520px; border-radius:16px; overflow:hidden;
       box-shadow:0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(27,31,107,0.1);
       flex-direction:column; background:#fff;">
@@ -1580,6 +1710,46 @@
     document.addEventListener('DOMContentLoaded', () => {
       const body = document.getElementById('chatBody');
       if (body) body.innerHTML = chatWelcome();
+    });
+  </script>
+
+  <!-- ── HAMBURGER SIDEBAR JS ── -->
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('open');
+      const overlay = document.getElementById('sidebarOverlay');
+      overlay.style.display = 'block';
+      // Force reflow so transition fires
+      overlay.offsetHeight;
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      const overlay = document.getElementById('sidebarOverlay');
+      overlay.classList.remove('active');
+      // Wait for fade-out transition before hiding
+      overlay.addEventListener('transitionend', function handler() {
+        overlay.style.display = 'none';
+        overlay.removeEventListener('transitionend', handler);
+      });
+      document.body.style.overflow = '';
+    }
+
+    // Close sidebar with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeSidebar();
+    });
+
+    // Auto-close sidebar when resizing back to desktop
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 768) {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+        document.getElementById('sidebarOverlay').style.display = 'none';
+        document.body.style.overflow = '';
+      }
     });
   </script>
 
