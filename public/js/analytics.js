@@ -8,7 +8,7 @@ let heardFromChartInstance = null;
 // ── LOAD ──
 async function loadAnalytics() {
   try {
-    const res = await fetch('/api/analytics');
+    const res = await fetch('/api/analytics?mode=' + (window.currentMode || 'school'));
     if (!res.ok) throw new Error();
     analyticsData = await res.json();
     renderAnalytics();

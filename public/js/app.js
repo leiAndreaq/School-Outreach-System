@@ -45,6 +45,19 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+// ── NAV MAP (global so updateModeLabels can modify it) ──
+const navMap = {
+  dashboard: 'dashboard',
+  analytics: 'dashboard',
+  schools:   'school leads',
+  add:       'school leads',
+  import:    'import csv',
+  archived:  'archived',
+  calendar:  'calendar',
+  inquiries: 'inquiries',
+  settings:  'settings'
+};
+
 // ── TABS ──
 function showTab(name) {
   // Close dashboard dropdown when switching away from dashboard tabs
@@ -64,18 +77,6 @@ function showTab(name) {
 
   // Show the selected tab
   document.getElementById('tab-' + name).classList.add('active');
-
-  const navMap = {
-    dashboard: 'dashboard',
-    analytics: 'dashboard',
-    schools:   'school leads',
-    add:       'add school',
-    import:    'import csv',
-    archived:  'archived',
-    calendar:  'calendar',
-    inquiries: 'inquiries',
-    settings:  'settings'
-  };
 
   document.querySelectorAll('.nav-item').forEach(n => {
     if (n.textContent.trim().toLowerCase().includes(navMap[name])) {
