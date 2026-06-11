@@ -11,7 +11,7 @@ let schoolsFilteredList  = [];
 // ── LOAD DASHBOARD ──
 async function loadDashboard() {
   try {
-    const res = await fetch('/api/schools');
+    const res = await fetch('/api/schools?mode=' + (window.currentMode || 'school'));
     const schools = await res.json();
     allSchools = schools;
 
@@ -73,7 +73,7 @@ async function loadSchools(preserveSelection = false) {
       schoolsCurrentPage = 1;
       selectedSchoolIds.clear();
     }
-    const res = await fetch('/api/schools');
+    const res = await fetch('/api/schools?mode=' + (window.currentMode || 'school'));
     allSchools = await res.json();
     renderSchools(allSchools);
   } catch (e) {
@@ -617,6 +617,7 @@ async function addSchool() {
     estimated_students: document.getElementById('f-estimated_students').value || null,
     assigned_to:        document.getElementById('f-assigned_to').value,
     notes:              document.getElementById('f-notes').value,
+    mode:               window.currentMode || 'school',
   };
 
   try {

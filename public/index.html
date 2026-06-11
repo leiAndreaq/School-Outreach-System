@@ -50,7 +50,39 @@
 
     <!-- Navigation -->
     <nav class="flex-1 py-4 overflow-y-auto">
-      <div class="px-4 mb-2 text-xs tracking-widest text-white/30 font-mono uppercase">Menu</div>
+      <!-- School / Business Mode Toggle -->
+      <div class="px-4 mb-3 flex items-center justify-between">
+        <div class="text-xs tracking-widest text-white/30 font-mono uppercase">Menu</div>
+        <div id="modeToggle" onclick="toggleMode()" style="
+          position: relative; width: 72px; height: 22px;
+          border-radius: 50px;
+          background: linear-gradient(135deg, #2334a8, #1B1F6B);
+          border: 1px solid rgba(255,255,255,0.25);
+          cursor: pointer; user-select: none;
+          transition: background 0.4s ease;
+        ">
+          <!-- Knob -->
+          <div id="modeKnob" style="
+            position: absolute; top: 3px; left: calc(100% - 19px);
+            width: 16px; height: 16px; border-radius: 50%; background: #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+            transition: left 0.35s cubic-bezier(.4,0,.2,1);
+            z-index: 2;
+          "></div>
+          <!-- School label -->
+          <div id="label-school" style="
+            position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+            font-size: 9px; font-weight: 800; letter-spacing: 0.1em; color: #fff;
+            white-space: nowrap; transition: opacity 0.25s; opacity: 1;
+          ">SCHOOL</div>
+          <!-- Business label -->
+          <div id="label-business" style="
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            font-size: 9px; font-weight: 800; letter-spacing: 0.1em; color: #fff;
+            white-space: nowrap; transition: opacity 0.25s; opacity: 0;
+          ">BUSINESS</div>
+        </div>
+      </div>
 
       <div class="nav-item active" onclick="toggleDashboardDropdown()">
         <i data-lucide="layout-dashboard" class="nav-icon"></i>
@@ -76,8 +108,8 @@
         </span>
       </div>
       <div class="nav-item" onclick="showTab('schools'); closeSidebar()">
-        <i data-lucide="school" class="nav-icon"></i>
-        School Leads
+        <i id="nav-schools-icon" data-lucide="school" class="nav-icon"></i>
+        <span id="nav-schools-label">School Leads</span>
       </div>
       <div class="nav-item" onclick="showTab('calendar'); closeSidebar()">
         <i data-lucide="calendar" class="nav-icon"></i>
@@ -170,10 +202,10 @@
 
         <!-- AI Chat Button -->
         <button id="chatToggleBtn" onclick="toggleChat()"
-          style="background:linear-gradient(135deg,#2334a8,#1B1F6B); border:none;
+          style="background:linear-gradient(135deg,#2334a8,#1B1F6B); border:none; outline:none;
             border-radius:9px; width:38px; height:38px; cursor:pointer;
-            display:flex; align-items:center; justify-content:center;
-            box-shadow:0 2px 8px rgba(27,31,107,0.35); transition:opacity 0.15s;"
+            display:flex; align-items:center; justify-content:center; color:#fff;
+            box-shadow:0 2px 8px rgba(27,31,107,0.35); transition:opacity 0.15s; -webkit-tap-highlight-color:transparent;"
           onmouseover="this.style.opacity='0.85'"
           onmouseout="this.style.opacity='1'"
           title="AI Assistant">
@@ -218,7 +250,7 @@
           </div>
 
           <!-- New Leads -->
-          <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-white shadow-sm p-5 transition hover:shadow-md">
+          <div onclick="showTab('schools')" class="relative overflow-hidden rounded-2xl border border-white/10 bg-white shadow-sm p-5 transition hover:shadow-md" style="cursor:pointer;">
             <div class="flex items-start justify-between">
               <div>
                 <p class="text-sm font-medium text-gray-500">New Leads</p>
@@ -232,7 +264,7 @@
           </div>
 
           <!-- Emails Sent -->
-          <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-white shadow-sm p-5 transition hover:shadow-md">
+          <div onclick="showTab('analytics')" class="relative overflow-hidden rounded-2xl border border-white/10 bg-white shadow-sm p-5 transition hover:shadow-md" style="cursor:pointer;">
             <div class="flex items-start justify-between">
               <div>
                 <p class="text-sm font-medium text-gray-500">Emails Sent</p>
@@ -267,8 +299,11 @@
           <!-- Header -->
           <div class="card-header flex items-center justify-between gap-4">
 
-            <!-- Title -->
-            <h3 class="font-semibold text-lg text-navy tracking-tight">
+            <!-- Left spacer (same width as View All button) -->
+            <div style="min-width:100px;"></div>
+
+            <!-- Title centered -->
+            <h3 class="font-semibold text-lg text-navy tracking-tight text-center flex-1" id="dashboard-recent-title">
               Recent School Leads
             </h3>
 
@@ -277,7 +312,8 @@
               onclick="showTab('schools')"
               class="inline-flex items-center gap-2 border border-navy/20 bg-white text-navy
                      text-sm font-semibold px-4 py-2 rounded-xl
-                     hover:bg-navy hover:text-white transition shadow-sm">
+                     hover:bg-navy hover:text-white transition shadow-sm"
+              style="min-width:100px; justify-content:center;">
               <i data-lucide="arrow-right" class="w-4 h-4"></i>
               View All
             </button>
@@ -289,9 +325,9 @@
             <table class="w-full">
               <thead>
                 <tr class="table-head">
-                  <th>School Name</th>
-                  <th>City / Province</th>
-                  <th>Type</th>
+                  <th>Leads</th>
+                  <th>Lead Type</th>
+                  <th>Product</th>
                   <th>Status</th>
                   <th>Date Added</th>
                   <th>Actions</th>
@@ -359,7 +395,7 @@
               </div>
             </div>
           </div>
-          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md">
+          <div onclick="showTab('calendar')" class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md" style="cursor:pointer;">
             <div class="absolute top-0 left-0 h-1 w-full" style="background:#98ABEE;"></div>
             <div class="flex items-start justify-between">
               <div>
@@ -372,7 +408,7 @@
               </div>
             </div>
           </div>
-          <div class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md">
+          <div onclick="showTab('inquiries')" class="relative overflow-hidden rounded-2xl border bg-white shadow-sm p-5 transition hover:shadow-md" style="cursor:pointer;">
             <div class="absolute top-0 left-0 h-1 w-full" style="background:#F9E8C9;"></div>
             <div class="flex items-start justify-between">
               <div>
@@ -427,7 +463,7 @@
       <!-- SCHOOLS TAB -->
       <div id="tab-schools" class="tab-section">
         <div class="flex items-center justify-between mb-6">
-          <h1 class="section-title">School Leads</h1>
+          <h1 class="section-title" id="schools-tab-title">School Leads</h1>
           <div class="flex gap-3 items-center">
             <div style="position:relative; display:inline-block;">
               <input
@@ -449,7 +485,7 @@
             <button onclick="exportSchoolsCSV()" class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:5px;">
               <i data-lucide="download" style="width:14px;height:14px;"></i> Export CSV
             </button>
-            <button onclick="showTab('add')" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">+ Add School</button>
+            <button id="btn-add-lead" onclick="showTab('add')" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">+ Add School</button>
           </div>
         </div>
         <div class="card">
@@ -496,7 +532,7 @@
       <div id="tab-add" class="tab-section">
         <div style="max-width:680px; margin:0 auto;">
           <div style="position:relative; margin-bottom:24px; display:flex; align-items:center; justify-content:center;">
-            <h1 class="section-title">Add School Lead</h1>
+            <h1 class="section-title" id="add-tab-title">Add School Lead</h1>
             <button onclick="showTab('schools')" class="modal-close" style="position:absolute; right:0; top:50%; transform:translateY(-50%);">
               <i data-lucide="x" style="width:16px;height:16px;"></i>
             </button>
@@ -1654,7 +1690,7 @@
   </div>
 
   <!-- FLOATING CLOCK -->
-  <div id="floatingClock" class="fixed bottom-6 right-6 z-50 bg-navy text-white font-mono font-semibold text-sm px-4 py-2 rounded-full shadow-lg">
+  <div id="floatingClock" onclick="this.style.display='none'" class="fixed bottom-6 right-6 z-50 bg-navy text-white font-mono font-semibold text-sm px-4 py-2 rounded-full shadow-lg" style="cursor:pointer;" title="Click to dismiss">
     <span id="clockDisplay"></span>
   </div>
 
@@ -1782,6 +1818,63 @@
         document.body.style.overflow = '';
       }
     });
+
+    // ── SCHOOL / BUSINESS MODE TOGGLE ──
+    let currentMode = 'school';
+
+    function updateModeLabels() {
+      const isSchool = currentMode === 'school';
+      const label = isSchool ? 'School' : 'Business';
+
+      const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      setText('nav-schools-label',      label + ' Leads');
+      setText('schools-tab-title',      label + ' Leads');
+      setText('add-tab-title',          'Add ' + label + ' Lead');
+      setText('dashboard-recent-title', 'Recent ' + label + ' Leads');
+
+      const addBtn = document.getElementById('btn-add-lead');
+      if (addBtn) addBtn.textContent = '+ Add ' + label;
+
+      // Update navMap so sidebar active highlight still works
+      if (window.navMap) {
+        window.navMap.schools = label.toLowerCase() + ' leads';
+        window.navMap.add     = label.toLowerCase() + ' leads';
+      }
+
+      // Update nav icon
+      const navIcon = document.getElementById('nav-schools-icon');
+      if (navIcon) {
+        navIcon.setAttribute('data-lucide', isSchool ? 'school' : 'briefcase');
+        lucide.createIcons();
+      }
+    }
+
+    function toggleMode() {
+      currentMode = currentMode === 'school' ? 'business' : 'school';
+      const toggle = document.getElementById('modeToggle');
+      const knob = document.getElementById('modeKnob');
+      const labelSchool = document.getElementById('label-school');
+      const labelBusiness = document.getElementById('label-business');
+
+      if (currentMode === 'business') {
+        toggle.style.background = 'linear-gradient(135deg, #7c1111, #D01B1B)';
+        knob.style.left = '3px';
+        labelSchool.style.opacity = '0';
+        labelBusiness.style.opacity = '1';
+      } else {
+        toggle.style.background = 'linear-gradient(135deg, #2334a8, #1B1F6B)';
+        knob.style.left = 'calc(100% - 19px)';
+        labelSchool.style.opacity = '1';
+        labelBusiness.style.opacity = '0';
+      }
+
+      updateModeLabels();
+      loadDashboard();
+      loadSchools();
+      // Reload analytics only if that tab is active
+      const analyticsTab = document.getElementById('tab-analytics');
+      if (analyticsTab && analyticsTab.classList.contains('active')) loadAnalytics();
+    }
   </script>
 
 </body>

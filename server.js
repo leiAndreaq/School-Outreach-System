@@ -417,13 +417,14 @@ app.post("/api/schools", [
   }
 
   db.run(
-    `INSERT INTO schools 
-    (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO schools
+    (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       s.school_name, s.contact_person, s.email, s.phone, s.website, s.facebook_page,
       s.address, s.city_province, s.region, s.school_type, s.level_offered,
-      s.estimated_students, s.assigned_to, s.notes
+      s.estimated_students, s.assigned_to, s.notes,
+      s.mode || 'school'
     ],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
@@ -434,7 +435,8 @@ app.post("/api/schools", [
 });
 
 app.get("/api/schools", (req, res) => {
-  db.all(`SELECT * FROM schools ORDER BY created_at DESC`, [], (err, rows) => {
+  const mode = req.query.mode || 'school';
+  db.all(`SELECT * FROM schools WHERE mode = ? ORDER BY created_at DESC`, [mode], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
@@ -780,10 +782,11 @@ app.post("/api/import-csv/preview", upload.single("file"), (req, res) => {
 
 // ── CSV CONFIRM (save rows to DB, return school IDs) ──
 app.post("/api/import-csv/confirm", (req, res) => {
-  const { rows, filename } = req.body;
+  const { rows, filename, mode } = req.body;
   if (!Array.isArray(rows) || !rows.length)
     return res.status(400).json({ error: "No rows to import" });
 
+  const importMode = mode || 'school';
   let imported = 0;
   const errors = [];
   const schoolIds = [];
@@ -793,11 +796,11 @@ app.post("/api/import-csv/confirm", (req, res) => {
     db.run(
       `INSERT INTO schools
        (school_name, contact_person, email, phone, website, facebook_page, address,
-        city_province, region, school_type, level_offered, estimated_students, assigned_to, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [row.school_name, row.contact_person, row.email, row.phone, row.website,
        row.facebook_page, row.address, row.city_province, row.region,
-       row.school_type, row.level_offered, row.estimated_students, row.assigned_to, row.notes],
+       row.school_type, row.level_offered, row.estimated_students, row.assigned_to, row.notes, importMode],
       function (err) {
         if (err) { errors.push(err.message); }
         else { imported++; schoolIds.push(this.lastID); }
@@ -968,29 +971,30 @@ app.get("/api/schools/:id/meetings", (req, res) => {
 });
 
 // ── ANALYTICS ──
-app.get("/api/analytics", (_req, res) => {
+app.get("/api/analytics", (req, res) => {
+  const mode = req.query.mode || 'school';
   const data = {};
   let pending = 6;
   const done = () => { if (--pending === 0) res.json(data); };
 
   db.all(
     `SELECT date(created_at) as day, COUNT(*) as count
-     FROM schools WHERE date(created_at) >= date('now', '-6 days')
+     FROM schools WHERE mode = ? AND date(created_at) >= date('now', '-6 days')
      GROUP BY day ORDER BY day`,
-    [], (_err, rows) => { data.weekly_leads = rows || []; done(); }
+    [mode], (_err, rows) => { data.weekly_leads = rows || []; done(); }
   );
 
   db.all(
     `SELECT date(created_at) as day, COUNT(*) as count
-     FROM schools WHERE date(created_at) >= date('now', '-29 days')
+     FROM schools WHERE mode = ? AND date(created_at) >= date('now', '-29 days')
      GROUP BY day ORDER BY day`,
-    [], (_err, rows) => { data.monthly_leads = rows || []; done(); }
+    [mode], (_err, rows) => { data.monthly_leads = rows || []; done(); }
   );
 
   db.all(
     `SELECT COALESCE(status, 'NEW_LEAD') as status, COUNT(*) as count
-     FROM schools GROUP BY status ORDER BY count DESC`,
-    [], (_err, rows) => { data.status_dist = rows || []; done(); }
+     FROM schools WHERE mode = ? GROUP BY status ORDER BY count DESC`,
+    [mode], (_err, rows) => { data.status_dist = rows || []; done(); }
   );
 
   db.get(
@@ -1841,6 +1845,9 @@ app.get("/api/meetings/upcoming/week", (req, res) => {
 // ── MEETING REMINDER COLUMNS (migration guard) ──
 db.run(`ALTER TABLE meetings ADD COLUMN reminder_day_sent  INTEGER DEFAULT 0`, () => {});
 db.run(`ALTER TABLE meetings ADD COLUMN reminder_hour_sent INTEGER DEFAULT 0`, () => {});
+
+// ── SCHOOL MODE COLUMN (migration guard) ──
+db.run(`ALTER TABLE schools ADD COLUMN mode TEXT DEFAULT 'school'`, () => {});
 
 // ── MEETING REMINDERS ──
 

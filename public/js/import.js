@@ -100,7 +100,7 @@ async function confirmImport() {
     const res  = await fetch('/api/import-csv/confirm', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ rows: pendingImportRows, filename: pendingImportFilename })
+      body:    JSON.stringify({ rows: pendingImportRows, filename: pendingImportFilename, mode: window.currentMode || 'school' })
     });
     const data = await res.json();
 
