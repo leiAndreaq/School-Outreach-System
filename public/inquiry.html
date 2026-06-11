@@ -11,8 +11,51 @@
 </head>
 <body>
 
+<!-- ─────────── PICK PATH SCREEN ─────────── -->
+<div id="pickSidePage" class="pick-overlay">
+  <div class="pick-blob pick-blob-red"></div>
+  <div class="pick-blob pick-blob-blue"></div>
+
+  <div class="pick-inner">
+    <div class="pick-logos">
+      <img src="/images/thinks.png" alt="ThinkTANQ" class="pick-logo-img"/>
+      <div class="logo-divider"></div>
+      <img src="/images/accoutre.png" alt="Accoutre AI" class="pick-logo-img"/>
+    </div>
+    <p class="pick-sub">Select your path to continue</p>
+    <h2 class="pick-title">WHO ARE YOU?</h2>
+
+    <div class="pick-cards-row">
+
+      <!-- Business Card -->
+      <div class="pick-card pick-card-biz" onclick="choosePath()">
+        <div class="pick-card-shine"></div>
+        <div class="pick-card-icon-wrap pick-icon-red">
+          <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/></svg>
+        </div>
+        <div class="pick-card-title">For Business</div>
+        <div class="pick-card-desc">Manage school partnership pipelines, outreach &amp; CRM operations for Accoutre AI.</div>
+        <div class="pick-card-enter pick-enter-red">Enter <span>→</span></div>
+      </div>
+
+      <!-- Schools Card -->
+      <div class="pick-card pick-card-school" onclick="choosePath()">
+        <div class="pick-card-shine"></div>
+        <div class="pick-card-icon-wrap pick-icon-blue">
+          <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="pick-card-title">For Schools</div>
+        <div class="pick-card-desc">Inquire about ThinkTANQ's School Management &amp; Learning System for your institution.</div>
+        <div class="pick-card-enter pick-enter-blue">Enter <span>→</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
 <!-- ─────────── LANDING / HERO PAGE ─────────── -->
-<div id="landingPage">
+<div id="landingPage" style="display:none">
 
   <!-- Topbar -->
   <header class="topbar">
@@ -22,36 +65,245 @@
       <img src="/images/accoutre.png" alt="Accoutre AI" class="logo-img"/>
     </div>
     <div class="topbar-right">
-      Questions? <a href="mailto:accoutre.ai.ph@gmail.com">accoutre.ai.ph@gmail.com</a>
+      <a href="#about" class="topbar-nav-link">About Us</a>
+      <button class="topbar-inquire-btn" onclick="openPrivacy()">Inquire Now</button>
     </div>
   </header>
 
   <!-- Hero -->
   <section class="hero">
     <div class="hero-grid"></div>
-    <div class="hero-right-bg">
-      <img src="/images/path.png" alt=""/>
+    <div class="hero-video-wrap">
+      <div class="hero-video-card">
+        <div class="hero-logo-wrap" style="justify-content:center; margin-bottom:12px;">
+          <img src="/images/finder.png" alt="PATHFinder" class="hero-logo"/>
+        </div>
+        <div class="video-frame-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/YOUR_VIDEO_ID?rel=0&modestbranding=1&color=white"
+            title="ThinkTANQ PathFinder – School Management System Demo"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+          <!-- Placeholder shown while no video is loaded -->
+          <div class="video-placeholder">
+            <div class="video-play-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+                fill="white" stroke="none">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </div>
+            <div class="video-placeholder-text">Demo Video Coming Soon</div>
+          </div>
+        </div>
+        <p class="video-caption">Watch how ThinkTANQ modernises school management &amp; learning</p>
+      </div>
     </div>
     <div class="hero-content">
       <div class="hero-badge"><span class="badge-dot"></span> School Partnership Program</div>
-      <div class="hero-logo-wrap">
-        <img src="/images/finder.png" alt="PATHFinder" class="hero-logo"/>
-      </div>
       <h1 class="hero-tagline">Bring Your School<br/>Into the <span>Future</span></h1>
       <p class="hero-desc">
         Discover how Accoutre AI's PATHFinder system transforms school management,
         partnerships, and training — tailored to your institution's needs.
       </p>
+      <button class="hero-cta" onclick="openPrivacy()">
+        Inquire Now <span class="hero-cta-arrow">→</span>
+      </button>
       <div class="hero-pills">
         <div class="pill"><div class="pill-dot"></div> Free 20–30 Min Presentation</div>
         <div class="pill"><div class="pill-dot"></div> No Commitment Required</div>
         <div class="pill"><div class="pill-dot"></div> Response Within 24 Hours</div>
       </div>
-      <button class="hero-cta" onclick="openPrivacy()">
-        Inquire Now <span class="hero-cta-arrow">→</span>
-      </button>
     </div>
   </section>
+
+
+  <!-- ── FEATURES SECTION ── -->
+  <section class="features-section" id="about">
+    <div class="section-label">What We Offer</div>
+    <h2 class="section-heading">Everything Your School Needs,<br/>In One Platform</h2>
+    <p class="section-sub">ThinkTANQ's PathFinder system covers every aspect of school management and academic delivery — purpose-built for Philippine private schools.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        </div>
+        <h3>Enrollment &amp; Admissions</h3>
+        <p>Streamline the entire enrollment process from application to acceptance with automated workflows and document tracking.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+        </div>
+        <h3>Student Records &amp; Grading</h3>
+        <p>Centralise attendance, academic records, grading, and digital report cards. Generate transcripts in seconds.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <h3>Learning Management System</h3>
+        <p>Deliver lessons, assignments, and assessments online. Full e-library integration for students and teachers.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+        </div>
+        <h3>AI-Assisted Teaching Tools</h3>
+        <p>AI-powered lesson planning, item analysis, and personalised learning recommendations for every student.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Parent &amp; Student Portal</h3>
+        <p>Real-time access to grades, attendance, announcements, and school communications for parents and students.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <h3>Analytics &amp; Dashboard</h3>
+        <p>Multi-campus monitoring, school inventory management, ID generation, and comprehensive data analytics.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ── -->
+  <section class="how-section">
+    <div class="section-label">The Process</div>
+    <h2 class="section-heading">Simple Steps to Get Started</h2>
+    <p class="section-sub">From your first inquiry to a fully running system — we handle everything so you can focus on education.</p>
+    <div class="steps-row">
+      <div class="step-item">
+        <div class="step-circle">1</div>
+        <h3>Submit an Inquiry</h3>
+        <p>Fill out the short form on this page. No commitment required — just tell us about your school.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-circle">2</div>
+        <h3>Free 30-Min Demo</h3>
+        <p>Our team will schedule a free online or onsite presentation tailored to your institution's needs.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-circle">3</div>
+        <h3>Onboarding &amp; Setup</h3>
+        <p>We handle full system setup, data migration, and staff training so your school is ready from day one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── STATS ── -->
+  <section class="stats-section">
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-number">500<span>+</span></div>
+        <div class="stat-label">Schools Reached</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">17<span>+</span></div>
+        <div class="stat-label">Regions Covered</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">50<span>K+</span></div>
+        <div class="stat-label">Students Served</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">24<span>h</span></div>
+        <div class="stat-label">Response Time</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <section class="cta-section">
+    <div class="cta-badge">Get Started Today</div>
+    <h2 class="cta-heading">The complete solution for every school,<span style="display:block; padding-left:22%;">university &amp; institution.</span></h2>
+    <p class="cta-sub">Any curriculum. Any grade. Any subject. Built for the Philippines.</p>
+    <div class="cta-btns">
+      <button class="btn-cta-primary" onclick="openPrivacy()">Inquire Now →</button>
+      <a class="btn-cta-outline" href="#" onclick="return false;">Watch Demo</a>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer class="site-footer">
+    <div class="footer-main">
+      <!-- Brand -->
+      <div>
+        <div class="footer-brand-logos">
+          <img src="/images/thinks.png" alt="ThinkTANQ"/>
+          <div class="logo-divider"></div>
+          <img src="/images/accoutre.png" alt="Accoutre AI"/>
+        </div>
+        <p class="footer-desc">The complete AI platform that manages, teaches, and empowers — purpose-built for schools, universities, and institutions across the Philippines.</p>
+        <div class="footer-meta">
+          SEC Registration: CS202XXXXXXX<br/>
+          <a href="mailto:accoutre.ai.ph@gmail.com" style="color:rgba(255,255,255,.35);text-decoration:none;">accoutre.ai.ph@gmail.com</a>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#">Home</a></li>
+          <li><a href="#" onclick="openPrivacy();return false;">Inquire Now</a></li>
+          <li><a href="#">About Us</a></li>
+        </ul>
+      </div>
+
+      <!-- Contact -->
+      <div class="footer-col">
+        <h4>Sales &amp; Support</h4>
+        <div class="footer-contact-line">
+          Philippines: <strong style="color:rgba(255,255,255,.75);">(+63) 921 696 4799</strong><br/>
+          <a href="mailto:accoutre.ai.ph@gmail.com">accoutre.ai.ph@gmail.com</a><br/>
+          Unit 201, #61 Saudi Arabia St,<br/>Don Bosco, Parañaque City
+        </div>
+      </div>
+
+      <!-- Users / Social -->
+      <div class="footer-col">
+        <h4>Users</h4>
+        <ul>
+          <li><a href="#">School Administrators</a></li>
+          <li><a href="#">Teachers</a></li>
+          <li><a href="#">Parents &amp; Students</a></li>
+        </ul>
+        <div class="footer-connect-label">Connect with us</div>
+        <div class="footer-social">
+          <a href="#" class="social-btn" title="Facebook">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+            </svg>
+          </a>
+          <a href="#" class="social-btn" title="YouTube">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.96-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
+              <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="footer-bottom">
+      <span>© 2026 Accoutre AI Business Creation &amp; Management OPC · Philippines</span>
+      <span style="color:rgba(255,255,255,0.35);">
+        Questions? <a href="mailto:accoutre.ai.ph@gmail.com" style="color:rgba(255,255,255,0.55); text-decoration:none; transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">accoutre.ai.ph@gmail.com</a>
+      </span>
+      <div class="footer-bottom-links">
+        <a href="#">Privacy Policy</a>
+        <span>/</span>
+        <a href="#">Terms of Service</a>
+        <span>/</span>
+        <a href="#">Acceptable Use Policy</a>
+      </div>
+    </div>
+  </footer>
 
 </div><!-- /landingPage -->
 
@@ -61,7 +313,9 @@
   <div class="modal">
     <div class="modal-head">
       <center>
-        <div class="modal-head-icon" aria-hidden="true">🔒</div>
+        <div class="modal-head-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
         <h2 id="privacyTitle">Data Privacy Notice</h2>
         <p>Republic Act No. 10173 — Data Privacy Act of 2012</p>
       </center>
@@ -136,7 +390,9 @@
 
         <!-- ── STEP 1: School Information ── -->
         <div id="step-1" class="form-step">
-          <div class="section-title">🏫 School Information</div>
+          <div class="section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>School Information
+          </div>
           <div class="form-grid g1">
             <div class="field">
               <label for="school_name">School Name <span class="req-star">*</span></label>
@@ -189,7 +445,8 @@
             <input type="hidden" id="city_province" name="city_province"/>
             <div id="regionalWarning" style="display:none; grid-column:1/-1; padding:0;">
               <div style="padding:12px 14px; background:#fef3c7; border:1.5px solid #f59e0b; border-radius:10px; font-size:13px; color:#92400e; line-height:1.6;">
-                🌏 <strong>Outside Metro Manila:</strong> Your school will be assisted by our <strong>regional partner</strong> who will handle the presentation and partnership in your area.
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <strong>Outside Metro Manila:</strong> Your school will be assisted by our <strong>regional partner</strong> who will handle the presentation and partnership in your area.
               </div>
             </div>
           </div>
@@ -200,7 +457,9 @@
 
         <!-- ── STEP 2: Contact Person ── -->
         <div id="step-2" class="form-step" style="display:none">
-          <div class="section-title">👤 Contact Person</div>
+          <div class="section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Contact Person
+          </div>
           <div class="form-grid g2">
             <div class="field">
               <label for="contact_person">Full Name <span class="req-star">*</span></label>
@@ -232,7 +491,9 @@
         <!-- ── STEP 3: Schedule Preference ── -->
 
         <div id="step-3" class="form-step" style="display:none">
-          <div class="section-title">📅 Schedule Preference</div>
+          <div class="section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule Preference
+          </div>
           <p class="section-note">Select your preferred meeting mode and schedule. Our team will confirm the final details. This is not a confirmed booking.</p>
 
           <div class="field" style="margin-bottom:16px">
@@ -246,20 +507,28 @@
 
             <div class="mode-grid">
               <div class="mode-card" id="mode-online" onclick="selectMode('online')" role="button" tabindex="0" aria-pressed="false">
-                <div class="mode-card-icon" aria-hidden="true">💻</div>
+                <div class="mode-card-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
                 <div class="mode-card-title">Online</div>
                 <div class="mode-card-sub">Google Meet / Zoom</div>
-                <div class="mode-card-avail avail-green">✓ Available Nationwide</div>
+                <div class="mode-card-avail avail-green">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:3px"><polyline points="20 6 9 17 4 12"/></svg>Available Nationwide
+                </div>
               </div>
               <div class="mode-card" id="mode-onsite" onclick="selectMode('onsite')" role="button" tabindex="0" aria-pressed="false">
-                <div class="mode-card-icon" aria-hidden="true">🏫</div>
+                <div class="mode-card-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
                 <div class="mode-card-title">Onsite</div>
                 <div class="mode-card-sub">At your school</div>
-                <div class="mode-card-avail avail-amber">⚠ Metro Manila Only</div>
+                <div class="mode-card-avail avail-amber">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Metro Manila Only
+                </div>
               </div>
             </div>
             <div class="onsite-warn" id="onsiteWarn" role="alert">
-              ⚠️ Onsite visits are only available within Metro Manila. If your school is outside Metro Manila, please select Online instead or we will refer you to our regional partner.
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Onsite visits are only available within Metro Manila. If your school is outside Metro Manila, please select Online instead or we will refer you to our regional partner.
             </div>
           </div>
 
@@ -304,7 +573,9 @@
 
         <!-- ── STEP 4: Additional Information ── -->
         <div id="step-4" class="form-step" style="display:none">
-          <div class="section-title">💬 Additional Information</div>
+          <div class="section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Additional Information
+          </div>
           <p class="section-note" style="margin-bottom:20px;">This section is completely optional. You may submit your inquiry without filling anything here.</p>
           <div class="form-grid g1" style="margin-bottom:24px">
             <div class="field">
@@ -324,7 +595,8 @@
           </div>
 
           <div class="privacy-note">
-            🔒 <strong>Privacy Notice:</strong> The information you provide will only be used to contact you regarding the Accoutre AI School Management System presentation. We will never sell or share your data with third parties. You may opt out at any time by replying "unsubscribe" to any of our emails.
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:5px;flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <strong>Privacy Notice:</strong> The information you provide will only be used to contact you regarding the Accoutre AI School Management System presentation. We will never sell or share your data with third parties. You may opt out at any time by replying "unsubscribe" to any of our emails.
           </div>
 
           <!-- Honeypot -->
@@ -337,7 +609,9 @@
             <div style="display:flex; gap:10px;">
               <button type="button" onclick="clearAdditional()" class="btn-step-clear">Clear</button>
               <button type="submit" class="btn-submit" id="submitBtn">
-                <span id="submitText">Submit Inquiry ✉️</span>
+                <span id="submitText">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:5px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Submit Inquiry
+                </span>
               </button>
             </div>
           </div>
@@ -360,7 +634,9 @@
 <div class="success-page" id="successPage" aria-hidden="true">
   <div class="success-inner">
 
-    <div class="success-icon-wrap" aria-hidden="true">✅</div>
+    <div class="success-icon-wrap" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
     <h1>Inquiry Submitted!</h1>
     <p class="success-sub">
       Thank you for your interest. Our team will review your submission and
@@ -406,6 +682,16 @@
 <!-- Toast notification -->
 <div id="toastEl" role="alert" aria-live="assertive"></div>
 
+<script>
+function choosePath() {
+  const overlay = document.getElementById('pickSidePage');
+  overlay.classList.add('pick-exit');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    document.getElementById('landingPage').style.display = 'block';
+  }, 480);
+}
+</script>
 <script src="/js/inquiry.js"></script>
 </body>
 </html>

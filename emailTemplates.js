@@ -252,6 +252,245 @@ ${companyBlock()}`
   };
 }
 
+function formatDateLong(d) {
+  if (!d) return 'To be confirmed';
+  const date = new Date(d + 'T00:00:00');
+  return date.toLocaleDateString('en-PH', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+}
+
+function thankYouInquiryTemplate(inquiry) {
+  const contact  = inquiry.contact_person || 'Valued Partner';
+  const school   = inquiry.school_name    || '';
+  const date     = formatDateLong(inquiry.preferred_date);
+  const time     = inquiry.preferred_time ? formatTime(inquiry.preferred_time) : 'To be confirmed';
+  const mode     = inquiry.preferred_mode === 'ONSITE'
+    ? 'Onsite — At your school'
+    : 'Online — Google Meet / Zoom';
+
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+
+  const videoLink  = 'https://drive.google.com/file/d/1gSNqSGe0LIHJ-h3BFfnShDFvzdfK3-Ae/view?usp=sharing';
+  const videoThumb = 'https://drive.google.com/thumbnail?id=1gSNqSGe0LIHJ-h3BFfnShDFvzdfK3-Ae&sz=w640';
+
+  const infoRow = (label, value) => value ? `
+    <tr>
+      <td style="padding:9px 14px;font-size:13px;color:#6b7280;font-weight:600;
+                 width:40%;border-bottom:1px solid #f0f0f5;">${label}</td>
+      <td style="padding:9px 14px;font-size:13px;color:#1e2a5e;font-weight:500;
+                 border-bottom:1px solid #f0f0f5;">${value}</td>
+    </tr>` : '';
+
+  return {
+    subject: `Inquiry Received — Thank you, ${contact}!`,
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#07092b;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#07092b;">
+<tr><td align="center" style="padding:36px 16px;">
+<table width="580" cellpadding="0" cellspacing="0"
+  style="max-width:580px;width:100%;border-radius:20px;overflow:hidden;
+         box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.06);">
+
+  <!-- HEADER -->
+  <tr>
+    <td style="background:linear-gradient(155deg,#1e2a8a 0%,#111860 55%,#0d1240 100%);
+               padding:36px 44px 30px;text-align:center;">
+      <div style="display:inline-block;background:rgba(255,255,255,0.08);
+                  border:1px solid rgba(255,255,255,0.14);border-radius:40px;
+                  padding:5px 18px;font-size:10px;font-weight:700;
+                  letter-spacing:2.5px;text-transform:uppercase;
+                  color:#a5b4f8;margin-bottom:16px;">
+        &#9679;&nbsp;&nbsp;ThinkTANQ PathFinder
+      </div><br>
+      <span style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">ACCOUTRE</span>
+      <span style="font-size:28px;font-weight:800;color:#e8c56a;letter-spacing:-0.5px;">&nbsp;Ai</span><br>
+      <span style="font-size:11px;color:rgba(255,255,255,0.45);letter-spacing:1.2px;
+                   display:inline-block;margin-top:8px;">
+        School Management &amp; Learning Systems
+      </span>
+    </td>
+  </tr>
+
+  <!-- SUCCESS BANNER -->
+  <tr>
+    <td style="background:#1a3a1a;padding:14px 44px;text-align:center;
+               border-bottom:2px solid #22c55e;">
+      <span style="font-size:13px;font-weight:700;color:#86efac;letter-spacing:0.5px;">
+        &#10003;&nbsp;&nbsp;Inquiry Received Successfully
+      </span>
+    </td>
+  </tr>
+
+  <!-- BODY -->
+  <tr>
+    <td style="background:#f7f8fc;padding:36px 44px 28px;">
+
+      <!-- Greeting -->
+      <p style="font-size:20px;font-weight:800;color:#0d1240;margin:0 0 6px;">
+        Thank you, ${contact}!
+      </p>
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0 0 28px;">
+        We have received your inquiry from <strong style="color:#1e2a8a;">${school}</strong>.
+        Our team will review your submission and reach out within <strong>24 hours</strong>
+        to confirm your presentation schedule.
+      </p>
+
+      <!-- Submitted Info -->
+      <p style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+                color:#9ca3af;margin:0 0 10px;">Submitted Information</p>
+      <table width="100%" cellpadding="0" cellspacing="0"
+        style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:28px;">
+        ${infoRow('School Name',    school)}
+        ${infoRow('School Type',    inquiry.school_type)}
+        ${infoRow('Level Offered',  inquiry.level_offered)}
+        ${infoRow('Location',       inquiry.city_province)}
+        ${infoRow('Contact Person', contact)}
+        ${infoRow('Position',       inquiry.position)}
+        ${infoRow('Phone',          inquiry.phone)}
+      </table>
+
+      <!-- SCHEDULE HIGHLIGHT -->
+      <table width="100%" cellpadding="0" cellspacing="0"
+        style="background:linear-gradient(135deg,#fff0f0 0%,#fff5f5 100%);
+               border:2px solid #C0191A;border-radius:14px;overflow:hidden;margin-bottom:28px;">
+        <tr>
+          <td style="background:linear-gradient(135deg,#8b0000 0%,#C0191A 100%);
+                     padding:12px 22px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:2px;
+                         text-transform:uppercase;color:#fff;">
+              &#128197;&nbsp; Your Demo Schedule
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:22px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width:50%;padding-right:12px;">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;
+                               text-transform:uppercase;color:#9b1c1c;margin-bottom:6px;">Date</div>
+                  <div style="font-size:15px;font-weight:800;color:#1e2a5e;line-height:1.4;">
+                    ${date}
+                  </div>
+                </td>
+                <td style="width:25%;padding-right:12px;border-left:1px solid #fca5a5;padding-left:12px;">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;
+                               text-transform:uppercase;color:#9b1c1c;margin-bottom:6px;">Time</div>
+                  <div style="font-size:15px;font-weight:800;color:#1e2a5e;">
+                    ${time}
+                  </div>
+                </td>
+                <td style="width:25%;border-left:1px solid #fca5a5;padding-left:12px;">
+                  <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;
+                               text-transform:uppercase;color:#9b1c1c;margin-bottom:6px;">Mode</div>
+                  <div style="font-size:13px;font-weight:700;color:#1e2a5e;">
+                    ${mode}
+                  </div>
+                </td>
+              </tr>
+            </table>
+            <p style="font-size:12px;color:#6b7280;margin:14px 0 0;font-style:italic;">
+              This schedule is subject to confirmation. Our team will send you a final confirmation email shortly.
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- VIDEO SECTION -->
+      <p style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+                color:#9ca3af;margin:0 0 12px;">About Us</p>
+      <a href="${videoLink}" target="_blank"
+        style="display:block;text-decoration:none;border-radius:12px;overflow:hidden;
+               position:relative;margin-bottom:10px;border:2px solid #e5e7eb;">
+        <img src="${videoThumb}" alt="Accoutre AI Company Profile"
+          width="100%" style="display:block;width:100%;max-height:300px;object-fit:cover;"/>
+        <table width="100%" cellpadding="0" cellspacing="0"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;
+                 background:rgba(7,9,43,0.45);">
+          <tr><td align="center" valign="middle" style="padding:80px 0;">
+            <div style="width:60px;height:60px;background:rgba(192,25,26,0.9);
+                        border-radius:50%;display:inline-flex;align-items:center;
+                        justify-content:center;">
+              <span style="color:#fff;font-size:22px;margin-left:4px;">&#9654;</span>
+            </div>
+            <br>
+            <span style="color:#fff;font-size:13px;font-weight:700;margin-top:10px;
+                         display:inline-block;letter-spacing:0.5px;">
+              Watch Our Company Profile
+            </span>
+          </td></tr>
+        </table>
+      </a>
+      <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0 0 28px;">
+        Click the image to watch our company profile video
+      </p>
+
+      <!-- NEXT STEPS -->
+      <p style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+                color:#9ca3af;margin:0 0 14px;">What Happens Next</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+        ${[
+          ['1', 'Our team reviews your inquiry and verifies your school details.'],
+          ['2', 'We send you a confirmation email with the final meeting details.'],
+          ['3', 'We present the ThinkTANQ School Management System to your team.'],
+          ['4', 'You decide if it\'s a good fit — absolutely no pressure!']
+        ].map(([n, t]) => `
+        <tr>
+          <td style="width:36px;vertical-align:top;padding:0 12px 14px 0;">
+            <div style="width:28px;height:28px;background:linear-gradient(135deg,#1e2a8a,#111860);
+                        border-radius:50%;text-align:center;line-height:28px;
+                        font-size:12px;font-weight:800;color:#fff;">${n}</div>
+          </td>
+          <td style="font-size:13px;color:#374151;line-height:1.7;padding-bottom:14px;
+                     border-bottom:1px solid #f3f4f6;vertical-align:top;padding-top:4px;">
+            ${t}
+          </td>
+        </tr>`).join('')}
+      </table>
+
+      <!-- QUESTIONS -->
+      <div style="background:#f0f4ff;border-radius:10px;padding:16px 20px;
+                  border-left:3px solid #1e2a8a;">
+        <p style="font-size:13px;color:#1e2a8a;font-weight:700;margin:0 0 4px;">
+          Questions?
+        </p>
+        <p style="font-size:13px;color:#4b5563;margin:0;line-height:1.7;">
+          Reply to this email or contact us at
+          <a href="mailto:${compEmail}" style="color:#C0191A;font-weight:600;
+             text-decoration:none;">${compEmail}</a>
+        </p>
+      </div>
+
+    </td>
+  </tr>
+
+  <!-- FOOTER -->
+  <tr>
+    <td style="background:#ffffff;border-top:1px solid #dde3f5;
+               padding:20px 44px 24px;text-align:center;
+               font-size:11px;color:#94a3b8;line-height:2;">
+      <strong style="color:#374263;">${compName}</strong><br>
+      ${compAddress}<br>
+      <a href="mailto:${compEmail}" style="color:#9ca3af;text-decoration:none;">${compEmail}</a>
+      &nbsp;|&nbsp; ${compPhone}<br><br>
+      To unsubscribe, reply with &ldquo;unsubscribe&rdquo;
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+  };
+}
+
 module.exports = {
   proposalTemplate,
   followUpTemplate,
@@ -259,5 +498,6 @@ module.exports = {
   meetingDayReminderTemplate,
   meetingHourReminderTemplate,
   postMeetingFollowUpTemplate,
+  thankYouInquiryTemplate,
   htmlWrap
 };

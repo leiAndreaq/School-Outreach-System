@@ -98,7 +98,8 @@ const { sendEmail, canSendEmail } = require("./mailer");
 const {
   meetingDayReminderTemplate,
   meetingHourReminderTemplate,
-  postMeetingFollowUpTemplate
+  postMeetingFollowUpTemplate,
+  thankYouInquiryTemplate
 } = require("./emailTemplates");
 
 const app = express();
@@ -1170,10 +1171,29 @@ app.post("/api/inquiries", inquiryLimiter, [
     ],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+
       res.json({
         message: "Inquiry submitted successfully",
         id: this.lastID
       });
+
+      // Send thank-you email to submitter (non-blocking)
+      if (i.email) {
+        try {
+          const tmpl = thankYouInquiryTemplate(i);
+          sendEmail({ to: i.email, subject: tmpl.subject, html: tmpl.html })
+            .then(result => {
+              if (result.sent) {
+                console.log(`[INQUIRY] Thank-you email sent → ${i.email}`);
+              } else {
+                console.warn(`[INQUIRY] Thank-you email not sent → ${result.reason}`);
+              }
+            })
+            .catch(err => console.error('[INQUIRY] Thank-you email error:', err.message));
+        } catch (tmplErr) {
+          console.error('[INQUIRY] Template error:', tmplErr.message);
+        }
+      }
     }
   );
 });

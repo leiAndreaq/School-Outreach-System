@@ -12,7 +12,7 @@ function canSendEmail() {
   );
 }
 
-async function sendEmail({ to, subject, body }) {
+async function sendEmail({ to, subject, body, html }) {
   if (!canSendEmail()) {
     const reasons = [];
     if (process.env.DRAFT_MODE !== "false")   reasons.push("DRAFT_MODE is not set to false");
@@ -46,8 +46,8 @@ async function sendEmail({ to, subject, body }) {
     from: `"${senderName}" <${senderEmail}>`,
     to,
     subject,
-    text: body,
-    html: htmlWrap(body)
+    text: body || '',
+    html: html  || htmlWrap(body)
   });
 
   console.log(`[MAILER] Accepted by SMTP → messageId: ${info.messageId} | response: ${info.response}`);
