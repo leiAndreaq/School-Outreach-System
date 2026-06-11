@@ -3,6 +3,19 @@ let pendingImportRows     = [];
 let pendingImportFilename = '';
 let pendingSchoolIds      = [];
 
+// ── DOWNLOAD CSV TEMPLATE ──
+function downloadCSVTemplate() {
+  const header = 'school_name,contact_person,email,phone,website,facebook_page,address,city_province,region,school_type,level_offered,estimated_students,assigned_to,notes';
+  const blob = new Blob([header + '\n'], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href     = url;
+  link.download = 'school-import-template.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast('Template downloaded', 'success');
+}
+
 // ── STEP 1: Upload CSV → Preview Modal ──
 async function importCSV(input) {
   const file = input.files[0];
@@ -199,18 +212,28 @@ async function sendBulkPromoEmails() {
     const resultEl = document.getElementById('bulkEmailResult');
     resultEl.style.display = 'block';
 
+    const errorList = data.errors && data.errors.length
+      ? `<ul style="margin:8px 0 0 0; padding-left:16px; font-size:12px; line-height:1.8;">
+          ${data.errors.map(e => `<li>${e}</li>`).join('')}
+        </ul>`
+      : '';
+
     if (data.sent > 0) {
       resultEl.innerHTML = `
         <div style="padding:12px 14px; background:#dcfce7; border-radius:8px; font-size:13px; color:#166534;">
           ${licon('check-circle', 14)} <strong>${data.sent} email(s) sent successfully!</strong>
-          ${data.failed > 0 ? `<br/><span style="color:#991b1b;">${data.failed} failed.</span>` : ''}
+          ${data.failed > 0 ? `
+            <div style="margin-top:8px; padding:10px 12px; background:#fee2e2; border-radius:6px; color:#991b1b;">
+              ${licon('alert-triangle', 13)} <strong>${data.failed} failed to send:</strong>
+              ${errorList}
+            </div>` : ''}
         </div>`;
       showToast(data.sent + ' promotional email(s) sent!', 'success');
     } else {
       resultEl.innerHTML = `
         <div style="padding:12px 14px; background:#fee2e2; border-radius:8px; font-size:13px; color:#991b1b;">
-          ${licon('alert-triangle', 14)} No emails were sent. Check SMTP settings.
-          ${data.errors.length ? `<br/><span style="font-size:12px;">${data.errors[0]}</span>` : ''}
+          ${licon('alert-triangle', 14)} <strong>No emails were sent.</strong>
+          ${errorList}
         </div>`;
       showToast('Bulk send failed', 'error');
     }

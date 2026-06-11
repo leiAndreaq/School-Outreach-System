@@ -366,8 +366,7 @@ app.post("/api/schools", [
   body("email")
     .optional()
     .trim()
-    .isEmail().withMessage("Invalid email address")
-    .normalizeEmail(),
+    .isEmail({ domain_specific_validation: false }).withMessage("Invalid email address"),
   body("phone")
     .optional()
     .trim()
@@ -458,7 +457,7 @@ app.put("/api/schools/:id", [
   body("email")
     .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .isEmail().withMessage("Invalid email address"),
+    .isEmail({ domain_specific_validation: false }).withMessage("Invalid email address"),
   body("phone")
     .optional({ nullable: true, checkFalsy: true })
     .trim()
@@ -1845,23 +1844,33 @@ db.run(`ALTER TABLE meetings ADD COLUMN reminder_hour_sent INTEGER DEFAULT 0`, (
 
 // ── MEETING REMINDERS ──
 
-// 6 AM PHT (= 10 PM UTC) — send day-of reminder to every meeting today
-cron.schedule("0 22 * * *", () => {
-  console.log("⏰ Running 6 AM PHT meeting day reminders...");
+// 6 AM PHT — send day-of reminder to every meeting today
+cron.schedule("0 6 * * *", () => {
+  const phtNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const phtStr = phtNow.toISOString().replace('T', ' ').substring(0, 16) + ' PHT';
+  console.log(`[6AM REMINDER] ${phtStr} — checking for meetings today...`);
 
   db.all(
     `SELECT meetings.*, schools.email as school_email
      FROM meetings
      LEFT JOIN schools ON meetings.school_id = schools.id
      WHERE meeting_date = DATE('now', '+8 hours')
-       AND status IN ('SCHEDULED','RESCHEDULED')
+       AND meetings.status IN ('SCHEDULED','RESCHEDULED')
        AND reminder_day_sent = 0`,
     [],
     async (err, meetings) => {
-      if (err || !meetings || !meetings.length) return;
+      if (err) { console.error('[6AM REMINDER] DB error:', err.message); return; }
+      if (!meetings || !meetings.length) {
+        console.log(`[6AM REMINDER] ${phtStr} — no meetings scheduled today`);
+        return;
+      }
 
+      console.log(`[6AM REMINDER] ${phtStr} — found ${meetings.length} meeting(s) today`);
       for (const meeting of meetings) {
-        if (!meeting.school_email) continue;
+        if (!meeting.school_email) {
+          console.warn(`[6AM REMINDER] Skipped ${meeting.school_name} — no school email set`);
+          continue;
+        }
         try {
           const email  = meetingDayReminderTemplate(meeting);
           const result = await sendEmail({ to: meeting.school_email, subject: email.subject, body: email.body });
@@ -1869,24 +1878,29 @@ cron.schedule("0 22 * * *", () => {
             db.run(`UPDATE meetings SET reminder_day_sent = 1 WHERE id = ?`, [meeting.id]);
             logActivity(meeting.school_id, 'REMINDER_SENT',
               `Day-of reminder sent for meeting on ${meeting.meeting_date} at ${meeting.meeting_time}.`);
-            console.log(`✅ Day reminder sent → ${meeting.school_name} (${meeting.school_email})`);
+            console.log(`✅ [6AM REMINDER] Sent → ${meeting.school_name} (${meeting.school_email})`);
+          } else {
+            console.warn(`[6AM REMINDER] Not sent for ${meeting.school_name}: ${result.reason}`);
           }
         } catch (e) {
-          console.error(`❌ Day reminder failed for ${meeting.school_name}:`, e.message);
+          console.error(`❌ [6AM REMINDER] Failed for ${meeting.school_name}:`, e.message);
         }
       }
     }
   );
-});
+}, { timezone: "Asia/Manila" });
 
 // Every 5 minutes — send 1-hour-before reminder when meeting is 55–65 min away (PHT)
 cron.schedule("*/5 * * * *", () => {
+  const phtNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const phtStr = phtNow.toISOString().replace('T', ' ').substring(0, 16) + ' PHT';
+
   db.all(
     `SELECT meetings.*, schools.email as school_email
      FROM meetings
      LEFT JOIN schools ON meetings.school_id = schools.id
      WHERE meeting_date = DATE('now', '+8 hours')
-       AND status IN ('SCHEDULED','RESCHEDULED')
+       AND meetings.status IN ('SCHEDULED','RESCHEDULED')
        AND reminder_hour_sent = 0
        AND (
          CAST(strftime('%H', meeting_time) AS INTEGER) * 60 +
@@ -1900,10 +1914,18 @@ cron.schedule("*/5 * * * *", () => {
        )`,
     [],
     async (err, meetings) => {
-      if (err || !meetings || !meetings.length) return;
+      if (err) { console.error('[1-HR REMINDER] DB error:', err.message); return; }
+      if (!meetings || !meetings.length) {
+        console.log(`[1-HR REMINDER] ${phtStr} — no meetings in 55–65 min window`);
+        return;
+      }
 
+      console.log(`[1-HR REMINDER] ${phtStr} — found ${meetings.length} meeting(s) in window`);
       for (const meeting of meetings) {
-        if (!meeting.school_email) continue;
+        if (!meeting.school_email) {
+          console.warn(`[1-HR REMINDER] Skipped ${meeting.school_name} — no school email set`);
+          continue;
+        }
         try {
           const email  = meetingHourReminderTemplate(meeting);
           const result = await sendEmail({ to: meeting.school_email, subject: email.subject, body: email.body });
@@ -1912,6 +1934,8 @@ cron.schedule("*/5 * * * *", () => {
             logActivity(meeting.school_id, 'REMINDER_SENT',
               `1-hour reminder sent for meeting at ${meeting.meeting_time}.`);
             console.log(`✅ 1-hour reminder sent → ${meeting.school_name} (${meeting.school_email})`);
+          } else {
+            console.warn(`[1-HR REMINDER] Not sent for ${meeting.school_name}: ${result.reason}`);
           }
         } catch (e) {
           console.error(`❌ 1-hour reminder failed for ${meeting.school_name}:`, e.message);
@@ -1924,7 +1948,7 @@ cron.schedule("*/5 * * * *", () => {
 console.log("✅ Meeting reminder scheduler started — day reminder at 6 AM PHT, 1-hour check every 5 min");
 
 // ── AUTO-MARK PAST MEETINGS AS DONE (midnight PHT + 2 min) ──
-cron.schedule("2 16 * * *", () => {
+cron.schedule("2 0 * * *", () => {
   db.all(
     `SELECT id, school_id, meeting_date FROM meetings
      WHERE meeting_date < DATE('now', '+8 hours')
@@ -1945,7 +1969,7 @@ cron.schedule("2 16 * * *", () => {
       );
     }
   );
-});;
+}, { timezone: "Asia/Manila" });
 
 // ── DATABASE BACKUP SYSTEM ──
 

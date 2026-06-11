@@ -110,7 +110,10 @@ async function sendDraft(draftId) {
     'Send Email',
     'btn-navy'
   );
-  if (!ok) return;
+  if (!ok) {
+    openModal('emailModal');
+    return;
+  }
 
   try {
     const res = await fetch('/api/email-drafts/' + draftId + '/send', {
@@ -265,19 +268,26 @@ function goToDraftsPage(page) {
 function previewDraft(id) {
   const d = draftsCache[id];
   if (!d) { showToast('Could not load draft', 'error'); return; }
+
+  // Decode HTML entities from server-side .escape() (e.g. &#x27; → ')
+  const decodeEntities = (str) => {
+    const tmp = document.createElement('textarea');
+    tmp.innerHTML = str;
+    return tmp.value;
+  };
+
   document.getElementById('emailModalBody').innerHTML = `
     <div class="email-subject">Subject: ${d.subject}</div>
-    <div style="margin-top:12px; padding:14px; background:#f9fafb;
-      border:1.5px solid #e5e7eb; border-radius:8px;
-      font-size:13px; line-height:1.8; color:#374151;
-      font-family:'Inter',sans-serif; white-space:pre-wrap;
-      user-select:none; -webkit-user-select:none; pointer-events:none;">
-      ${d.body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-    </div>
+    <textarea id="draftPreviewBody" readonly
+      style="width:100%; min-height:320px; padding:14px; margin-top:12px;
+        background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:8px;
+        font-size:13px; line-height:1.8; color:#374151;
+        font-family:'Inter',sans-serif; resize:none; outline:none; cursor:default;"
+    ></textarea>
   `;
 
+  document.getElementById('draftPreviewBody').value = decodeEntities(d.body);
   document.getElementById('emailModalActions').innerHTML = '';
-
   openModal('emailModal');
 }
 
@@ -298,8 +308,9 @@ async function saveAndSendDraft(draftId) {
     editedBody.includes('https://') ||
     editedBody.includes('http://');
 
-  if (!hasLink) {
-    document.getElementById('meetLinkWarning').style.display = 'block';
+  const warningEl = document.getElementById('meetLinkWarning');
+  if (warningEl && !hasLink) {
+    warningEl.style.display = 'block';
   }
 
   // Save the edited body first

@@ -469,6 +469,10 @@ textarea.input-field {
 
 /* ── EMPTY STATE ── */
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   padding: 50px 20px;
   color: #9ca3af;
