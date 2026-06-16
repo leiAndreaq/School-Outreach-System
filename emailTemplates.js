@@ -264,7 +264,7 @@ function thankYouInquiryTemplate(inquiry) {
   const contact  = inquiry.contact_person || 'Valued Partner';
   const school   = inquiry.school_name    || '';
   const date     = formatDateLong(inquiry.preferred_date);
-  const time     = inquiry.preferred_time ? formatTime(inquiry.preferred_time) : 'To be confirmed';
+  const time     = inquiry.preferred_time || 'To be confirmed';
   const mode     = inquiry.preferred_mode === 'ONSITE'
     ? 'Onsite — At your school'
     : 'Online — Google Meet / Zoom';
@@ -405,31 +405,10 @@ function thankYouInquiryTemplate(inquiry) {
       <!-- VIDEO SECTION -->
       <p style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
                 color:#9ca3af;margin:0 0 12px;">About Us</p>
-      <a href="${videoLink}" target="_blank"
-        style="display:block;text-decoration:none;border-radius:12px;overflow:hidden;
-               position:relative;margin-bottom:10px;border:2px solid #e5e7eb;">
+      <a href="${videoLink}" target="_blank" style="display:block;text-decoration:none;margin-bottom:28px;">
         <img src="${videoThumb}" alt="Accoutre AI Company Profile"
-          width="100%" style="display:block;width:100%;max-height:300px;object-fit:cover;"/>
-        <table width="100%" cellpadding="0" cellspacing="0"
-          style="position:absolute;top:0;left:0;width:100%;height:100%;
-                 background:rgba(7,9,43,0.45);">
-          <tr><td align="center" valign="middle" style="padding:80px 0;">
-            <div style="width:60px;height:60px;background:rgba(192,25,26,0.9);
-                        border-radius:50%;display:inline-flex;align-items:center;
-                        justify-content:center;">
-              <span style="color:#fff;font-size:22px;margin-left:4px;">&#9654;</span>
-            </div>
-            <br>
-            <span style="color:#fff;font-size:13px;font-weight:700;margin-top:10px;
-                         display:inline-block;letter-spacing:0.5px;">
-              Watch Our Company Profile
-            </span>
-          </td></tr>
-        </table>
+          width="100%" style="display:block;width:100%;border-radius:12px;border:2px solid #e5e7eb;"/>
       </a>
-      <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0 0 28px;">
-        Click the image to watch our company profile video
-      </p>
 
       <!-- NEXT STEPS -->
       <p style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
