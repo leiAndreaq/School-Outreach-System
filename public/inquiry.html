@@ -22,8 +22,8 @@
       <div class="logo-divider"></div>
       <img src="/images/accoutre.png" alt="Accoutre AI" class="pick-logo-img"/>
     </div>
-    <p class="pick-sub">Select your path to continue</p>
-    <h2 class="pick-title">WHO ARE YOU?</h2>
+    <p class="pick-sub">Discover solutions built for your needs</p>
+    <h2 class="pick-title">SELECT YOUR ORGANIZATION TYPE</h2>
 
     <div class="pick-cards-row">
 
@@ -62,12 +62,19 @@
     <div class="topbar-left">
       <img src="/images/thinks.png" alt="PATHFinder" class="logo-img"/>
       <div class="logo-divider"></div>
-      <img src="/images/accoutre.png" alt="Accoutre AI" class="logo-img"/>
+      <img src="/images/accoutre.png" alt="Accoutre AI" class="logo-img1"/>
     </div>
     <div class="topbar-right">
-      <a href="#about" class="topbar-nav-link">About Us</a>
-      <button class="topbar-inquire-btn" onclick="openPrivacy()">Inquire Now</button>
-    </div>
+  <a href="#about" class="topbar-nav-link">About Us</a>
+
+  <a href="#contact" class="topbar-nav-link topbar-contact-btn">
+    Contact Us
+  </a>
+
+  <button class="topbar-inquire-btn" onclick="openPrivacy()">
+    Inquire Now
+  </button>
+</div>
   </header>
 
   <!-- Hero -->
@@ -79,25 +86,17 @@
           <img src="/images/finder.png" alt="PATHFinder" class="hero-logo"/>
         </div>
         <div class="video-frame-wrap">
-          <iframe
-            src="https://www.youtube.com/embed/YOUR_VIDEO_ID?rel=0&modestbranding=1&color=white"
-            title="ThinkTANQ PathFinder – School Management System Demo"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen>
-          </iframe>
-          <!-- Placeholder shown while no video is loaded -->
-          <div class="video-placeholder">
-            <div class="video-play-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
-                fill="white" stroke="none">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-            </div>
-            <div class="video-placeholder-text">Demo Video Coming Soon</div>
-          </div>
-        </div>
-        <p class="video-caption">Watch how ThinkTANQ modernises school management &amp; learning</p>
+  <video
+    autoplay
+    muted
+    loop
+    playsinline
+    controls>
+    <source src="./images/PathFinder.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</div>
+        <p class="video-caption">Watch how PATHFinder modernises school management &amp; learning</p>
       </div>
     </div>
     <div class="hero-content">
@@ -219,7 +218,7 @@
   <!-- ── CTA ── -->
   <section class="cta-section">
     <div class="cta-badge">Get Started Today</div>
-    <h2 class="cta-heading">The complete solution for every school,<span style="display:block; padding-left:22%;">university &amp; institution.</span></h2>
+    <h2 class="cta-heading">The complete solution for every school,<span style="display:block;">university  institution.</span></h2>
     <p class="cta-sub">Any curriculum. Any grade. Any subject. Built for the Philippines.</p>
     <div class="cta-btns">
       <button class="btn-cta-primary" onclick="openPrivacy()">Inquire Now →</button>
@@ -228,7 +227,7 @@
   </section>
 
   <!-- ── FOOTER ── -->
-  <footer class="site-footer">
+  <footer class="site-footer" id="contact">
     <div class="footer-main">
       <!-- Brand -->
       <div>
@@ -279,11 +278,48 @@
               <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
             </svg>
           </a>
-          <a href="#" class="social-btn" title="YouTube">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.96-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-              <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>
-            </svg>
+<a
+  href="https://www.instagram.com/thinktanqph_/"
+  target="_blank"
+  rel="noopener noreferrer"
+  class="social-btn"
+  title="Instagram">
+  
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="rgba(255,255,255,.7)"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round">
+
+    <rect
+      x="2"
+      y="2"
+      width="20"
+      height="20"
+      rx="5"
+      ry="5">
+    </rect>
+
+    <circle
+      cx="12"
+      cy="12"
+      r="4">
+    </circle>
+
+    <line
+      x1="17.5"
+      y1="6.5"
+      x2="17.5"
+      y2="6.5">
+    </line>
+
+  </svg>
+</a>
+           
           </a>
         </div>
       </div>
@@ -356,9 +392,9 @@
 
   <header class="form-topbar">
     <div class="form-topbar-left">
-      <img src="/images/thinks.png" alt="PATHFinder" class="logo-img"/>
+      <img src="/images/thinks.png" alt="PATHFinder" class="logo-img1"/>
       <div class="logo-divider"></div>
-      <img src="/images/accoutre.png" alt="Accoutre AI" class="logo-img"/>
+      <img src="/images/accoutre.png" alt="Accoutre AI" class="logo-img1"/>
     </div>
     <div class="form-topbar-center">
       <div class="form-topbar-title">Partnership Inquiry Form</div>
