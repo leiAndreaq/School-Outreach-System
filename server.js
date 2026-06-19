@@ -99,7 +99,8 @@ const {
   meetingDayReminderTemplate,
   meetingHourReminderTemplate,
   postMeetingFollowUpTemplate,
-  thankYouInquiryTemplate
+  thankYouInquiryTemplate,
+  getPromoTemplate
 } = require("./emailTemplates");
 
 const app = express();
@@ -419,13 +420,13 @@ app.post("/api/schools", [
 
   db.run(
     `INSERT INTO schools
-    (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode, lead_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       s.school_name, s.contact_person, s.email, s.phone, s.website, s.facebook_page,
       s.address, s.city_province, s.region, s.school_type, s.level_offered,
       s.estimated_students, s.assigned_to, s.notes,
-      s.mode || 'school'
+      s.mode || 'school', 'OFFICIAL'
     ],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
@@ -436,8 +437,15 @@ app.post("/api/schools", [
 });
 
 app.get("/api/schools", (req, res) => {
-  const mode = req.query.mode || 'school';
-  db.all(`SELECT * FROM schools WHERE mode = ? ORDER BY created_at DESC`, [mode], (err, rows) => {
+  const mode     = req.query.mode      || 'school';
+  const leadType = req.query.lead_type || null;
+
+  const query  = leadType
+    ? `SELECT * FROM schools WHERE mode = ? AND lead_type = ? ORDER BY created_at DESC`
+    : `SELECT * FROM schools WHERE mode = ? ORDER BY created_at DESC`;
+  const params = leadType ? [mode, leadType] : [mode];
+
+  db.all(query, params, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
@@ -797,11 +805,11 @@ app.post("/api/import-csv/confirm", (req, res) => {
     db.run(
       `INSERT INTO schools
        (school_name, contact_person, email, phone, website, facebook_page, address,
-        city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode, lead_type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [row.school_name, row.contact_person, row.email, row.phone, row.website,
        row.facebook_page, row.address, row.city_province, row.region,
-       row.school_type, row.level_offered, row.estimated_students, row.assigned_to, row.notes, importMode],
+       row.school_type, row.level_offered, row.estimated_students, row.assigned_to, row.notes, importMode, 'PROMOTIONAL'],
       function (err) {
         if (err) { errors.push(err.message); }
         else { imported++; schoolIds.push(this.lastID); }
@@ -1030,6 +1038,22 @@ app.get("/api/analytics", (req, res) => {
      WHERE heard_from IS NOT NULL AND heard_from != ''
      GROUP BY heard_from ORDER BY count DESC`,
     [], (_err, rows) => { data.heard_from_dist = rows || []; done(); }
+  );
+});
+
+// ── ACTIVITY LOG API ──
+app.get("/api/activity-logs", (req, res) => {
+  db.all(
+    `SELECT activity_logs.*, schools.school_name
+     FROM activity_logs
+     LEFT JOIN schools ON activity_logs.school_id = schools.id
+     ORDER BY activity_logs.created_at DESC
+     LIMIT 200`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
   );
 });
 
@@ -1416,9 +1440,9 @@ app.get("/api/meetings/past-unupdated", (req, res) => {
     `SELECT meetings.*, schools.email as school_email
      FROM meetings
      LEFT JOIN schools ON meetings.school_id = schools.id
-     WHERE meeting_date < DATE('now', '+8 hours')
-     AND status IN ('SCHEDULED', 'RESCHEDULED')
-     ORDER BY meeting_date DESC`,
+     WHERE meetings.meeting_date < DATE('now', '+8 hours')
+     AND meetings.status IN ('SCHEDULED', 'RESCHEDULED')
+     ORDER BY meetings.meeting_date DESC`,
     [],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -1449,6 +1473,34 @@ app.post("/api/meetings/mark-past-done", (req, res) => {
               `Past meeting on ${m.meeting_date} auto-marked as Done.`);
           });
           res.json({ updated: this.changes });
+
+          rows.forEach(m => {
+            db.get(
+              `SELECT meetings.*, schools.email as school_email, schools.status as school_status
+               FROM meetings LEFT JOIN schools ON meetings.school_id = schools.id
+               WHERE meetings.id = ?`,
+              [m.id],
+              (err, meeting) => {
+                if (err || !meeting) return;
+                if (meeting.school_status === 'PRESENTATION_SCHEDULED') {
+                  db.run(
+                    `UPDATE schools SET status = 'PRESENTED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                    [meeting.school_id]
+                  );
+                  logActivity(meeting.school_id, 'STATUS_UPDATED', 'Status changed to PRESENTED after meeting marked Done.');
+                }
+                if (!meeting.school_email) return;
+                try {
+                  const tmpl = postMeetingFollowUpTemplate(meeting);
+                  sendEmail({ to: meeting.school_email, subject: tmpl.subject, body: tmpl.body, html: tmpl.html })
+                    .then(r => console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`))
+                    .catch(e => console.error('[FOLLOW-UP] Email error:', e.message));
+                } catch (e) {
+                  console.error('[FOLLOW-UP] Template error:', e.message);
+                }
+              }
+            );
+          });
         }
       );
     }
@@ -1660,6 +1712,34 @@ app.patch("/api/meetings/:id/status", (req, res) => {
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ message: "Meeting status updated" });
+
+      if (status === 'DONE') {
+        db.get(
+          `SELECT meetings.*, schools.email as school_email, schools.status as school_status
+           FROM meetings LEFT JOIN schools ON meetings.school_id = schools.id
+           WHERE meetings.id = ?`,
+          [req.params.id],
+          (err, meeting) => {
+            if (err || !meeting) return;
+            if (meeting.school_status === 'PRESENTATION_SCHEDULED') {
+              db.run(
+                `UPDATE schools SET status = 'PRESENTED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                [meeting.school_id]
+              );
+              logActivity(meeting.school_id, 'STATUS_UPDATED', 'Status changed to PRESENTED after meeting marked Done.');
+            }
+            if (!meeting.school_email) return;
+            try {
+              const tmpl = postMeetingFollowUpTemplate(meeting);
+              sendEmail({ to: meeting.school_email, subject: tmpl.subject, body: tmpl.body, html: tmpl.html })
+                .then(r => console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`))
+                .catch(e => console.error('[FOLLOW-UP] Email error:', e.message));
+            } catch (e) {
+              console.error('[FOLLOW-UP] Template error:', e.message);
+            }
+          }
+        );
+      }
     }
   );
 });
@@ -1869,6 +1949,20 @@ db.run(`ALTER TABLE meetings ADD COLUMN reminder_hour_sent INTEGER DEFAULT 0`, (
 // ── SCHOOL MODE COLUMN (migration guard) ──
 db.run(`ALTER TABLE schools ADD COLUMN mode TEXT DEFAULT 'school'`, () => {});
 
+// ── LEAD TYPE COLUMN (migration guard) ──
+db.run(`ALTER TABLE schools ADD COLUMN lead_type TEXT DEFAULT 'OFFICIAL'`, (err) => {
+  if (!err) {
+    db.run(
+      `UPDATE schools SET lead_type = 'PROMOTIONAL'
+       WHERE status = 'NEW_LEAD'
+       AND id NOT IN (SELECT DISTINCT school_id FROM meetings WHERE school_id IS NOT NULL)`,
+      (err) => {
+        if (!err) console.log('✅ lead_type migration complete — untouched imports marked PROMOTIONAL');
+      }
+    );
+  }
+});
+
 // ── MEETING REMINDERS ──
 
 // 6 AM PHT — send day-of reminder to every meeting today
@@ -1992,11 +2086,89 @@ cron.schedule("2 0 * * *", () => {
           rows.forEach(m => logActivity(m.school_id, 'MEETING_AUTO_DONE',
             `Past meeting on ${m.meeting_date} auto-marked as Done by nightly job.`));
           console.log(`✅ Auto-marked ${rows.length} past meeting(s) as Done`);
+
+          rows.forEach(m => {
+            db.get(
+              `SELECT meetings.*, schools.email as school_email, schools.status as school_status
+               FROM meetings LEFT JOIN schools ON meetings.school_id = schools.id
+               WHERE meetings.id = ?`,
+              [m.id],
+              (err, meeting) => {
+                if (err || !meeting) return;
+                if (meeting.school_status === 'PRESENTATION_SCHEDULED') {
+                  db.run(
+                    `UPDATE schools SET status = 'PRESENTED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                    [meeting.school_id]
+                  );
+                  logActivity(meeting.school_id, 'STATUS_UPDATED', 'Status changed to PRESENTED after meeting marked Done.');
+                }
+                if (!meeting.school_email) return;
+                try {
+                  const tmpl = postMeetingFollowUpTemplate(meeting);
+                  sendEmail({ to: meeting.school_email, subject: tmpl.subject, body: tmpl.body, html: tmpl.html })
+                    .then(r => console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`))
+                    .catch(e => console.error('[FOLLOW-UP] Email error:', e.message));
+                } catch (e) {
+                  console.error('[FOLLOW-UP] Template error:', e.message);
+                }
+              }
+            );
+          });
         }
       );
     }
   );
 }, { timezone: "Asia/Manila" });
+
+// ── WEEKLY PROMOTIONAL EMAIL — Every Monday 8:00 AM PHT ──
+cron.schedule("0 8 * * 1", async () => {
+  const phtNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const weekNumber = Math.ceil(
+    (phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000)
+  );
+  console.log(`[PROMO] Monday blast starting — week ${weekNumber}, template ${((weekNumber - 1) % 4) + 1}`);
+
+  db.all(
+    `SELECT * FROM schools
+     WHERE lead_type = 'PROMOTIONAL'
+     AND (promo_unsubscribed IS NULL OR promo_unsubscribed = 0)
+     AND email IS NOT NULL AND email != ''`,
+    [],
+    async (err, schools) => {
+      if (err) { console.error('[PROMO] DB error:', err.message); return; }
+      if (!schools.length) { console.log('[PROMO] No promotional leads to email.'); return; }
+
+      console.log(`[PROMO] Sending to ${schools.length} school(s)...`);
+      let sent = 0, skipped = 0;
+
+      for (const school of schools) {
+        try {
+          const baseUrl      = process.env.APP_URL || 'http://localhost:3000';
+          const inquireUrl   = `${baseUrl}/track?school_id=${school.id}&action=inquire`;
+          const unsubUrl     = `${baseUrl}/track?school_id=${school.id}&action=unsubscribe`;
+          const tmpl         = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl);
+
+          const result = await sendEmail({ to: school.email, subject: tmpl.subject, html: tmpl.html });
+
+          if (result.sent) {
+            logActivity(school.id, 'EMAIL_SENT', `Promotional email (template ${((weekNumber - 1) % 4) + 1}) sent.`);
+            sent++;
+          } else {
+            logActivity(school.id, 'EMAIL_NOT_SENT', `Promotional email not sent: ${result.reason}`);
+            skipped++;
+          }
+        } catch (e) {
+          console.error(`[PROMO] Failed for ${school.school_name}:`, e.message);
+          skipped++;
+        }
+      }
+
+      console.log(`[PROMO] Done — ${sent} sent, ${skipped} skipped.`);
+    }
+  );
+}, { timezone: "Asia/Manila" });
+
+console.log("✅ Weekly promotional email scheduler started — every Monday 8:00 AM PHT");
 
 // ── DATABASE BACKUP SYSTEM ──
 

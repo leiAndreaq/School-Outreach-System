@@ -224,7 +224,8 @@ ${companyBlock()}`
 }
 
 function postMeetingFollowUpTemplate(meeting) {
-  const contact = meeting.contact_person || 'School Administrator';
+  const contact  = meeting.contact_person || 'School Administrator';
+  const school   = meeting.school_name    || 'your school';
   const d = meeting.meeting_date
     ? new Date(meeting.meeting_date + 'T00:00:00').toLocaleDateString('en-PH', {
         month: 'long', day: 'numeric', year: 'numeric'
@@ -232,23 +233,158 @@ function postMeetingFollowUpTemplate(meeting) {
     : 'recently';
   const modeStr = meeting.meeting_mode === 'ONSITE' ? 'onsite visit' : 'online presentation';
 
-  return {
-    subject: `Thank You — Follow-up After Our Presentation with ${meeting.school_name}`,
-    body: `Dear ${contact},
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+
+  const body = `Dear ${contact},
 
 Good day.
 
-Thank you for taking the time to attend our ${modeStr} on ${d}. We truly appreciate the opportunity to present ThinkTANQ's School Management System and Learning Management System to ${meeting.school_name}.
+Thank you for taking the time to attend our ${modeStr} on ${d}. We truly appreciate the opportunity to present ThinkTANQ's School Management System and Learning Management System to ${school}.
 
-We hope the presentation gave you a clearer picture of how the platform can support your school's administration, teachers, students, and parents.
+We hope the presentation gave you a clearer picture of how our platform can support your school's administration, teachers, students, and parents.
 
-If you have any questions or would like to see a more detailed walkthrough of specific features, we would be happy to arrange a follow-up session at your most convenient time.
+Should you have any questions, concerns, or would like to discuss further — whether about features, pricing, or a possible pilot arrangement — please feel free to reply directly to this email. We are always happy to assist.
 
-We look forward to hearing from you and hope to have the privilege of supporting your school.
+We look forward to hearing from you and hope to have the privilege of supporting ${school}.
 
 Respectfully,
 
-${companyBlock()}`
+${companyBlock()}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#f0f2f8;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f8;padding:32px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0"
+  style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;
+         box-shadow:0 4px 24px rgba(27,31,107,0.10);">
+
+  <!-- HEADER -->
+  <tr>
+    <td style="background:linear-gradient(135deg,#07092b 0%,#1B1F6B 100%);
+               padding:32px 44px 28px;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:1px;">
+        Path<span style="color:#e63946;">Finder</span>
+      </div>
+      <div style="font-size:11px;color:#a5b4fc;letter-spacing:2px;
+                  text-transform:uppercase;margin-top:4px;">
+        by ${compName}
+      </div>
+    </td>
+  </tr>
+
+  <!-- THANK YOU BANNER -->
+  <tr>
+    <td style="background:#1B1F6B;padding:0 44px 28px;text-align:center;">
+      <div style="background:#fff;border-radius:12px;padding:20px 24px;">
+        <div style="width:52px;height:52px;background:#dcfce7;border-radius:50%;
+                    margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:26px;">&#10003;</span>
+        </div>
+        <div style="font-size:18px;font-weight:800;color:#1B1F6B;margin-bottom:4px;">
+          Thank You for Attending!
+        </div>
+        <div style="font-size:13px;color:#6b7280;">
+          We appreciate the time you gave us on ${d}.
+        </div>
+      </div>
+    </td>
+  </tr>
+
+  <!-- BODY -->
+  <tr>
+    <td style="background:#ffffff;padding:32px 44px 8px;">
+      <p style="font-size:14px;color:#374151;margin:0 0 16px;">Dear <strong>${contact}</strong>,</p>
+      <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
+        Good day. Thank you for taking the time to attend our <strong>${modeStr}</strong> on <strong>${d}</strong>.
+        We truly appreciate the opportunity to present our School Management System and
+        Learning Management System to <strong>${school}</strong>.
+      </p>
+      <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 24px;">
+        We hope the presentation gave you a clear picture of how ThinkTANQ can help simplify
+        your school's daily operations, support your teachers, and deliver a better experience
+        for your students and parents.
+      </p>
+    </td>
+  </tr>
+
+  <!-- WHAT'S NEXT -->
+  <tr>
+    <td style="background:#ffffff;padding:0 44px 28px;">
+      <p style="font-size:11px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+                color:#9ca3af;margin:0 0 14px;">What You Can Do Next</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        ${[
+          ['&#x2709;', 'Have Questions?',
+           'Reply directly to this email and our team will get back to you as soon as possible.'],
+          ['&#128172;', 'Want to Discuss Further?',
+           'Whether it is about specific features, pricing, or a pilot arrangement — we are open to any conversation.'],
+          ['&#128197;', 'Ready for a Follow-Up?',
+           'If you would like another session with more of your team or a deeper walkthrough, just reply and we will set it up.'],
+        ].map(([icon, title, desc]) => `
+        <tr>
+          <td style="padding:10px 14px 10px 0;vertical-align:top;width:36px;">
+            <div style="width:36px;height:36px;background:#f0f2ff;border-radius:8px;
+                        text-align:center;line-height:36px;font-size:18px;">
+              ${icon}
+            </div>
+          </td>
+          <td style="padding:10px 0;">
+            <div style="font-size:13px;font-weight:700;color:#1B1F6B;margin-bottom:3px;">${title}</div>
+            <div style="font-size:13px;color:#6b7280;line-height:1.6;">${desc}</div>
+          </td>
+        </tr>`).join('')}
+      </table>
+    </td>
+  </tr>
+
+  <!-- CTA -->
+  <tr>
+    <td style="background:#ffffff;padding:0 44px 32px;text-align:center;">
+      <div style="background:#fdf2f2;border-radius:12px;padding:20px 24px;">
+        <p style="font-size:14px;color:#374151;margin:0 0 14px;line-height:1.7;">
+          We look forward to hearing from you and hope to have the privilege of
+          supporting <strong>${school}</strong> on its journey toward a more modern and
+          efficient school system.
+        </p>
+        <a href="mailto:${compEmail}?subject=Re: ThinkTANQ Presentation — ${school}"
+          style="display:inline-block;background:#8b0000;color:#fff;
+                 font-size:13px;font-weight:700;padding:12px 28px;
+                 border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
+          Reply to This Email
+        </a>
+      </div>
+    </td>
+  </tr>
+
+  <!-- FOOTER -->
+  <tr>
+    <td style="background:#ffffff;border-top:1px solid #dde3f5;
+               padding:20px 44px 24px;text-align:center;
+               font-size:11px;color:#94a3b8;line-height:2;">
+      <strong style="color:#374263;">${compName}</strong><br>
+      ${compAddress}<br>
+      <a href="mailto:${compEmail}" style="color:#9ca3af;text-decoration:none;">${compEmail}</a>
+      &nbsp;|&nbsp; ${compPhone}<br><br>
+      To unsubscribe, reply with &ldquo;unsubscribe&rdquo;
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  return {
+    subject: `Thank You for Attending — ${school}`,
+    body,
+    html
   };
 }
 
@@ -470,6 +606,328 @@ function thankYouInquiryTemplate(inquiry) {
   };
 }
 
+// ── PROMOTIONAL EMAIL TEMPLATES ──
+// Shared header/footer builders for promo emails
+function promoHeader(compName) {
+  return `
+  <tr>
+    <td style="background:linear-gradient(135deg,#07092b 0%,#1B1F6B 100%);
+               padding:32px 44px 28px;text-align:center;">
+      <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:1px;">
+        Path<span style="color:#e63946;">Finder</span>
+      </div>
+      <div style="font-size:11px;color:#a5b4fc;letter-spacing:2px;
+                  text-transform:uppercase;margin-top:4px;">by ${compName}</div>
+    </td>
+  </tr>`;
+}
+
+function promoFooter(compName, compAddress, compEmail, compPhone, unsubLink) {
+  return `
+  <tr>
+    <td style="background:#fff;border-top:1px solid #dde3f5;
+               padding:20px 44px 24px;text-align:center;
+               font-size:11px;color:#94a3b8;line-height:2;">
+      <strong style="color:#374263;">${compName}</strong><br>
+      ${compAddress}<br>
+      <a href="mailto:${compEmail}" style="color:#9ca3af;text-decoration:none;">${compEmail}</a>
+      &nbsp;|&nbsp; ${compPhone}<br><br>
+      You are receiving this because your school was listed in our outreach database.<br>
+      <a href="${unsubLink}" style="color:#e63946;text-decoration:underline;">Unsubscribe</a>
+    </td>
+  </tr>`;
+}
+
+function promoWrapper(rows) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#f0f2f8;font-family:'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f8;padding:32px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0"
+  style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;
+         box-shadow:0 4px 24px rgba(27,31,107,0.10);">
+  ${rows}
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+// Template 1 — Introduction: Who we are and what we do
+function promoTemplate1(school, trackInquireUrl, unsubUrl) {
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+  const contact     = school.contact_person || 'School Administrator';
+  const schoolName  = school.school_name    || 'your school';
+
+  const html = promoWrapper(`
+  ${promoHeader(compName)}
+  <tr>
+    <td style="background:#1B1F6B;padding:28px 44px;text-align:center;">
+      <div style="font-size:24px;font-weight:800;color:#fff;line-height:1.3;">
+        A Smarter Way to Run<br/>Your School
+      </div>
+      <div style="font-size:14px;color:#a5b4fc;margin-top:10px;">
+        Introducing ThinkTANQ PathFinder — built for Philippine private schools
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td style="background:#fff;padding:32px 44px;">
+      <p style="font-size:14px;color:#374151;margin:0 0 16px;">Dear <strong>${contact}</strong>,</p>
+      <p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 16px;">
+        Good day. We are <strong>ThinkTANQ</strong>, a Philippine-based technology company that builds
+        School Management and Learning Management Systems specifically designed for private schools
+        across the country.
+      </p>
+      <p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 24px;">
+        We built <strong>PathFinder</strong> to help schools like <strong>${schoolName}</strong> simplify
+        daily operations — from enrollment and attendance to grading, report cards, and parent communication
+        — all in one platform.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+        ${[
+          ['📋', 'School Management', 'Enrollment, attendance, student records, report cards, and more.'],
+          ['📚', 'Learning Management', 'Modules, assessments, e-library, and AI-assisted teacher tools.'],
+          ['👨‍👩‍👧', 'Parent & Student Portal', 'Real-time access for parents and students on any device.'],
+        ].map(([icon, title, desc]) => `
+        <tr>
+          <td style="padding:8px 12px 8px 0;vertical-align:top;width:36px;font-size:22px;">${icon}</td>
+          <td style="padding:8px 0;">
+            <div style="font-size:13px;font-weight:700;color:#1B1F6B;">${title}</div>
+            <div style="font-size:13px;color:#6b7280;line-height:1.6;">${desc}</div>
+          </td>
+        </tr>`).join('')}
+      </table>
+      <div style="text-align:center;margin-bottom:8px;">
+        <a href="${trackInquireUrl}" style="display:inline-block;background:#8b0000;color:#fff;
+           font-size:13px;font-weight:700;padding:13px 32px;border-radius:8px;
+           text-decoration:none;letter-spacing:0.3px;">
+          Book a Free Demo
+        </a>
+      </div>
+      <p style="font-size:12px;color:#9ca3af;text-align:center;margin:8px 0 0;">
+        No commitment required. Just a short 20–30 minute presentation.
+      </p>
+    </td>
+  </tr>
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+
+  return {
+    subject: `Introducing ThinkTANQ — A Smarter Way to Run ${schoolName}`,
+    html
+  };
+}
+
+// Template 2 — Features & Benefits: What the system can do
+function promoTemplate2(school, trackInquireUrl, unsubUrl) {
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+  const contact     = school.contact_person || 'School Administrator';
+  const schoolName  = school.school_name    || 'your school';
+
+  const features = [
+    ['Enrollment & Admission',    'Paperless enrollment with automated student ID generation.'],
+    ['Attendance Monitoring',     'Daily attendance tracking with parent notifications.'],
+    ['Grading & Report Cards',    'Automated computation and digital report card generation.'],
+    ['AI Teacher Assistant',      'Lesson planning, assessment creation, and item analysis powered by AI.'],
+    ['E-Library',                 'Digital library accessible to students and teachers anytime.'],
+    ['School Inventory',          'Track school assets and supplies in one place.'],
+  ];
+
+  const html = promoWrapper(`
+  ${promoHeader(compName)}
+  <tr>
+    <td style="background:#1B1F6B;padding:28px 44px;text-align:center;">
+      <div style="font-size:24px;font-weight:800;color:#fff;line-height:1.3;">
+        Everything Your School Needs.<br/>One Platform.
+      </div>
+      <div style="font-size:14px;color:#a5b4fc;margin-top:10px;">
+        See what ThinkTANQ PathFinder can do for ${schoolName}
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td style="background:#fff;padding:32px 44px;">
+      <p style="font-size:14px;color:#374151;margin:0 0 20px;">Dear <strong>${contact}</strong>,</p>
+      <p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 24px;">
+        Managing a school involves hundreds of moving parts every single day. ThinkTANQ PathFinder
+        brings all of them together so your staff spends less time on paperwork and more time on
+        what matters — your students.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0"
+        style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+        ${features.map(([title, desc], i) => `
+        <tr style="background:${i % 2 === 0 ? '#f9fafb' : '#fff'};">
+          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f5;">
+            <div style="font-size:13px;font-weight:700;color:#1B1F6B;">${title}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px;">${desc}</div>
+          </td>
+        </tr>`).join('')}
+      </table>
+      <div style="text-align:center;margin-bottom:8px;">
+        <a href="${trackInquireUrl}" style="display:inline-block;background:#8b0000;color:#fff;
+           font-size:13px;font-weight:700;padding:13px 32px;border-radius:8px;text-decoration:none;">
+          See It In Action — Book a Demo
+        </a>
+      </div>
+      <p style="font-size:12px;color:#9ca3af;text-align:center;margin:8px 0 0;">
+        Reply to this email if you have questions. We respond within 24 hours.
+      </p>
+    </td>
+  </tr>
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+
+  return {
+    subject: `${schoolName} — Here's What ThinkTANQ PathFinder Can Do For You`,
+    html
+  };
+}
+
+// Template 3 — Problem & Solution: Pain points schools face
+function promoTemplate3(school, trackInquireUrl, unsubUrl) {
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+  const contact     = school.contact_person || 'School Administrator';
+  const schoolName  = school.school_name    || 'your school';
+
+  const problems = [
+    ['Still encoding grades manually on Excel?',       'PathFinder automates grade computation and generates report cards instantly.'],
+    ['Enrollment forms still done on paper?',          'Go fully paperless with digital enrollment, e-signatures, and automated ID generation.'],
+    ['Parents always calling to check on their child?','Give parents real-time access through the student and parent portal.'],
+    ['Teachers spending hours preparing lesson plans?', 'Our AI assistant helps teachers create lesson plans and assessments in minutes.'],
+  ];
+
+  const html = promoWrapper(`
+  ${promoHeader(compName)}
+  <tr>
+    <td style="background:#1B1F6B;padding:28px 44px;text-align:center;">
+      <div style="font-size:24px;font-weight:800;color:#fff;line-height:1.3;">
+        Still Doing This Manually?
+      </div>
+      <div style="font-size:14px;color:#a5b4fc;margin-top:10px;">
+        There is a better way — and we'd like to show you.
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td style="background:#fff;padding:32px 44px;">
+      <p style="font-size:14px;color:#374151;margin:0 0 16px;">Dear <strong>${contact}</strong>,</p>
+      <p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 24px;">
+        Many private schools in the Philippines are still running on manual processes — spreadsheets,
+        paper forms, and disconnected tools. It works, but it costs your team time, energy, and
+        accuracy every single day. ThinkTANQ PathFinder was built to solve exactly these problems.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+        ${problems.map(([problem, solution]) => `
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid #f0f0f5;vertical-align:top;">
+            <div style="font-size:13px;font-weight:700;color:#8b0000;margin-bottom:4px;">❌ ${problem}</div>
+            <div style="font-size:13px;color:#374151;line-height:1.6;">✅ ${solution}</div>
+          </td>
+        </tr>`).join('')}
+      </table>
+      <div style="background:#fdf2f2;border-radius:12px;padding:20px 24px;text-align:center;margin-bottom:0;">
+        <p style="font-size:14px;color:#374151;margin:0 0 14px;">
+          We would love to show <strong>${schoolName}</strong> how much time your team can save.
+        </p>
+        <a href="${trackInquireUrl}" style="display:inline-block;background:#8b0000;color:#fff;
+           font-size:13px;font-weight:700;padding:13px 32px;border-radius:8px;text-decoration:none;">
+          Book a Free 30-Minute Demo
+        </a>
+      </div>
+    </td>
+  </tr>
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+
+  return {
+    subject: `Is ${schoolName} Still Doing These Things Manually?`,
+    html
+  };
+}
+
+// Template 4 — Call to Action / Limited Pilot Slots
+function promoTemplate4(school, trackInquireUrl, unsubUrl) {
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+  const contact     = school.contact_person || 'School Administrator';
+  const schoolName  = school.school_name    || 'your school';
+
+  const html = promoWrapper(`
+  ${promoHeader(compName)}
+  <tr>
+    <td style="background:#8b0000;padding:28px 44px;text-align:center;">
+      <div style="font-size:13px;font-weight:700;color:#fca5a5;letter-spacing:2px;
+                  text-transform:uppercase;margin-bottom:10px;">Limited Pilot Slots Available</div>
+      <div style="font-size:24px;font-weight:800;color:#fff;line-height:1.3;">
+        Be One of the First Schools<br/>to Go Digital with ThinkTANQ
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td style="background:#fff;padding:32px 44px;">
+      <p style="font-size:14px;color:#374151;margin:0 0 16px;">Dear <strong>${contact}</strong>,</p>
+      <p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 16px;">
+        We have been reaching out to select private schools across the Philippines to join our
+        <strong>pilot program</strong> for ThinkTANQ PathFinder — our complete School Management
+        and Learning Management System.
+      </p>
+      <p style="font-size:14px;color:#374151;line-height:1.8;margin:0 0 24px;">
+        Pilot schools receive <strong>priority onboarding, dedicated support, and introductory
+        pricing</strong> not available to schools that join later. We only have a limited number
+        of slots open this quarter, and we would love for <strong>${schoolName}</strong> to be part of it.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0"
+        style="background:#f9fafb;border-radius:12px;padding:0;margin-bottom:24px;overflow:hidden;">
+        ${[
+          ['Priority Onboarding',      'Your school gets set up first with full team training.'],
+          ['Dedicated Support Line',   'Direct access to our technical support team.'],
+          ['Introductory Pricing',     'Special rates locked in for pilot schools.'],
+          ['Feedback-Driven Updates',  'Your suggestions directly shape the next version.'],
+        ].map(([title, desc]) => `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;">
+            <span style="font-size:13px;font-weight:700;color:#1B1F6B;">✦ ${title}</span>
+            <span style="font-size:13px;color:#6b7280;"> — ${desc}</span>
+          </td>
+        </tr>`).join('')}
+      </table>
+      <div style="text-align:center;margin-bottom:8px;">
+        <a href="${trackInquireUrl}" style="display:inline-block;background:#8b0000;color:#fff;
+           font-size:14px;font-weight:800;padding:14px 36px;border-radius:8px;text-decoration:none;">
+          Reserve Our Slot Now
+        </a>
+      </div>
+      <p style="font-size:12px;color:#9ca3af;text-align:center;margin:8px 0 0;">
+        Slots are limited. No payment required to book a demo.
+      </p>
+    </td>
+  </tr>
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+
+  return {
+    subject: `[Limited Slots] ${schoolName} — Join the ThinkTANQ Pilot Program`,
+    html
+  };
+}
+
+function getPromoTemplate(weekNumber, school, trackInquireUrl, unsubUrl) {
+  const templates = [promoTemplate1, promoTemplate2, promoTemplate3, promoTemplate4];
+  const fn = templates[(weekNumber - 1) % templates.length];
+  return fn(school, trackInquireUrl, unsubUrl);
+}
+
 module.exports = {
   proposalTemplate,
   followUpTemplate,
@@ -478,5 +936,10 @@ module.exports = {
   meetingHourReminderTemplate,
   postMeetingFollowUpTemplate,
   thankYouInquiryTemplate,
+  promoTemplate1,
+  promoTemplate2,
+  promoTemplate3,
+  promoTemplate4,
+  getPromoTemplate,
   htmlWrap
 };

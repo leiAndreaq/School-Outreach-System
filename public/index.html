@@ -462,8 +462,26 @@
 
       <!-- SCHOOLS TAB -->
       <div id="tab-schools" class="tab-section">
-        <div class="flex items-center justify-between mb-6">
-          <h1 class="section-title" id="schools-tab-title">School Leads</h1>
+        <div class="flex items-center justify-between mb-4">
+          <h1 class="section-title" id="schools-tab-title">Official Leads</h1>
+        </div>
+
+        <!-- Lead type sub-tab toggle -->
+        <div class="flex gap-2 mb-4">
+          <button id="schools-btn-official"
+            onclick="switchSchoolsView('OFFICIAL')"
+            class="btn-navy text-sm">
+            <i data-lucide="briefcase" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Official Leads
+          </button>
+          <button id="schools-btn-promotional"
+            onclick="switchSchoolsView('PROMOTIONAL')"
+            class="btn-ghost text-sm">
+            <i data-lucide="mail" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Promotional Leads
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between mb-4">
+          <div></div>
           <div class="flex gap-3 items-center">
             <div style="position:relative; display:inline-block;">
               <input
@@ -488,6 +506,7 @@
             <button id="btn-add-lead" onclick="showTab('add')" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">+ Add School</button>
           </div>
         </div>
+
         <div class="card">
 
           <!-- Bulk Action Bar (visible when rows are selected) -->
@@ -706,6 +725,11 @@
             class="btn-ghost text-sm">
             <i data-lucide="archive" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Deletion History
           </button>
+          <button id="archived-btn-activitylog"
+            onclick="switchArchivedView('activitylog')"
+            class="btn-ghost text-sm">
+            <i data-lucide="activity" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Activity Log
+          </button>
         </div>
 
         <!-- Email Drafts sub-section -->
@@ -750,6 +774,29 @@
               </table>
             </div>
             <div id="historyPagination" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-top:1px solid #e5e7eb; font-size:13px; color:#6b7280;"></div>
+          </div>
+        </div>
+
+        <!-- Activity Log sub-section -->
+        <div id="archived-activitylog" style="display:none;">
+          <p class="text-sm text-gray-400 mb-4">
+            A complete record of all major actions and events that happen inside the system each day.
+          </p>
+          <div class="card">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="table-head">
+                    <th>Date &amp; Time</th>
+                    <th>Activity</th>
+                    <th>School</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="activityLogTable"></tbody>
+              </table>
+            </div>
+            <div id="activityLogPagination" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-top:1px solid #e5e7eb; font-size:13px; color:#6b7280;"></div>
           </div>
         </div>
       </div>

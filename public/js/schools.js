@@ -2,6 +2,25 @@
 let allSchools = [];
 let selectedSchoolIds = new Set();
 let currentSchoolStatus = 'NEW_LEAD';
+let currentLeadType = 'OFFICIAL';
+
+// ── SWITCH BETWEEN OFFICIAL / PROMOTIONAL ──
+function switchSchoolsView(type) {
+  currentLeadType = type;
+
+  const activeStyle   = 'btn-navy text-sm';
+  const inactiveStyle = 'btn-ghost text-sm';
+  document.getElementById('schools-btn-official').className    = type === 'OFFICIAL'    ? activeStyle : inactiveStyle;
+  document.getElementById('schools-btn-promotional').className = type === 'PROMOTIONAL' ? activeStyle : inactiveStyle;
+
+  const title = document.getElementById('schools-tab-title');
+  if (title) title.textContent = type === 'OFFICIAL' ? 'Official Leads' : 'Promotional Leads';
+
+  const addBtn = document.getElementById('btn-add-lead');
+  if (addBtn) addBtn.style.display = type === 'OFFICIAL' ? '' : 'none';
+
+  loadSchools();
+}
 
 // ── PAGINATION STATE ──
 const SCHOOLS_PAGE_SIZE = 5;
@@ -11,7 +30,7 @@ let schoolsFilteredList  = [];
 // ── LOAD DASHBOARD ──
 async function loadDashboard() {
   try {
-    const res = await fetch('/api/schools?mode=' + (window.currentMode || 'school'));
+    const res = await fetch('/api/schools?mode=' + (window.currentMode || 'school') + '&lead_type=OFFICIAL');
     const schools = await res.json();
     allSchools = schools;
 
@@ -73,8 +92,9 @@ async function loadSchools(preserveSelection = false) {
       schoolsCurrentPage = 1;
       selectedSchoolIds.clear();
     }
-    const res = await fetch('/api/schools?mode=' + (window.currentMode || 'school'));
-    allSchools = await res.json();
+    const mode = window.currentMode || 'school';
+    const res  = await fetch(`/api/schools?mode=${mode}&lead_type=${currentLeadType}`);
+    allSchools  = await res.json();
     renderSchools(allSchools);
   } catch (e) {
     showToast('Could not load schools', 'error');

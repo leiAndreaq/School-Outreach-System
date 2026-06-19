@@ -325,14 +325,17 @@ window.addEventListener('load', async () => {
 
 // ── ARCHIVED SUB-TAB TOGGLE ──
 function switchArchivedView(view) {
-  const showDrafts  = view === 'drafts';
-  document.getElementById('archived-drafts').style.display  = showDrafts ? 'block' : 'none';
-  document.getElementById('archived-history').style.display = showDrafts ? 'none'  : 'block';
+  document.getElementById('archived-drafts').style.display      = view === 'drafts'      ? 'block' : 'none';
+  document.getElementById('archived-history').style.display     = view === 'history'     ? 'block' : 'none';
+  document.getElementById('archived-activitylog').style.display = view === 'activitylog' ? 'block' : 'none';
 
   const activeStyle   = 'btn-navy text-sm';
   const inactiveStyle = 'btn-ghost text-sm';
-  document.getElementById('archived-btn-drafts').className  = showDrafts ? activeStyle : inactiveStyle;
-  document.getElementById('archived-btn-history').className = showDrafts ? inactiveStyle : activeStyle;
+  document.getElementById('archived-btn-drafts').className      = view === 'drafts'      ? activeStyle : inactiveStyle;
+  document.getElementById('archived-btn-history').className     = view === 'history'     ? activeStyle : inactiveStyle;
+  document.getElementById('archived-btn-activitylog').className = view === 'activitylog' ? activeStyle : inactiveStyle;
+
+  if (view === 'activitylog') loadActivityLog();
 }
 
 // ── LOGOUT ──

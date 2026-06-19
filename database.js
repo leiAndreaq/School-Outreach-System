@@ -19,6 +19,7 @@ db.serialize(() => {
       level_offered TEXT,
       estimated_students INTEGER,
       status TEXT DEFAULT 'NEW_LEAD',
+      lead_type TEXT DEFAULT 'OFFICIAL',
       assigned_to TEXT,
       notes TEXT,
       last_contacted TEXT,
