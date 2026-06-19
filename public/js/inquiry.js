@@ -236,6 +236,7 @@ function updateProgress() {
   const pct = Math.min(Math.round(((filled + extra) / total) * 100), 100);
   $('progressBar').style.width = pct + '%';
   $('progressPct').textContent = pct + '% Complete';
+  schoolUpdateLiveSummary();
 }
 
 /* Attach change listeners */
@@ -260,6 +261,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   loadPsgcRegions();
   updateProgress();
+  schoolUpdateLiveSummary();
 });
 
 
@@ -272,7 +274,11 @@ function showStep(n) {
     if (el) el.style.display = i === n ? 'block' : 'none';
   }
   currentStep = n;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Scroll the right panel to top (not the whole window)
+  const rightPanel = document.querySelector('.school-form-right');
+  if (rightPanel) rightPanel.scrollTo({ top: 0, behavior: 'smooth' });
+  else window.scrollTo({ top: 0, behavior: 'smooth' });
+  schoolUpdateLiveSummary();
 }
 
 function nextStep() {
@@ -388,6 +394,7 @@ function clearAdditional() {
   currentStep = 1;
   showStep(1);
   updateProgress();
+  schoolUpdateLiveSummary();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -434,6 +441,7 @@ function selectMode(mode) {
   $('timeGrid').innerHTML        = '';
 
   updateProgress();
+  schoolUpdateLiveSummary();
 }
 
 
@@ -549,6 +557,7 @@ function selectDate(dateStr) {
   renderTimeSlots();
   updateSummary();
   updateProgress();
+  schoolUpdateLiveSummary();
 }
 
 
@@ -605,6 +614,7 @@ function pickTime(value, label) {
   renderTimeSlots();
   updateSummary();
   updateProgress();
+  schoolUpdateLiveSummary();
 }
 
 function formatTime(t) {
@@ -616,7 +626,110 @@ function formatTime(t) {
 
 
 /* ────────────────────────────────────────────────
-   SELECTION SUMMARY
+   LIVE SUMMARY — Left panel (school form)
+──────────────────────────────────────────────── */
+function schoolUpdateLiveSummary() {
+  function setVal(id, value, emptyText) {
+    const el = $(id);
+    if (!el) return;
+    const v = (value || '').toString().trim();
+    if (v) { el.textContent = v; el.classList.remove('biz-sum-empty'); }
+    else   { el.textContent = emptyText || '—'; el.classList.add('biz-sum-empty'); }
+  }
+
+  // Step dots & label
+  const stepLabel = $('schoolSumStep');
+  if (stepLabel) stepLabel.textContent = 'Step ' + currentStep + ' of ' + TOTAL_STEPS;
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = $('schoolSumDot' + i);
+    if (!dot) continue;
+    dot.classList.toggle('done',   i < currentStep);
+    dot.classList.toggle('active', i === currentStep);
+    if (i > currentStep) { dot.classList.remove('done', 'active'); }
+  }
+
+  // ── School Info ──
+  setVal('schoolSumSchoolName', $('school_name') ? $('school_name').value : '', 'Not entered yet');
+
+  const typeEl  = $('school_type');
+  const levelEl = $('level_offered');
+  const typeV   = typeEl  && typeEl.value  ? typeEl.options[typeEl.selectedIndex].text   : '';
+  const levelV  = levelEl && levelEl.value ? levelEl.options[levelEl.selectedIndex].text : '';
+  const tlEl    = $('schoolSumTypeLevel');
+  if (tlEl) {
+    const combined = [typeV, levelV].filter(Boolean).join(' · ');
+    setVal('schoolSumTypeLevel', combined, '—');
+  }
+
+  const studV = $('estimated_students') && $('estimated_students').value
+    ? $('estimated_students').value + ' students' : '';
+  setVal('schoolSumStudents', studV, '—');
+
+  const cityV   = $('city_province') ? $('city_province').value.trim() : '';
+  const regionEl2 = $('region');
+  const regionV = (!cityV && regionEl2 && regionEl2.value)
+    ? regionEl2.options[regionEl2.selectedIndex].text : '';
+  setVal('schoolSumLocation', cityV || regionV, '—');
+
+  // ── Contact ──
+  const nameV = $('contact_person') ? $('contact_person').value.trim() : '';
+  const posV  = $('position')       ? $('position').value.trim()       : '';
+  const contactCombined = nameV && posV ? nameV + ' (' + posV + ')' : (nameV || posV);
+  setVal('schoolSumContact', contactCombined, '—');
+  setVal('schoolSumEmail', $('email') ? $('email').value : '', '—');
+  setVal('schoolSumPhone', $('phone') ? $('phone').value : '', '—');
+
+  // ── Schedule ──
+  const modeEl = $('schoolSumMode');
+  if (modeEl) {
+    if      (selectedMode === 'ONLINE')  { modeEl.textContent = 'Online (Google Meet / Zoom)'; modeEl.classList.remove('biz-sum-empty'); }
+    else if (selectedMode === 'ONSITE')  { modeEl.textContent = 'Onsite (at your school)';     modeEl.classList.remove('biz-sum-empty'); }
+    else                                 { modeEl.textContent = 'Not selected yet'; modeEl.classList.add('biz-sum-empty'); }
+  }
+
+  const dateEl = $('schoolSumDate');
+  if (dateEl) {
+    if (selectedDate) {
+      const [y, mo, d] = selectedDate.split('-').map(Number);
+      dateEl.textContent = new Date(y, mo - 1, d).toLocaleDateString('en-PH', {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+      });
+      dateEl.classList.remove('biz-sum-empty');
+    } else {
+      dateEl.textContent = 'Not selected yet';
+      dateEl.classList.add('biz-sum-empty');
+    }
+  }
+
+  const timeEl = $('schoolSumTime');
+  if (timeEl) {
+    if (selectedTime) { timeEl.textContent = formatTime(selectedTime); timeEl.classList.remove('biz-sum-empty'); }
+    else              { timeEl.textContent = 'Not selected yet'; timeEl.classList.add('biz-sum-empty'); }
+  }
+
+  // ── Notes (optional, step 4) ──
+  const notesBlock   = $('schoolSumNotesBlock');
+  const notesContent = $('schoolSumNotesContent');
+  if (notesBlock && notesContent) {
+    const heardEl = $('heard_from');
+    const msgEl   = $('message');
+    const heardV  = heardEl && heardEl.value ? heardEl.options[heardEl.selectedIndex].text : '';
+    const msgV    = msgEl   ? msgEl.value.trim() : '';
+    if (heardV || msgV) {
+      notesBlock.style.display = 'block';
+      let html = '';
+      if (heardV) html += '<div class="biz-sum-guest">Heard via: ' + escHtml(heardV) + '</div>';
+      if (msgV)   html += '<div class="biz-sum-guest" style="margin-top:6px;">' + escHtml(msgV) + '</div>';
+      notesContent.innerHTML = html;
+    } else {
+      notesBlock.style.display = 'none';
+    }
+  }
+}
+
+
+/* ────────────────────────────────────────────────
+   SELECTION SUMMARY (inline calendar banner)
 ──────────────────────────────────────────────── */
 function updateSummary() {
   const el = $('selSummary');
@@ -818,6 +931,7 @@ function resetAll() {
   currentStep = 1;
   showStep(1);
   updateProgress();
+  schoolUpdateLiveSummary();
 
   $('submitBtn').disabled         = false;
   $('submitText').textContent     = 'Submit Inquiry ✉️';

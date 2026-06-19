@@ -28,7 +28,7 @@
     <div class="pick-cards-row">
 
       <!-- Business Card -->
-      <div class="pick-card pick-card-biz" onclick="choosePath()">
+      <div class="pick-card pick-card-biz" onclick="chooseBusinessPath()">
         <div class="pick-card-shine"></div>
         <div class="pick-card-icon-wrap pick-icon-red">
           <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/></svg>
@@ -71,8 +71,10 @@
     Contact Us
   </a>
 
+  <button class="topbar-biz-btn" onclick="schoolGoToBiz()">For Business</button>
+
   <button class="topbar-inquire-btn" onclick="openPrivacy()">
-    Inquire Now
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:7px;margin-bottom:1px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Book a Demo
   </button>
 </div>
   </header>
@@ -91,29 +93,29 @@
     muted
     loop
     playsinline
-    controls>
+    disablepictureinpicture
+    controlsList="nodownload noremoteplayback"
+    oncontextmenu="return false;">
     <source src="./images/PathFinder.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
 </div>
         <p class="video-caption">Watch how PATHFinder modernises school management &amp; learning</p>
+        <div class="hero-pills video-pills">
+          <div class="pill"><div class="pill-dot"></div> Free 20–30 Min Presentation</div>
+          <div class="pill"><div class="pill-dot"></div> No Commitment Required</div>
+          <div class="pill"><div class="pill-dot"></div> Response Within 24 Hours</div>
+        </div>
       </div>
     </div>
     <div class="hero-content">
-      <div class="hero-badge"><span class="badge-dot"></span> School Partnership Program</div>
-      <h1 class="hero-tagline">Bring Your School<br/>Into the <span>Future</span></h1>
+      <div class="hero-badge"><span class="badge-dot"></span>For Schools · Partnership Operations</div>
+      <h1 class="hero-tagline">Empowering Schools For<br/>Smarter <span>Future</span></h1>
       <p class="hero-desc">
-        Discover how Accoutre AI's PATHFinder system transforms school management,
-        partnerships, and training — tailored to your institution's needs.
-      </p>
+PATHFinder simplifies school outreach through automated email campaigns and seamless demo scheduling, helping institutions discover the full potential of Accoutre AI's LMS and SMS solutions.      </p>
       <button class="hero-cta" onclick="openPrivacy()">
-        Inquire Now <span class="hero-cta-arrow">→</span>
+        Book a Demo <span class="hero-cta-arrow">→</span>
       </button>
-      <div class="hero-pills">
-        <div class="pill"><div class="pill-dot"></div> Free 20–30 Min Presentation</div>
-        <div class="pill"><div class="pill-dot"></div> No Commitment Required</div>
-        <div class="pill"><div class="pill-dot"></div> Response Within 24 Hours</div>
-      </div>
     </div>
   </section>
 
@@ -221,7 +223,7 @@
     <h2 class="cta-heading">The complete solution for every school,<span style="display:block;">university  institution.</span></h2>
     <p class="cta-sub">Any curriculum. Any grade. Any subject. Built for the Philippines.</p>
     <div class="cta-btns">
-      <button class="btn-cta-primary" onclick="openPrivacy()">Inquire Now →</button>
+      <button class="btn-cta-primary" onclick="openPrivacy()">Book a Demo →</button>
       <a class="btn-cta-outline" href="#" onclick="return false;">Watch Demo</a>
     </div>
   </section>
@@ -405,21 +407,189 @@
     </div>
   </header>
 
-  <!-- Progress Bar (sticky, floats below topbar while scrolling) -->
-  <div class="progress-wrap">
-    <div class="progress-inner">
-      <div class="progress-meta">
-        <span>Form Progress</span>
-        <span id="progressPct">0% Complete</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-    </div>
-  </div>
+  <div class="school-form-layout">
 
-  <div class="form-wrap">
-    <div class="form-card">
+    <!-- ══ LEFT: Live Inquiry Summary ══ -->
+    <aside class="school-sum-panel">
+
+      <div class="biz-sum-logos" style="margin-bottom:24px;">
+        <img src="/images/thinks.png" alt="ThinkTANQ" style="height:58px;object-fit:contain;"/>
+        <div style="width:1px;height:36px;background:rgba(255,255,255,.18);flex-shrink:0;"></div>
+        <img src="/images/accoutre.png" alt="Accoutre AI" style="height:34px;object-fit:contain;"/>
+      </div>
+
+      <div class="school-sum-step-row">
+        <div class="school-sum-step-dots">
+          <div class="school-sum-step-dot active" id="schoolSumDot1"></div>
+          <div class="school-sum-step-dot" id="schoolSumDot2"></div>
+          <div class="school-sum-step-dot" id="schoolSumDot3"></div>
+          <div class="school-sum-step-dot" id="schoolSumDot4"></div>
+        </div>
+        <span class="school-sum-step-label" id="schoolSumStep">Step 1 of 4</span>
+      </div>
+
+      <div class="school-sum-status-badge">
+        <span class="school-sum-pulse-dot"></span>Partnership Inquiry
+      </div>
+
+      <h2 class="biz-sum-title">School Inquiry Form</h2>
+      <p class="biz-sum-subtitle">Your entries will appear here as you fill in each step.</p>
+
+      <div class="biz-sum-divider"></div>
+
+      <!-- School Information -->
+      <div class="biz-sum-section-label">School Information</div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">School Name</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumSchoolName">Not entered yet</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Type &amp; Level</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumTypeLevel">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Students</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumStudents">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Location</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumLocation">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-divider"></div>
+
+      <!-- Contact Person -->
+      <div class="biz-sum-section-label">Contact Person</div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Name &amp; Position</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumContact">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Email</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumEmail">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.13 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.04 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 17z"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Phone</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumPhone">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-divider"></div>
+
+      <!-- Schedule -->
+      <div class="biz-sum-section-label">Schedule Preference</div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Meeting Mode</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumMode">Not selected yet</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Date</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumDate">Not selected yet</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Time</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="schoolSumTime">Not selected yet</div>
+        </div>
+      </div>
+
+      <!-- Notes (shown when step 4 has content) -->
+      <div id="schoolSumNotesBlock" style="display:none;">
+        <div class="biz-sum-divider"></div>
+        <div class="biz-sum-section-label">Additional Notes</div>
+        <div class="biz-sum-row">
+          <div class="biz-sum-row-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="biz-sum-row-content">
+            <div id="schoolSumNotesContent" class="biz-sum-row-value" style="font-size:13px;line-height:1.6;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="biz-sum-spacer"></div>
+
+      <p class="biz-sum-disclaimer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Data collected under RA 10173 — Data Privacy Act of 2012. Not a confirmed booking; our team will confirm within 24 hours.
+      </p>
+    </aside>
+
+    <!-- ══ RIGHT: Progress + Scrollable Form ══ -->
+    <div class="school-form-right">
+
+      <!-- Progress bar (sticky at top of this scrolling panel) -->
+      <div class="progress-wrap">
+        <div class="progress-inner">
+          <div class="progress-meta">
+            <span>Form Progress</span>
+            <span id="progressPct">0% Complete</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-wrap">
+        <div class="form-card">
 
       <!-- Form Body -->
       <form class="form-body" id="inquiryForm" onsubmit="submitForm(event)" novalidate>
@@ -656,12 +826,16 @@
       </form><!-- /inquiryForm -->
     </div><!-- /form-card -->
 
-    <p class="form-footer-note">
-      © 2026 Accoutre AI Business Creation &amp; Management OPC ·
-      Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City ·
-      <a href="mailto:accoutre.ai.ph@gmail.com">accoutre.ai.ph@gmail.com</a>
-    </p>
-  </div><!-- /form-wrap -->
+        <p class="form-footer-note">
+          © 2026 Accoutre AI Business Creation &amp; Management OPC ·
+          Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City ·
+          <a href="mailto:accoutre.ai.ph@gmail.com">accoutre.ai.ph@gmail.com</a>
+        </p>
+      </div><!-- /form-wrap -->
+
+    </div><!-- /school-form-right -->
+
+  </div><!-- /school-form-layout -->
 
 </div><!-- /formPage -->
 
@@ -727,7 +901,861 @@ function choosePath() {
     document.getElementById('landingPage').style.display = 'block';
   }, 480);
 }
+
+function schoolBackToPick() {
+  document.getElementById('landingPage').style.display = 'none';
+  const overlay = document.getElementById('pickSidePage');
+  overlay.style.display = 'flex';
+  overlay.classList.remove('pick-exit');
+  window.scrollTo(0, 0);
+}
+
+function schoolGoToBiz() {
+  document.getElementById('landingPage').style.display = 'none';
+  document.getElementById('bizLandingPage').style.display = 'block';
+  window.scrollTo(0, 0);
+}
 </script>
 <script src="/js/inquiry.js"></script>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     BUSINESS FLOW  (self-contained: landing → inquire → form → thank-you)
+     Does NOT depend on inquiry.js. Reuses existing CSS classes.
+════════════════════════════════════════════════════════════════ -->
+
+<style>
+/* ── Business landing ── */
+#bizLandingPage {
+  display:none; height:100vh; overflow:hidden;
+  background-color: #060929;
+  position: relative;
+}
+/* Right-side image — shows left 75% of photo, crops right 25% */
+.biz-bg-image {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 62%;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.biz-bg-image img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 133%;        /* 100/75 = 1.333 → right 25% spills out and is clipped */
+  height: 100%;
+  object-fit: cover;
+  object-position: left center;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* Fade gradient — left edge of image blends into the dark background */
+.biz-bg-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right,
+    #060929          0%,
+    rgba(6,9,41,.90) 15%,
+    rgba(6,9,41,.50) 38%,
+    rgba(6,9,41,.10) 70%,
+    rgba(6,9,41,.00) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+.biz-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 40px; height:110px; position:sticky; top:0; z-index:60;
+  background:rgba(6,9,41,.55); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.biz-topbar-left { display:flex; align-items:center; gap:20px; }
+.biz-logo  { height:160px; width:190px; object-fit:contain; }
+.biz-logo2 { height:90px;  width:100px; object-fit:contain; }
+.biz-topbar-right { display:flex; align-items:center; gap:24px; }
+
+.biz-hero { height:calc(100vh - 110px); padding:0 60px; display:flex; align-items:center; justify-content:flex-start; position:relative; z-index:1; overflow:hidden; }
+.biz-hero-inner { position:relative; z-index:1; max-width:560px; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:26px; }
+.biz-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(192,25,26,.18); border:1px solid rgba(192,25,26,.42);
+  color:#ff9090; font-size:13.5px; font-weight:600; letter-spacing:.13em;
+  text-transform:uppercase; padding:8px 18px; border-radius:100px;
+}
+.biz-badge .badge-dot { background:#ff4f4f; }
+.biz-title {
+  font-family:'Syne',sans-serif; font-size:clamp(34px,5.5vw,58px); font-weight:800;
+  color:#fff; line-height:1.1; letter-spacing:-.02em;
+}
+.biz-title span {
+  background:linear-gradient(90deg,#C0191A,#8b0000);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.biz-desc { font-size:16px; line-height:1.85; color:rgba(255,255,255,.6); max-width:500px; text-align:left; }
+.biz-cta {
+  display:inline-flex; align-items:center; gap:10px;
+  background:linear-gradient(135deg,#a30000 0%,#8b0000 55%,#5c0000 100%); color:#fff;
+  font-family:'Syne',sans-serif; font-size:17px; font-weight:700; letter-spacing:.05em;
+  text-transform:uppercase; padding:18px 46px; border-radius:999px;
+  border:1px solid rgba(192,25,26,.45); cursor:pointer;
+  transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  position:relative; overflow:hidden;
+  animation:redBtnPulse 3.2s ease-in-out infinite;
+  box-shadow:0 6px 22px rgba(139,0,0,.55), inset 0 1px 0 rgba(255,255,255,.13);
+}
+.biz-cta::before {
+  content:''; position:absolute; top:0; left:-80%;
+  width:55%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);
+  transform:skewX(-18deg); transition:left .5s ease; pointer-events:none;
+}
+.biz-cta:hover::before { left:135%; }
+.biz-cta::after {
+  content:''; position:absolute; top:-40%; left:50%;
+  transform:translateX(-50%); width:70%; height:80%;
+  background:radial-gradient(ellipse at center,rgba(255,160,160,.18) 0%,transparent 70%);
+  pointer-events:none;
+}
+.biz-cta:hover {
+  transform:translateY(-3px);
+  border-color:rgba(220,60,60,.65);
+  box-shadow:0 14px 42px rgba(139,0,0,.72), 0 0 28px rgba(192,25,26,.35), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.biz-cta:active { transform:translateY(0); box-shadow:0 4px 14px rgba(139,0,0,.45); }
+.biz-cta span { font-size:20px; transition:transform .2s; }
+.biz-cta:hover span { transform:translateX(5px); }
+.biz-feature-row { display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-start; margin-top:14px; }
+.biz-feature {
+  flex:1 1 200px; max-width:230px; text-align:left;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  border-radius:16px; padding:22px 20px;
+}
+.biz-feature h4 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:#fff; margin-bottom:8px; }
+.biz-feature p  { font-size:13px; line-height:1.65; color:rgba(255,255,255,.55); }
+
+/* ── Business form extras ── */
+.biz-flabel { display:block; font-size:13px; font-weight:500; color:#374151; margin-bottom:6px; }
+.biz-summary {
+  background:#eef0fb; border-left:3px solid var(--navy2); border-radius:0 10px 10px 0;
+  padding:11px 16px; margin-top:14px; font-size:13px; color:var(--navy2); font-weight:500; line-height:1.6;
+}
+.biz-guest-list { display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+.biz-guest-row { display:flex; gap:8px; align-items:center; }
+.biz-guest-input {
+  flex:1; padding:11px 14px; border:1.5px solid #e5e7eb; border-radius:9px;
+  font-family:'DM Sans',sans-serif; font-size:14px; color:#111827; outline:none;
+  transition:border-color .18s, box-shadow .18s;
+}
+.biz-guest-input:focus { border-color:var(--navy2); box-shadow:0 0 0 3px rgba(27,31,107,.09); }
+.biz-guest-remove {
+  width:38px; height:38px; flex-shrink:0; border-radius:9px;
+  background:#fff; border:1.5px solid #e5e7eb; color:#9ca3af;
+  cursor:pointer; font-size:14px; transition:all .15s;
+}
+.biz-guest-remove:hover { border-color:#fca5a5; color:#b91c1c; background:#fee2e2; }
+.biz-add-guest {
+  margin-top:10px; display:inline-flex; align-items:center; gap:6px;
+  background:transparent; border:1.5px dashed #c7d0f8; color:var(--navy2);
+  font-family:'Syne',sans-serif; font-size:13px; font-weight:600;
+  padding:9px 16px; border-radius:9px; cursor:pointer; transition:all .18s;
+}
+.biz-add-guest:hover { background:#eef0fb; border-color:var(--navy2); }
+
+@media (max-width:600px) {
+  .biz-topbar { padding:0 18px; height:72px; }
+  .biz-hero { padding:80px 20px 60px; justify-content:flex-start; }
+  .biz-hero-inner { text-align:left; align-items:flex-start; max-width:100%; }
+  #bizLandingPage { background-attachment: scroll; background-position: 80% center; }
+}
+
+/* ══════════════════════════════════════════
+   BUSINESS FORM — TWO-PANEL LAYOUT
+══════════════════════════════════════════ */
+.biz-form-layout {
+  display: flex;
+  height: calc(100vh - 100px);
+  overflow: hidden;
+}
+/* ── Left: live summary ── */
+.biz-sum-panel {
+  width: 360px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, #060929 0%, #0c1060 58%, #080420 100%);
+  padding: 36px 32px 28px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255,255,255,.08);
+  display: flex;
+  flex-direction: column;
+}
+/* ── Right: scrollable form ── */
+.biz-form-right {
+  flex: 1;
+  overflow-y: auto;
+  padding: 36px 44px 60px;
+  background: #eef0f8;
+}
+.biz-form-right .form-card { max-width: 700px; margin: 0 auto; }
+.biz-form-right .form-footer-note { max-width: 700px; margin: 18px auto 0; }
+
+/* ── Summary panel atoms ── */
+.biz-sum-logos { display:flex; align-items:center; gap:14px; margin-bottom:26px; }
+.biz-sum-status-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(192,25,26,.15); border:1px solid rgba(192,25,26,.28);
+  color:#ff9090; font-size:11px; font-weight:700;
+  letter-spacing:.10em; text-transform:uppercase;
+  padding:6px 13px; border-radius:999px; margin-bottom:20px; width:fit-content;
+}
+.biz-sum-pulse-dot {
+  width:7px; height:7px; background:#ff4f4f;
+  border-radius:50%; flex-shrink:0;
+  animation:bizSumPulse 2s ease-in-out infinite;
+}
+@keyframes bizSumPulse {
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%    { opacity:.35; transform:scale(.6); }
+}
+.biz-sum-title {
+  font-family:'Syne',sans-serif; font-size:24px; font-weight:800;
+  color:#fff; margin-bottom:8px; line-height:1.2;
+}
+.biz-sum-subtitle {
+  font-size:13px; color:rgba(255,255,255,.38);
+  line-height:1.65; margin-bottom:0;
+}
+.biz-sum-divider { height:1px; background:rgba(255,255,255,.08); margin:22px 0; }
+.biz-sum-section-label {
+  font-size:10px; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:rgba(255,255,255,.30); margin-bottom:14px;
+}
+.biz-sum-row { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
+.biz-sum-row-icon {
+  width:30px; height:30px; flex-shrink:0;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.10);
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  color:rgba(255,255,255,.45); margin-top:1px;
+}
+.biz-sum-row-content { flex:1; min-width:0; }
+.biz-sum-row-label {
+  font-size:11px; font-weight:600; color:rgba(255,255,255,.30);
+  text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px;
+}
+.biz-sum-row-value {
+  font-size:14px; font-weight:500;
+  color:rgba(255,255,255,.88); line-height:1.5; word-break:break-word;
+}
+.biz-sum-empty {
+  color:rgba(255,255,255,.22) !important;
+  font-style:italic; font-weight:400 !important; font-size:13px !important;
+}
+.biz-sum-guest { font-size:13px; color:rgba(255,255,255,.75); padding:2px 0; }
+.biz-sum-spacer { flex:1; }
+.biz-sum-disclaimer {
+  font-size:11.5px; color:rgba(255,255,255,.22); line-height:1.7;
+  margin-top:20px; padding-top:18px; border-top:1px solid rgba(255,255,255,.06);
+}
+
+/* ── Bigger font sizes inside the biz form right panel ── */
+#bizFormPage .form-body .section-title { font-size:14px; }
+#bizFormPage .form-body .section-note  { font-size:15px; color:#6b7280; }
+#bizFormPage .form-body .field label,
+#bizFormPage .form-body .biz-flabel   { font-size:15px; margin-bottom:8px; font-weight:600; }
+#bizFormPage .form-body .field input,
+#bizFormPage .form-body .field select,
+#bizFormPage .form-body .field textarea { font-size:16px; padding:13px 16px; }
+#bizFormPage .biz-guest-input { font-size:15px; padding:12px 15px; }
+#bizFormPage .biz-add-guest   { font-size:14px; }
+#bizFormPage .cal-day-label   { font-size:12px; padding:10px 0; }
+#bizFormPage .cal-cell        { font-size:15px; }
+#bizFormPage .time-slot       { font-size:15px; padding:13px 10px; }
+#bizFormPage .btn-submit,
+#bizFormPage .btn-step-back   { font-size:15px; padding:14px 28px; }
+
+@media (max-width:900px) {
+  .biz-form-layout { flex-direction:column; height:auto; overflow:visible; }
+  .biz-sum-panel { width:100%; height:auto; border-right:none; border-bottom:1px solid rgba(255,255,255,.08); }
+  .biz-form-right { padding:28px 20px 48px; }
+}
+</style>
+
+
+<!-- ─────────── BUSINESS LANDING ─────────── -->
+<div id="bizLandingPage">
+  <div class="biz-bg-image">
+    <img src="/images/Infanta.jfif" alt="" draggable="false" oncontextmenu="return false;">
+  </div>
+  <header class="biz-topbar">
+    <div class="biz-topbar-left">
+      <img src="/images/thinks.png" alt="ThinkTANQ" class="biz-logo"/>
+      <div class="logo-divider"></div>
+      <img src="/images/accoutre.png" alt="Accoutre AI" class="biz-logo2"/>
+    </div>
+    <div class="biz-topbar-right">
+      <button class="topbar-inquire-btn" onclick="bizGoToSchool()" style="animation:none;">For School</button>
+      <button class="topbar-biz-btn" onclick="bizOpenForm()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:7px;margin-bottom:1px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Inquire Now</button>
+    </div>
+  </header>
+
+  <section class="biz-hero">
+    <div class="biz-hero-inner">
+      <div class="biz-badge"><span class="badge-dot"></span> For Business · Partnership Operations</div>
+      <h1 class="biz-title">Driving Businesses Toward Meaningful<br/><span>Growth</span></h1>
+      <p class="biz-desc">
+        Schedule a consultation with Accoutre AI to explore partnership opportunities, innovative solutions, and strategies tailored to your organization's goals.
+      </p>
+      <button class="biz-cta" onclick="bizOpenForm()">Inquire Now <span>→</span></button>
+
+     
+    </div>
+  </section>
+</div>
+
+
+<!-- ─────────── BUSINESS FORM ─────────── -->
+<div class="form-page" id="bizFormPage" aria-hidden="true">
+  <header class="form-topbar">
+    <div class="form-topbar-left">
+      <img src="/images/thinks.png" alt="ThinkTANQ" class="logo-img1"/>
+      <div class="logo-divider"></div>
+      <img src="/images/accoutre.png" alt="Accoutre AI" class="logo-img1"/>
+    </div>
+    <div class="form-topbar-center">
+      <div class="form-topbar-title">Schedule a Meeting</div>
+      <div class="form-topbar-sub">Fields marked with <span class="req-star">*</span> are required</div>
+    </div>
+    <div class="form-topbar-right">
+      <button onclick="bizCloseForm()" aria-label="Close form" class="form-close-btn">✕</button>
+    </div>
+  </header>
+
+  <div class="biz-form-layout">
+
+    <!-- ══ LEFT: Live Meeting Summary ══ -->
+    <aside class="biz-sum-panel">
+
+      <div class="biz-sum-logos">
+        <img src="/images/thinks.png" alt="ThinkTANQ" style="height:58px;object-fit:contain;"/>
+        <div style="width:1px;height:36px;background:rgba(255,255,255,.18);flex-shrink:0;"></div>
+        <img src="/images/accoutre.png" alt="Accoutre AI" style="height:34px;object-fit:contain;"/>
+      </div>
+
+      <div class="biz-sum-status-badge">
+        <span class="biz-sum-pulse-dot"></span>Pending Request
+      </div>
+
+      <h2 class="biz-sum-title">Meeting Request</h2>
+      <p class="biz-sum-subtitle">Complete the form and your details will appear here as you go.</p>
+
+      <div class="biz-sum-divider"></div>
+
+      <!-- Schedule block -->
+      <div class="biz-sum-section-label">Schedule</div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Date</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="bizLiveSumDate">Not selected yet</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Time</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="bizLiveSumTime">Not selected yet</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-divider"></div>
+
+      <!-- Contact block -->
+      <div class="biz-sum-section-label">Your Details</div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Name</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="bizLiveSumName">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Email</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="bizLiveSumEmail">—</div>
+        </div>
+      </div>
+
+      <!-- Guests (shown when added) -->
+      <div id="bizLiveSumGuestsBlock" style="display:none;">
+        <div class="biz-sum-row">
+          <div class="biz-sum-row-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="biz-sum-row-content">
+            <div class="biz-sum-row-label">Guests</div>
+            <div id="bizLiveSumGuests" class="biz-sum-row-value"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes (shown when filled) -->
+      <div id="bizLiveSumNotesBlock" style="display:none;">
+        <div class="biz-sum-divider"></div>
+        <div class="biz-sum-section-label">Notes</div>
+        <div class="biz-sum-row">
+          <div class="biz-sum-row-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="biz-sum-row-content">
+            <div class="biz-sum-row-value" id="bizLiveSumNotes" style="font-size:13px;line-height:1.6;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="biz-sum-spacer"></div>
+
+      <p class="biz-sum-disclaimer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        This is not a confirmed booking. Our team will review and confirm your meeting within 24 hours.
+      </p>
+    </aside>
+
+    <!-- ══ RIGHT: Scrollable Form ══ -->
+    <div class="biz-form-right">
+      <div class="form-card">
+        <form class="form-body" id="bizForm" onsubmit="bizSubmit(event)" novalidate>
+
+          <!-- Date & Time -->
+          <div class="section-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Date &amp; Time
+          </div>
+          <p class="section-note">Pick a preferred date and time. Our team will confirm the final details — this is not a confirmed booking.</p>
+
+          <div class="cal-card">
+            <div class="cal-head">
+              <button type="button" class="cal-nav" onclick="bizCalPrev()" aria-label="Previous month">← Prev</button>
+              <div class="cal-head-title" id="bizCalTitle" aria-live="polite"></div>
+              <button type="button" class="cal-nav" onclick="bizCalNext()" aria-label="Next month">Next →</button>
+            </div>
+            <div class="cal-days" aria-hidden="true">
+              <div class="cal-day-label">SUN</div><div class="cal-day-label">MON</div>
+              <div class="cal-day-label">TUE</div><div class="cal-day-label">WED</div>
+              <div class="cal-day-label">THU</div><div class="cal-day-label">FRI</div>
+              <div class="cal-day-label">SAT</div>
+            </div>
+            <div class="cal-grid" id="bizCalGrid" role="grid" aria-label="Select a date"></div>
+            <div class="cal-legend" aria-hidden="true">
+              <div class="leg-item"><div class="leg-dot" style="background:#bbf7d0;border:1px solid #86efac"></div>Available</div>
+              <div class="leg-item"><div class="leg-dot" style="background:#e5e7eb"></div>Unavailable</div>
+              <div class="leg-item"><div class="leg-dot" style="background:#080c36"></div>Selected</div>
+            </div>
+          </div>
+
+          <div id="bizTimeSection" style="display:none; margin-top:20px;">
+            <label class="biz-flabel">Preferred Time <span class="req-star">*</span></label>
+            <div class="time-grid" id="bizTimeGrid" role="group" aria-label="Select a time slot"></div>
+          </div>
+
+          <!-- Your Details -->
+          <div class="section-title" style="margin-top:34px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Your Details
+          </div>
+
+          <div class="form-grid g1">
+            <div class="field">
+              <label for="bizName">Name <span class="req-star">*</span></label>
+              <input type="text" id="bizName" name="name" placeholder="e.g. Maria Santos" required autocomplete="name"/>
+            </div>
+            <div class="field">
+              <label for="bizEmail">Email <span class="req-star">*</span></label>
+              <input type="email" id="bizEmail" name="email" placeholder="e.g. you@company.com" required autocomplete="email"/>
+              <div class="biz-guest-list" id="bizGuestList"></div>
+              <button type="button" class="biz-add-guest" onclick="bizAddGuest()">+ Add guest email</button>
+            </div>
+            <div class="field">
+              <label for="bizMessage">Description <span class="opt-label">(optional)</span></label>
+              <textarea id="bizMessage" name="description" placeholder="Please share anything that will help prepare for our meeting."></textarea>
+            </div>
+          </div>
+
+          <div class="step-nav">
+            <button type="button" onclick="bizCloseForm()" class="btn-step-back">← Back</button>
+            <button type="submit" class="btn-submit">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:6px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Submit Inquiry
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <p class="form-footer-note">
+        © 2026 Accoutre AI Business Creation &amp; Management OPC ·
+        <a href="mailto:accoutre.ai.ph@gmail.com">accoutre.ai.ph@gmail.com</a>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─────────── BUSINESS THANK-YOU ─────────── -->
+<div class="success-page" id="bizSuccessPage" aria-hidden="true">
+  <div class="success-inner">
+    <div class="success-icon-wrap" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <h1>Thanks for Inquiring!</h1>
+    <p class="success-sub">
+      We've received your request. Our team will review it and reach out within
+      <strong>24 hours</strong> to confirm your meeting.
+    </p>
+
+    <div class="success-summary-card" id="bizSuccessSummary" style="max-width:460px;margin-left:auto;margin-right:auto;">
+      <!-- populated by JS -->
+    </div>
+
+    <p class="success-email-note">
+      Questions? Email us at
+      <a href="mailto:accoutre.ai.ph@gmail.com">accoutre.ai.ph@gmail.com</a>
+    </p>
+
+    <button class="btn-another" onclick="bizReset()">← Back to Home</button>
+  </div>
+</div>
+
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- navigation ---------- */
+  window.chooseBusinessPath = function () {
+    var overlay = document.getElementById('pickSidePage');
+    overlay.classList.add('pick-exit');
+    setTimeout(function () {
+      overlay.style.display = 'none';
+      document.getElementById('bizLandingPage').style.display = 'block';
+      window.scrollTo(0, 0);
+    }, 480);
+  };
+
+  window.bizBackToPick = function () {
+    document.getElementById('bizLandingPage').style.display = 'none';
+    var overlay = document.getElementById('pickSidePage');
+    overlay.style.display = 'flex';
+    overlay.classList.remove('pick-exit');
+    window.scrollTo(0, 0);
+  };
+
+  window.bizGoToSchool = function () {
+    document.getElementById('bizLandingPage').style.display = 'none';
+    document.getElementById('landingPage').style.display = 'block';
+    window.scrollTo(0, 0);
+  };
+
+  window.bizOpenForm = function () {
+    document.getElementById('bizLandingPage').style.display = 'none';
+    document.getElementById('bizFormPage').classList.add('active');
+    document.getElementById('bizFormPage').setAttribute('aria-hidden', 'false');
+    window.scrollTo(0, 0);
+    renderCalendar();
+    bizUpdateLiveSummary();
+    // Attach live-update listeners (idempotent — safe to call multiple times)
+    var nameInput  = document.getElementById('bizName');
+    var emailInput = document.getElementById('bizEmail');
+    var msgInput   = document.getElementById('bizMessage');
+    if (nameInput  && !nameInput._bizBound)  { nameInput._bizBound  = true; nameInput.addEventListener('input',  bizUpdateLiveSummary); }
+    if (emailInput && !emailInput._bizBound) { emailInput._bizBound = true; emailInput.addEventListener('input', bizUpdateLiveSummary); }
+    if (msgInput   && !msgInput._bizBound)   { msgInput._bizBound   = true; msgInput.addEventListener('input',   bizUpdateLiveSummary); }
+  };
+
+  window.bizCloseForm = function () {
+    document.getElementById('bizFormPage').classList.remove('active');
+    document.getElementById('bizFormPage').setAttribute('aria-hidden', 'true');
+    document.getElementById('bizLandingPage').style.display = 'block';
+    window.scrollTo(0, 0);
+  };
+
+  /* ---------- calendar state ---------- */
+  var viewDate = new Date();
+  var selectedDate = null;
+  var selectedTime = null;
+  var TIMES = ['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'];
+
+  function sameDay(a, b) {
+    return a && b && a.getFullYear() === b.getFullYear() &&
+           a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function fmtDate(d) {
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  function renderCalendar() {
+    var grid = document.getElementById('bizCalGrid');
+    var title = document.getElementById('bizCalTitle');
+    grid.innerHTML = '';
+    var y = viewDate.getFullYear(), m = viewDate.getMonth();
+    title.textContent = viewDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    var firstDow = new Date(y, m, 1).getDay();
+    var daysInMonth = new Date(y, m + 1, 0).getDate();
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+
+    for (var i = 0; i < firstDow; i++) {
+      var blank = document.createElement('div');
+      blank.className = 'cal-cell empty';
+      grid.appendChild(blank);
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      (function (day) {
+        var cell = document.createElement('div');
+        var date = new Date(y, m, day);
+        var dow = date.getDay();
+        cell.textContent = day;
+
+        // Past dates and weekends are unavailable
+        if (date < today || dow === 0 || dow === 6) {
+          cell.className = 'cal-cell past';
+        } else {
+          cell.className = 'cal-cell available';
+          if (sameDay(selectedDate, date)) cell.classList.add('selected');
+          cell.setAttribute('role', 'button');
+          cell.onclick = function () {
+            selectedDate = date;
+            selectedTime = null;
+            renderCalendar();
+            renderTimes();
+            bizUpdateLiveSummary();
+          };
+        }
+        grid.appendChild(cell);
+      })(d);
+    }
+  }
+
+  window.bizCalPrev = function () {
+    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+    renderCalendar();
+  };
+  window.bizCalNext = function () {
+    viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+    renderCalendar();
+  };
+
+  function renderTimes() {
+    var section = document.getElementById('bizTimeSection');
+    var grid = document.getElementById('bizTimeGrid');
+    if (!selectedDate) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    grid.innerHTML = '';
+    TIMES.forEach(function (t) {
+      var slot = document.createElement('div');
+      slot.className = 'time-slot' + (selectedTime === t ? ' selected' : '');
+      slot.textContent = t;
+      slot.setAttribute('role', 'button');
+      slot.onclick = function () {
+        selectedTime = t;
+        renderTimes();
+        bizUpdateLiveSummary();
+      };
+      grid.appendChild(slot);
+    });
+  }
+
+  function bizUpdateLiveSummary() {
+    // Date
+    var dateEl = document.getElementById('bizLiveSumDate');
+    if (dateEl) {
+      if (selectedDate) {
+        dateEl.textContent = fmtDate(selectedDate);
+        dateEl.classList.remove('biz-sum-empty');
+      } else {
+        dateEl.textContent = 'Not selected yet';
+        dateEl.classList.add('biz-sum-empty');
+      }
+    }
+    // Time
+    var timeEl = document.getElementById('bizLiveSumTime');
+    if (timeEl) {
+      if (selectedTime) {
+        timeEl.textContent = selectedTime;
+        timeEl.classList.remove('biz-sum-empty');
+      } else {
+        timeEl.textContent = 'Not selected yet';
+        timeEl.classList.add('biz-sum-empty');
+      }
+    }
+    // Name
+    var nameEl    = document.getElementById('bizLiveSumName');
+    var nameInput = document.getElementById('bizName');
+    if (nameEl && nameInput) {
+      var nv = nameInput.value.trim();
+      if (nv) { nameEl.textContent = nv; nameEl.classList.remove('biz-sum-empty'); }
+      else     { nameEl.textContent = '—'; nameEl.classList.add('biz-sum-empty'); }
+    }
+    // Email
+    var emailEl    = document.getElementById('bizLiveSumEmail');
+    var emailInput = document.getElementById('bizEmail');
+    if (emailEl && emailInput) {
+      var ev = emailInput.value.trim();
+      if (ev) { emailEl.textContent = ev; emailEl.classList.remove('biz-sum-empty'); }
+      else     { emailEl.textContent = '—'; emailEl.classList.add('biz-sum-empty'); }
+    }
+    // Guests
+    var guestsBlock = document.getElementById('bizLiveSumGuestsBlock');
+    var guestsEl    = document.getElementById('bizLiveSumGuests');
+    if (guestsBlock && guestsEl) {
+      var guestInputs = document.querySelectorAll('#bizGuestList .biz-guest-input');
+      var validGuests = [];
+      for (var i = 0; i < guestInputs.length; i++) {
+        var g = guestInputs[i].value.trim();
+        if (g) validGuests.push(g);
+      }
+      if (validGuests.length > 0) {
+        guestsBlock.style.display = 'block';
+        guestsEl.innerHTML = validGuests.map(function(g) {
+          return '<div class="biz-sum-guest">' + g + '</div>';
+        }).join('');
+      } else {
+        guestsBlock.style.display = 'none';
+      }
+    }
+    // Notes
+    var notesBlock = document.getElementById('bizLiveSumNotesBlock');
+    var notesEl    = document.getElementById('bizLiveSumNotes');
+    var msgInput   = document.getElementById('bizMessage');
+    if (notesBlock && notesEl && msgInput) {
+      var mv = msgInput.value.trim();
+      if (mv) { notesBlock.style.display = 'block'; notesEl.textContent = mv; }
+      else    { notesBlock.style.display = 'none'; }
+    }
+  }
+
+  /* ---------- guest emails ---------- */
+  window.bizAddGuest = function () {
+    var list = document.getElementById('bizGuestList');
+    var row = document.createElement('div');
+    row.className = 'biz-guest-row';
+
+    var input = document.createElement('input');
+    input.type = 'email';
+    input.className = 'biz-guest-input';
+    input.placeholder = 'guest@email.com';
+    input.addEventListener('input', bizUpdateLiveSummary);
+
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'biz-guest-remove';
+    remove.setAttribute('aria-label', 'Remove guest');
+    remove.textContent = '✕';
+    remove.onclick = function () { row.remove(); bizUpdateLiveSummary(); };
+
+    row.appendChild(input);
+    row.appendChild(remove);
+    list.appendChild(row);
+    input.focus();
+  };
+
+  /* ---------- toast (reuses #toastEl) ---------- */
+  function toast(msg, type) {
+    var el = document.getElementById('toastEl');
+    if (!el) { alert(msg); return; }
+    el.textContent = msg;
+    el.className = 'toast-' + (type || 'warn') + ' show';
+    setTimeout(function () { el.classList.remove('show'); }, 3200);
+  }
+
+  function validEmail(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  /* ---------- submit ---------- */
+  window.bizSubmit = function (e) {
+    e.preventDefault();
+
+    var name = document.getElementById('bizName').value.trim();
+    var email = document.getElementById('bizEmail').value.trim();
+    var message = document.getElementById('bizMessage').value.trim();
+
+    if (!selectedDate || !selectedTime) { toast('Please select a date and time.', 'error'); return; }
+    if (!name) { toast('Please enter your name.', 'error'); return; }
+    if (!validEmail(email)) { toast('Please enter a valid email address.', 'error'); return; }
+
+    // collect guest emails (ignore blanks, validate filled ones)
+    var guestInputs = document.querySelectorAll('#bizGuestList .biz-guest-input');
+    var guests = [];
+    for (var i = 0; i < guestInputs.length; i++) {
+      var g = guestInputs[i].value.trim();
+      if (!g) continue;
+      if (!validEmail(g)) { toast('One of the guest emails is not valid.', 'error'); return; }
+      guests.push(g);
+    }
+
+    // ── If you have a backend, send the payload here. ──
+    // var payload = { name: name, email: email, guests: guests,
+    //                 date: selectedDate.toISOString(), time: selectedTime, description: message };
+    // fetch('/api/business-inquiry', { method:'POST',
+    //   headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+
+    // build success summary
+    var rows = '';
+    rows += sumRow('Name', name);
+    rows += sumRow('Email', email);
+    if (guests.length) rows += sumRow('Guests', guests.join('<br/>'));
+    rows += sumRow('Date', fmtDate(selectedDate));
+    rows += sumRow('Time', selectedTime);
+    if (message) rows += sumRow('Notes', message);
+
+    document.getElementById('bizSuccessSummary').innerHTML =
+      '<div class="sum-title">Your Request</div>' + rows;
+
+    document.getElementById('bizFormPage').classList.remove('active');
+    document.getElementById('bizFormPage').setAttribute('aria-hidden', 'true');
+    document.getElementById('bizSuccessPage').classList.add('active');
+    document.getElementById('bizSuccessPage').setAttribute('aria-hidden', 'false');
+    window.scrollTo(0, 0);
+  };
+
+  function sumRow(label, value) {
+    return '<div class="sum-row"><span class="sum-label">' + label +
+           '</span><span class="sum-value">' + value + '</span></div>';
+  }
+
+  /* ---------- reset / back home ---------- */
+  window.bizReset = function () {
+    document.getElementById('bizSuccessPage').classList.remove('active');
+    document.getElementById('bizSuccessPage').setAttribute('aria-hidden', 'true');
+    document.getElementById('bizForm').reset();
+    document.getElementById('bizGuestList').innerHTML = '';
+    document.getElementById('bizTimeSection').style.display = 'none';
+    selectedDate = null;
+    selectedTime = null;
+    viewDate = new Date();
+    bizUpdateLiveSummary();
+
+    var overlay = document.getElementById('pickSidePage');
+    overlay.style.display = 'flex';
+    overlay.classList.remove('pick-exit');
+    window.scrollTo(0, 0);
+  };
+})();
+</script>
+
 </body>
 </html>
