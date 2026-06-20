@@ -1,5 +1,5 @@
 // ── HISTORY PAGINATION STATE ──
-const HISTORY_PAGE_SIZE  = 5;
+// page size is dynamic — see calcPageSize() in app.js
 let historyCurrentPage   = 1;
 let historyAllList       = [];
 
@@ -32,11 +32,12 @@ function renderHistory() {
     return;
   }
 
-  const totalPages = Math.ceil(total / HISTORY_PAGE_SIZE);
+  const pageSize   = calcPageSize(52, 310);
+  const totalPages = Math.ceil(total / pageSize);
   if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
 
-  const start = (historyCurrentPage - 1) * HISTORY_PAGE_SIZE;
-  const page  = historyAllList.slice(start, start + HISTORY_PAGE_SIZE);
+  const start = (historyCurrentPage - 1) * pageSize;
+  const page  = historyAllList.slice(start, start + pageSize);
 
   tbody.innerHTML = page.map(r => `
     <tr>
@@ -90,8 +91,9 @@ function renderHistoryPagination(total, totalPages) {
     );
   }
 
-  const startIdx = (historyCurrentPage - 1) * HISTORY_PAGE_SIZE + 1;
-  const endIdx   = Math.min(historyCurrentPage * HISTORY_PAGE_SIZE, total);
+  const pageSize = calcPageSize(52, 310);
+  const startIdx = (historyCurrentPage - 1) * pageSize + 1;
+  const endIdx   = Math.min(historyCurrentPage * pageSize, total);
 
   pg.innerHTML = `
     <div style="display:flex; gap:4px; align-items:center;">
@@ -107,7 +109,7 @@ function renderHistoryPagination(total, totalPages) {
 
 // ── GO TO HISTORY PAGE ──
 function goToHistoryPage(page) {
-  const totalPages = Math.ceil(historyAllList.length / HISTORY_PAGE_SIZE);
+  const totalPages = Math.ceil(historyAllList.length / calcPageSize(52, 310));
   if (page < 1 || page > totalPages) return;
   historyCurrentPage = page;
   renderHistory();
@@ -126,7 +128,7 @@ function formatHistoryDate(dateStr) {
 }
 
 // ── ACTIVITY LOG ──
-const ACTIVITY_PAGE_SIZE = 15;
+// page size is dynamic — see calcPageSize() in app.js
 let activityCurrentPage  = 1;
 let activityAllList      = [];
 
@@ -175,11 +177,12 @@ function renderActivityLog() {
     return;
   }
 
-  const totalPages = Math.ceil(total / ACTIVITY_PAGE_SIZE);
+  const pageSize   = calcPageSize(48, 310);
+  const totalPages = Math.ceil(total / pageSize);
   if (activityCurrentPage > totalPages) activityCurrentPage = totalPages;
 
-  const start = (activityCurrentPage - 1) * ACTIVITY_PAGE_SIZE;
-  const page  = activityAllList.slice(start, start + ACTIVITY_PAGE_SIZE);
+  const start = (activityCurrentPage - 1) * pageSize;
+  const page  = activityAllList.slice(start, start + pageSize);
 
   tbody.innerHTML = page.map(r => `
     <tr>
@@ -216,8 +219,9 @@ function renderActivityLogPagination(total, totalPages) {
     pageButtons.push(`<button onclick="goToActivityPage(${i})" ${i === activityCurrentPage ? 'disabled' : ''} ${btnStyle(i === activityCurrentPage)}>${i}</button>`);
   }
 
-  const startIdx = (activityCurrentPage - 1) * ACTIVITY_PAGE_SIZE + 1;
-  const endIdx   = Math.min(activityCurrentPage * ACTIVITY_PAGE_SIZE, total);
+  const pageSize = calcPageSize(48, 310);
+  const startIdx = (activityCurrentPage - 1) * pageSize + 1;
+  const endIdx   = Math.min(activityCurrentPage * pageSize, total);
 
   pg.innerHTML = `
     <div style="display:flex;gap:4px;align-items:center;">
@@ -232,7 +236,7 @@ function renderActivityLogPagination(total, totalPages) {
 }
 
 function goToActivityPage(page) {
-  const totalPages = Math.ceil(activityAllList.length / ACTIVITY_PAGE_SIZE);
+  const totalPages = Math.ceil(activityAllList.length / calcPageSize(48, 310));
   if (page < 1 || page > totalPages) return;
   activityCurrentPage = page;
   renderActivityLog();

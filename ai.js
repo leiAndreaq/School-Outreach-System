@@ -31,7 +31,7 @@ Level offered: ${school.level_offered || "Not specified"}
 Estimated students: ${school.estimated_students || "Not specified"}
 
 Product:
-AI-assisted School Management System and Learning Management System for private schools.
+Accoutre AI School Management System and Learning Management System for private schools.
 
 Features to mention:
 enrollment, admissions, student records, attendance, grading, report cards, LMS, course content, assessments, AI teacher assistance, lesson planning, item analysis, e-library, ID generation, school inventory, parent/student portal, analytics dashboard, multi-campus monitoring, year-round support.

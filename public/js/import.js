@@ -252,7 +252,7 @@ async function sendBulkPromoEmails() {
 }
 
 // ── IMPORT HISTORY PAGINATION STATE ──
-const IMPORT_HISTORY_PAGE_SIZE = 5;
+// page size is dynamic — see calcPageSize() in app.js
 let importHistoryPage    = 1;
 let importHistoryAllLogs = [];
 
@@ -284,12 +284,13 @@ function renderImportHistoryPage() {
     return;
   }
 
+  const pageSize   = calcPageSize(54, 310);
   const total      = logs.length;
-  const totalPages = Math.ceil(total / IMPORT_HISTORY_PAGE_SIZE);
+  const totalPages = Math.ceil(total / pageSize);
   if (importHistoryPage > totalPages) importHistoryPage = totalPages;
 
-  const start = (importHistoryPage - 1) * IMPORT_HISTORY_PAGE_SIZE;
-  const page  = logs.slice(start, start + IMPORT_HISTORY_PAGE_SIZE);
+  const start = (importHistoryPage - 1) * pageSize;
+  const page  = logs.slice(start, start + pageSize);
 
   container.innerHTML = page.map(log => `
     <div style="display:flex; align-items:center; justify-content:space-between;
@@ -331,7 +332,7 @@ function renderImportHistoryPage() {
         color:${disabled ? '#d1d5db' : '#374151'};
         font-size:12px; font-weight:700; cursor:${disabled ? 'default' : 'pointer'};">${label}</button>`;
 
-  const end = Math.min(importHistoryPage * IMPORT_HISTORY_PAGE_SIZE, total);
+  const end = Math.min(importHistoryPage * calcPageSize(54, 310), total);
 
   const pageButtons = [];
   for (let i = 1; i <= totalPages; i++) {
@@ -354,7 +355,7 @@ function renderImportHistoryPage() {
 }
 
 function goToImportHistoryPage(page) {
-  const totalPages = Math.ceil(importHistoryAllLogs.length / IMPORT_HISTORY_PAGE_SIZE);
+  const totalPages = Math.ceil(importHistoryAllLogs.length / calcPageSize(54, 310));
   if (page < 1 || page > totalPages) return;
   importHistoryPage = page;
   renderImportHistoryPage();

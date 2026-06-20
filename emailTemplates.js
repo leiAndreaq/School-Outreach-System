@@ -15,7 +15,6 @@ Phone: ${process.env.COMPANY_PHONE}`;
 
 function proposalTemplate(school) {
   const contact = school.contact_person || "School Administrator";
-  const area = school.city_province || school.region || "your area";
 
   return {
     subject: `Invitation for School Management and Learning Management System Presentation`,
@@ -23,7 +22,7 @@ function proposalTemplate(school) {
 
 Good day.
 
-I hope this message finds you well. We are respectfully reaching out to ${school.school_name} to introduce ThinkTANQ's School Management System and Learning Management System designed for private schools in the Philippines.
+I hope this message finds you well. We are respectfully reaching out to ${school.school_name} to introduce Accoutre AI School Management System and Learning Management System designed for private schools in the Philippines.
 
 Our system is created to help schools simplify daily operations and support teachers through technology. The platform may assist with enrollment, student records, attendance, grading, report cards, learning modules, assessments, e-library, ID generation, school inventory, parent/student portal, and analytics.
 
@@ -31,7 +30,7 @@ We also offer AI-assisted support for teachers, including lesson preparation, as
 
 We would like to invite your school to a short 20 to 30-minute online or onsite presentation so we can show how the system may support your school operations and academic delivery.
 
-Please reply to this email with your preferred date and time, and we will arrange a schedule that works best for you.
+[Link]
 
 We currently have an introductory presentation and possible pilot/promo arrangement for qualified schools.
 
@@ -52,13 +51,13 @@ function followUpTemplate(school) {
 
 Good day.
 
-May we respectfully follow up on our invitation to present ThinkTANQ's School Management System and Learning Management System to ${school.school_name}?
+May we respectfully follow up on our invitation to present Accoutre AI School Management System and Learning Management System to ${school.school_name}?
 
 The system is designed to help private schools manage enrollment, attendance, grading, records, learning content, assessments, parent/student access, analytics, and teacher support in one platform.
 
 We would be glad to schedule a short presentation at your most convenient time.
 
-Simply reply to this email with your preferred date and time.
+[Link]
 
 Thank you and we hope to have the opportunity to present to your school.
 
@@ -76,11 +75,11 @@ function meetingInviteTemplate(school) {
 
 Good day.
 
-Thank you for your interest in ThinkTANQ's School Management System and Learning Management System.
+Thank you for your interest in Accoutre AI School Management System and Learning Management System.
 
 May we propose a 20 to 30-minute presentation to show the features of the system and how it can help your school administration, teachers, students, and parents?
 
-Please reply to this email with your preferred date and time and we will confirm the schedule promptly.
+[Link]
 
 We may conduct the presentation online or onsite, depending on your preference.
 
@@ -91,16 +90,32 @@ ${companyBlock()}`
 }
 
 function htmlWrap(body) {
-  const htmlBody = body
-    .replace(/&/g,  '&amp;')
-    .replace(/</g,  '&lt;')
-    .replace(/>/g,  '&gt;')
-    .replace(/\n/g, '<br>');
-
   const name    = process.env.COMPANY_NAME    || 'ThinkTANQ';
   const address = process.env.COMPANY_ADDRESS || '';
   const email   = process.env.COMPANY_EMAIL   || '';
   const phone   = process.env.COMPANY_PHONE   || '';
+
+  const ctaHtml = `<br><div style="text-align:center;margin:20px 0;">
+    <a href="mailto:${email}?subject=Presentation%20Schedule%20Request%20%E2%80%94%20Accoutre%20AI"
+       style="display:inline-block;background:linear-gradient(135deg,#1B1F6B,#2334a8);
+              color:#ffffff;font-size:13px;font-weight:700;padding:13px 32px;
+              border-radius:8px;text-decoration:none;letter-spacing:0.4px;">
+      Schedule a Presentation
+    </a>
+    <div style="font-size:11px;color:#9ca3af;margin-top:9px;">
+      Click to reply and let us know your preferred date and time.
+    </div>
+  </div><br>`;
+
+  const LINK_SLOT = '\x00LINK\x00';
+
+  const htmlBody = body
+    .replace(/\[Link\]/gi, LINK_SLOT)
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/\n/g, '<br>')
+    .replace(LINK_SLOT, ctaHtml);
 
   return `<!DOCTYPE html>
 <html>

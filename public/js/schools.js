@@ -23,7 +23,7 @@ function switchSchoolsView(type) {
 }
 
 // ── PAGINATION STATE ──
-const SCHOOLS_PAGE_SIZE = 5;
+// page size is dynamic — see calcPageSize() in app.js
 let schoolsCurrentPage   = 1;
 let schoolsFilteredList  = [];
 
@@ -173,11 +173,12 @@ function renderSchools(schools) {
     return;
   }
 
-  const totalPages = Math.ceil(schools.length / SCHOOLS_PAGE_SIZE);
+  const pageSize   = calcPageSize(56, 370);
+  const totalPages = Math.ceil(schools.length / pageSize);
   if (schoolsCurrentPage > totalPages) schoolsCurrentPage = totalPages;
 
-  const start      = (schoolsCurrentPage - 1) * SCHOOLS_PAGE_SIZE;
-  const pageSlice  = schools.slice(start, start + SCHOOLS_PAGE_SIZE);
+  const start      = (schoolsCurrentPage - 1) * pageSize;
+  const pageSlice  = schools.slice(start, start + pageSize);
 
   tbody.innerHTML = pageSlice.map(s => `
     <tr>
@@ -217,8 +218,9 @@ function renderSchoolsPagination(total, totalPages) {
 
   el.style.display = 'flex';
 
-  const start = (schoolsCurrentPage - 1) * SCHOOLS_PAGE_SIZE + 1;
-  const end   = Math.min(schoolsCurrentPage * SCHOOLS_PAGE_SIZE, total);
+  const pageSize = calcPageSize(56, 370);
+  const start = (schoolsCurrentPage - 1) * pageSize + 1;
+  const end   = Math.min(schoolsCurrentPage * pageSize, total);
 
   const btnBase = 'width:32px;height:32px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.15s;';
 
@@ -263,7 +265,7 @@ function renderSchoolsPagination(total, totalPages) {
 
 // ── GO TO PAGE ──
 function goToSchoolsPage(page) {
-  const totalPages = Math.ceil(schoolsFilteredList.length / SCHOOLS_PAGE_SIZE);
+  const totalPages = Math.ceil(schoolsFilteredList.length / calcPageSize(56, 370));
   if (page < 1 || page > totalPages) return;
   schoolsCurrentPage = page;
   renderSchools(schoolsFilteredList);
