@@ -7,7 +7,7 @@ function draftStatusBadge(status) {
 }
 
 // ── DRAFTS PAGINATION STATE ──
-const DRAFTS_PAGE_SIZE = 5;
+// page size is dynamic — see calcPageSize() in app.js
 let draftsCurrentPage  = 1;
 let draftsAllList      = [];
 
@@ -175,11 +175,12 @@ function renderDrafts() {
     return;
   }
 
-  const totalPages = Math.ceil(total / DRAFTS_PAGE_SIZE);
+  const pageSize   = calcPageSize(54, 310);
+  const totalPages = Math.ceil(total / pageSize);
   if (draftsCurrentPage > totalPages) draftsCurrentPage = totalPages;
 
-  const start = (draftsCurrentPage - 1) * DRAFTS_PAGE_SIZE;
-  const page  = draftsAllList.slice(start, start + DRAFTS_PAGE_SIZE);
+  const start = (draftsCurrentPage - 1) * pageSize;
+  const page  = draftsAllList.slice(start, start + pageSize);
 
   tbody.innerHTML = page.map(d => `
     <tr>
@@ -241,8 +242,9 @@ function renderDraftsPagination(total, totalPages) {
     );
   }
 
-  const start = (draftsCurrentPage - 1) * DRAFTS_PAGE_SIZE + 1;
-  const end   = Math.min(draftsCurrentPage * DRAFTS_PAGE_SIZE, total);
+  const pageSize = calcPageSize(54, 310);
+  const start = (draftsCurrentPage - 1) * pageSize + 1;
+  const end   = Math.min(draftsCurrentPage * pageSize, total);
 
   pg.innerHTML = `
     <div style="display:flex; gap:4px; align-items:center;">
@@ -258,7 +260,7 @@ function renderDraftsPagination(total, totalPages) {
 
 // ── GO TO DRAFTS PAGE ──
 function goToDraftsPage(page) {
-  const totalPages = Math.ceil(draftsAllList.length / DRAFTS_PAGE_SIZE);
+  const totalPages = Math.ceil(draftsAllList.length / calcPageSize(54, 310));
   if (page < 1 || page > totalPages) return;
   draftsCurrentPage = page;
   renderDrafts();

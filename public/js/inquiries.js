@@ -4,7 +4,7 @@ let currentInquiryId = null;
 let currentFilter = 'PENDING';
 
 // ── PAGINATION STATE ──
-const INQUIRIES_PAGE_SIZE = 5;
+// page size is dynamic — see calcPageSize() in app.js
 let inquiriesCurrentPage  = 1;
 let inquiriesFilteredList = [];
 
@@ -89,12 +89,13 @@ function renderInquiries(filter) {
     return;
   }
 
+  const pageSize   = calcPageSize(56, 370);
   const total      = filtered.length;
-  const totalPages = Math.ceil(total / INQUIRIES_PAGE_SIZE);
+  const totalPages = Math.ceil(total / pageSize);
   if (inquiriesCurrentPage > totalPages) inquiriesCurrentPage = totalPages;
 
-  const start    = (inquiriesCurrentPage - 1) * INQUIRIES_PAGE_SIZE;
-  const pageSlice = filtered.slice(start, start + INQUIRIES_PAGE_SIZE);
+  const start    = (inquiriesCurrentPage - 1) * pageSize;
+  const pageSlice = filtered.slice(start, start + pageSize);
 
   tbody.innerHTML = pageSlice.map(i => `
     <tr>
@@ -138,8 +139,9 @@ function renderInquiriesPagination(total, totalPages) {
 
   el.style.display = 'flex';
 
-  const start = (inquiriesCurrentPage - 1) * INQUIRIES_PAGE_SIZE + 1;
-  const end   = Math.min(inquiriesCurrentPage * INQUIRIES_PAGE_SIZE, total);
+  const pageSize = calcPageSize(56, 370);
+  const start = (inquiriesCurrentPage - 1) * pageSize + 1;
+  const end   = Math.min(inquiriesCurrentPage * pageSize, total);
 
   const btnBase = 'width:32px;height:32px;border-radius:6px;font-size:13px;cursor:pointer;transition:all 0.15s;';
 
@@ -184,7 +186,7 @@ function renderInquiriesPagination(total, totalPages) {
 
 // ── GO TO PAGE ──
 function goToInquiriesPage(page) {
-  const totalPages = Math.ceil(inquiriesFilteredList.length / INQUIRIES_PAGE_SIZE);
+  const totalPages = Math.ceil(inquiriesFilteredList.length / calcPageSize(56, 370));
   if (page < 1 || page > totalPages) return;
   inquiriesCurrentPage = page;
   renderInquiries(currentFilter);

@@ -26,36 +26,55 @@ function resolveConfirm(result) {
   }
 }
 
+// ── DATE/TIME PREFERENCES ──
+function getTimeFormat()  { return localStorage.getItem('timeFormat')  || '12'; }
+function getDateFormat()  { return localStorage.getItem('dateFormat')  || 'short'; }
+
+function applyFmtDate(dateStr) {
+  if (!dateStr) return '—';
+  const d   = new Date(dateStr);
+  const fmt = getDateFormat();
+  if (fmt === 'long')       return d.toLocaleDateString('en-PH', { month: 'long',  day: 'numeric', year: 'numeric' });
+  if (fmt === 'mm-dd-yyyy') return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  if (fmt === 'dd-mm-yyyy') { const p = d.toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' }); return p; }
+  if (fmt === 'iso')        return d.toISOString().split('T')[0];
+  return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // ── CLOCK ──
 function updateClock() {
   const el = document.getElementById('clockDisplay');
-  if (!el) return; // element may not exist yet if script runs before DOM is fully parsed
-  const now = new Date();
-  el.textContent =
-    now.toLocaleDateString('en-PH', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    }) + '  ' +
-    now.toLocaleTimeString('en-PH', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  if (!el) return;
+  const now  = new Date();
+  const fmt  = getDateFormat();
+  let datePart;
+  if (fmt === 'mm-dd-yyyy') datePart = now.toLocaleDateString('en-US', { weekday:'short', month:'2-digit', day:'2-digit' });
+  else if (fmt === 'dd-mm-yyyy') datePart = now.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'2-digit' });
+  else if (fmt === 'iso')   datePart = now.toLocaleDateString('en-CA', { weekday:'short' }) + ' ' + now.toISOString().split('T')[0];
+  else datePart = now.toLocaleDateString('en-PH', { weekday:'short', month:'short', day:'numeric' });
+
+  const timePart = now.toLocaleTimeString('en-PH', {
+    hour:   '2-digit',
+    minute: '2-digit',
+    hour12: getTimeFormat() === '12'
+  });
+  el.textContent = datePart + '  ' + timePart;
 }
 setInterval(updateClock, 1000);
 updateClock();
 
 // ── NAV MAP (global so updateModeLabels can modify it) ──
 const navMap = {
-  dashboard: 'dashboard',
-  analytics: 'dashboard',
-  schools:   'school leads',
-  add:       'school leads',
-  import:    'import csv',
-  archived:  'archived',
-  calendar:  'calendar',
-  inquiries: 'inquiries',
-  settings:  'settings'
+  dashboard:     'dashboard',
+  analytics:     'dashboard',
+  schools:       'school leads',
+  add:           'school leads',
+  import:        'import csv',
+  archived:      'archived',
+  calendar:      'calendar',
+  inquiries:     'inquiries',
+  settings:      'settings',
+  notifications: '__notifications__'
 };
 
 // ── TABS ──
@@ -94,14 +113,19 @@ function showTab(name) {
   }
 
   // Load data for the tab
-  if (name === 'dashboard')  loadDashboard();
-  if (name === 'schools')    loadSchools();
-  if (name === 'archived')   { loadDrafts(); loadHistory(); }
-  if (name === 'calendar')   loadCalendar();
-  if (name === 'inquiries')  loadInquiries();
-  if (name === 'import')     loadImportHistory();
-  if (name === 'analytics')  loadAnalytics();
-  if (name === 'settings')   loadCompanyInfo();
+  if (name === 'dashboard')     loadDashboard();
+  if (name === 'schools')       loadSchools();
+  if (name === 'archived')      { loadDrafts(); loadHistory(); }
+  if (name === 'settings') {
+    document.querySelector('aside nav:not(#settingsNav)').style.display = 'none';
+    document.getElementById('settingsNav').style.display = '';
+    showSettingsSection('company');
+  }
+  if (name === 'calendar')      loadCalendar();
+  if (name === 'inquiries')     loadInquiries();
+  if (name === 'import')        loadImportHistory();
+  if (name === 'analytics')     loadAnalytics();
+  if (name === 'notifications') loadNotificationsPage();
 }
 
 // ── DASHBOARD DROPDOWN ──
@@ -165,12 +189,7 @@ function statusBadge(status) {
 
 // ── FORMAT DATE ──
 function fmtDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  return applyFmtDate(dateStr);
 }
 
 // ── ICON HELPER (for dynamic HTML) ──
@@ -273,7 +292,7 @@ window.addEventListener('load', async () => {
   }
 
   loadDashboard();
-  loadNotifications();
+  loadNotifBadge();
 
   // Auto refresh every 30 seconds
   setInterval(() => {
@@ -284,10 +303,11 @@ window.addEventListener('load', async () => {
     if (id === 'tab-analytics')  loadAnalytics();
     if (id === 'tab-schools')    loadSchools(true);
     if (id === 'tab-archived')   { loadDrafts(); loadHistory(); }
+    if (id === 'tab-settings')   loadActivityLog();
     if (id === 'tab-calendar')   loadCalendar();
     if (id === 'tab-inquiries')  loadInquiries();
     checkPendingInquiries();
-    loadNotifications();
+    loadNotifBadge();
   }, 30000);
 
   // ── SESSION EXPIRY CHECK ──
@@ -323,19 +343,50 @@ window.addEventListener('load', async () => {
 
 });
 
+// ── SETTINGS SECTION SWITCH ──
+const SETTINGS_SECTIONS = ['company', 'password', 'backup', 'activity', 'datetime'];
+const SETTINGS_TITLES   = {
+  company:  'Company Information',
+  password: 'Change Password',
+  backup:   'Database Backup',
+  activity: 'Activity Log',
+  datetime: 'Date & Time',
+};
+
+function showSettingsSection(name) {
+  SETTINGS_SECTIONS.forEach(s => {
+    const el = document.getElementById('settings-' + s);
+    if (el) el.style.display = s === name ? 'block' : 'none';
+  });
+
+  SETTINGS_SECTIONS.forEach(s => {
+    const btn = document.getElementById('snav-' + s);
+    if (btn) btn.classList.toggle('active', s === name);
+  });
+
+  const title = document.getElementById('settingsSectionTitle');
+  if (title) title.textContent = SETTINGS_TITLES[name] || 'Settings';
+
+  if (name === 'activity') loadActivityLog();
+  if (name === 'company')  loadCompanyInfo();
+  if (name === 'datetime') loadDateTimeSettings();
+}
+
+function backToMainNav() {
+  document.getElementById('settingsNav').style.display  = 'none';
+  document.querySelector('aside nav:not(#settingsNav)').style.display = '';
+  showTab('dashboard');
+}
+
 // ── ARCHIVED SUB-TAB TOGGLE ──
 function switchArchivedView(view) {
-  document.getElementById('archived-drafts').style.display      = view === 'drafts'      ? 'block' : 'none';
-  document.getElementById('archived-history').style.display     = view === 'history'     ? 'block' : 'none';
-  document.getElementById('archived-activitylog').style.display = view === 'activitylog' ? 'block' : 'none';
+  document.getElementById('archived-drafts').style.display  = view === 'drafts'   ? 'block' : 'none';
+  document.getElementById('archived-history').style.display = view === 'history'  ? 'block' : 'none';
 
   const activeStyle   = 'btn-navy text-sm';
   const inactiveStyle = 'btn-ghost text-sm';
-  document.getElementById('archived-btn-drafts').className      = view === 'drafts'      ? activeStyle : inactiveStyle;
-  document.getElementById('archived-btn-history').className     = view === 'history'     ? activeStyle : inactiveStyle;
-  document.getElementById('archived-btn-activitylog').className = view === 'activitylog' ? activeStyle : inactiveStyle;
-
-  if (view === 'activitylog') loadActivityLog();
+  document.getElementById('archived-btn-drafts').className   = view === 'drafts'  ? activeStyle : inactiveStyle;
+  document.getElementById('archived-btn-history').className  = view === 'history' ? activeStyle : inactiveStyle;
 }
 
 // ── LOGOUT ──
@@ -356,6 +407,29 @@ async function handleLogout() {
   window.location.href = '/login.html';
 }
 
+// ── DYNAMIC PAGE SIZE ──
+// overhead = approximate px taken by header, title, search bar, table header, pagination, padding
+function calcPageSize(rowHeight, overhead) {
+  const available = Math.max(0, window.innerHeight - (overhead || 320));
+  return Math.max(5, Math.floor(available / rowHeight));
+}
+
+// Re-render active paginated tab on resize
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    const active = document.querySelector('.tab-section.active');
+    if (!active) return;
+    const id = active.id;
+    if (id === 'tab-schools')   renderSchools(schoolsFilteredList);
+    if (id === 'tab-inquiries') renderInquiries(currentFilter);
+    if (id === 'tab-archived')  { renderDraftsPage(); renderHistoryPage(); }
+    if (id === 'tab-settings')  renderActivityPage();
+    if (id === 'tab-import')    renderImportHistoryPage();
+  }, 200);
+});
+
 // ── SEARCH CLEAR BUTTON HELPERS ──
 function toggleClearBtn(inputId, btnId) {
   const input = document.getElementById(inputId);
@@ -372,132 +446,207 @@ function clearSearchInput(inputId, btnId) {
   if (btn)   btn.style.display = 'none';
 }
 
-// ── NOTIFICATIONS: PAST UNUPDATED MEETINGS ──
-let _notifPanelOpen = false;
+// ── NOTIFICATIONS ──
 
-async function loadNotifications() {
+async function loadNotifBadge() {
   try {
-    const res      = await fetch('/api/meetings/past-unupdated');
-    const meetings = await res.json();
-    const badge    = document.getElementById('notifBadge');
+    const res   = await fetch('/api/notifications');
+    const notifs = await res.json();
+    const badge  = document.getElementById('notifBadge');
     if (!badge) return;
-
-    if (meetings.length > 0) {
-      badge.textContent    = meetings.length > 9 ? '9+' : meetings.length;
-      badge.style.display  = 'flex';
+    const unread = notifs.filter(n => !n.is_read).length;
+    if (unread > 0) {
+      badge.textContent = unread > 9 ? '9+' : unread;
+      badge.style.display = 'flex';
       badge.style.alignItems = 'center';
       badge.style.justifyContent = 'center';
     } else {
       badge.style.display = 'none';
     }
-
-    renderNotifPanel(meetings);
-  } catch (e) {
-    // non-fatal
-  }
+  } catch (e) { /* non-fatal */ }
 }
 
-function renderNotifPanel(meetings) {
-  const content = document.getElementById('notifPanelContent');
-  if (!content) return;
+async function loadNotificationsPage() {
+  const container = document.getElementById('notificationsPageContent');
+  if (!container) return;
 
-  if (!meetings.length) {
-    content.innerHTML = `
-      <div style="padding:24px 20px; text-align:center;">
-        <div style="width:44px;height:44px;background:#dcfce7;border-radius:50%;
-          display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
-          <i data-lucide="check-circle" style="width:22px;height:22px;color:#16a34a;"></i>
-        </div>
-        <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:4px;">All caught up!</div>
-        <div style="font-size:12px;color:#9ca3af;">No past meetings need updating.</div>
-      </div>`;
-    lucide.createIcons();
-    return;
-  }
-
-  const rows = meetings.map(m => `
-    <div style="padding:11px 16px; border-bottom:1px solid #f3f4f6;
-      display:flex; align-items:center; justify-content:space-between; gap:12px;">
-      <div style="min-width:0;">
-        <div style="font-size:13px; font-weight:600; color:#1B1F6B;
-          white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-          ${m.school_name}
-        </div>
-        <div style="font-size:11px; color:#9ca3af; margin-top:2px;">
-          ${m.meeting_date} &nbsp;·&nbsp; ${formatTime(m.meeting_time)}
-        </div>
-      </div>
-      <span style="flex-shrink:0; font-size:11px; background:#fef3c7; color:#92400e;
-        padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;">
-        ${m.status}
-      </span>
-    </div>
-  `).join('');
-
-  content.innerHTML = `
-    <div style="padding:14px 16px; border-bottom:1px solid #f0f0f8;
-      display:flex; align-items:center; gap:8px;">
-      <div style="width:30px;height:30px;background:#fee2e2;border-radius:8px;
-        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <i data-lucide="alert-circle" style="width:15px;height:15px;color:#ef4444;"></i>
-      </div>
-      <div>
-        <div style="font-size:13px; font-weight:700; color:#111827;">
-          ${meetings.length} past meeting${meetings.length > 1 ? 's' : ''} need updating
-        </div>
-        <div style="font-size:11px; color:#9ca3af;">These were auto-marked as Done overnight</div>
-      </div>
-    </div>
-    <div style="max-height:260px; overflow-y:auto;">
-      ${rows}
-    </div>
-    <div style="padding:12px 16px; border-top:1px solid #f0f0f8;">
-      <button onclick="markAllPastDone()"
-        style="width:100%; padding:9px 0; background:#1B1F6B; color:#fff; border:none;
-          border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
-          display:flex; align-items:center; justify-content:center; gap:6px;">
-        <i data-lucide="check-circle" style="width:14px;height:14px;"></i>
-        Mark All as Done
-      </button>
-    </div>`;
-  lucide.createIcons();
-}
-
-function toggleNotifPanel() {
-  const panel = document.getElementById('notifPanel');
-  if (!panel) return;
-  _notifPanelOpen = !_notifPanelOpen;
-  panel.style.display = _notifPanelOpen ? 'block' : 'none';
-}
-
-async function markAllPastDone() {
   try {
-    const res  = await fetch('/api/meetings/mark-past-done', { method: 'POST' });
-    const data = await res.json();
-    if (data.error) { showToast('Error: ' + data.error, 'error'); return; }
-    showToast(data.updated + ' meeting(s) marked as Done', 'success');
-    _notifPanelOpen = false;
-    document.getElementById('notifPanel').style.display = 'none';
-    loadNotifications();
-    if (typeof loadCalendar === 'function') loadCalendar();
-    if (typeof loadDashboard === 'function') loadDashboard();
+    const res    = await fetch('/api/notifications');
+    const notifs = await res.json();
+
+    fetch('/api/notifications/mark-read', { method: 'POST' }).then(() => {
+      document.getElementById('notifBadge').style.display = 'none';
+    });
+
+    if (!notifs.length) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:80px 0;">
+          <div style="width:56px;height:56px;background:#dcfce7;border-radius:50%;
+            display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+            <i data-lucide="check-circle" style="width:26px;height:26px;color:#16a34a;"></i>
+          </div>
+          <div style="font-size:15px;font-weight:600;color:#374151;margin-bottom:4px;">All caught up!</div>
+          <div style="font-size:13px;color:#9ca3af;">No notifications yet.</div>
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    const pinned  = notifs.filter(n => n.is_pinned);
+    const unpinned = notifs.filter(n => !n.is_pinned);
+
+    const now   = new Date();
+    const today = now.toDateString();
+
+    const groups = {};
+    unpinned.forEach(n => {
+      const d   = new Date(n.created_at);
+      const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+      let label;
+      if (d.toDateString() === today)         label = 'Today';
+      else if (diffDays <= 7)                 label = 'Previous 7 Days';
+      else if (diffDays <= 30)                label = 'Previous 30 Days';
+      else label = d.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(n);
+    });
+
+    const sectionOrder = ['Today', 'Previous 7 Days', 'Previous 30 Days'];
+    const monthGroups  = Object.keys(groups).filter(k => !sectionOrder.includes(k));
+
+    const renderItem = (n) => {
+      const iconMap = {
+        lead:    'user-plus',
+        inquiry: 'mail',
+        meeting: 'calendar',
+        email:   'send',
+        import:  'file-up',
+      };
+      const colorMap = {
+        lead:    { bg: '#eff6ff', color: '#1d4ed8' },
+        inquiry: { bg: '#fef3c7', color: '#92400e' },
+        meeting: { bg: '#f3e8ff', color: '#7c3aed' },
+        email:   { bg: '#dcfce7', color: '#166534' },
+        import:  { bg: '#f0fdf4', color: '#15803d' },
+      };
+      const icon  = iconMap[n.type]  || 'bell';
+      const style = colorMap[n.type] || { bg: '#f3f4f6', color: '#374151' };
+      const timeAgo = formatTimeAgo(n.created_at);
+      const unreadDot = !n.is_read
+        ? `<span style="width:7px;height:7px;background:#ef4444;border-radius:50%;flex-shrink:0;"></span>` : '';
+
+      return `
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 0;
+          border-bottom:1px solid #f3f4f6;">
+          <div style="width:38px;height:38px;border-radius:10px;background:${style.bg};
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i data-lucide="${icon}" style="width:16px;height:16px;color:${style.color};"></i>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+              ${unreadDot}
+              <div style="font-size:13px;font-weight:700;color:#111827;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.title}</div>
+            </div>
+            <div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;
+              text-overflow:ellipsis;">${n.body || ''}</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:3px;">${timeAgo}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="toggleNotifPin(${n.id})" title="${n.is_pinned ? 'Unpin' : 'Pin'}"
+              style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;
+                color:${n.is_pinned ? '#1B1F6B' : '#d1d5db'};transition:color 0.15s;"
+              onmouseover="this.style.color='#1B1F6B'"
+              onmouseout="this.style.color='${n.is_pinned ? '#1B1F6B' : '#d1d5db'}'">
+              <i data-lucide="pin" style="width:14px;height:14px;"></i>
+            </button>
+            <button onclick="deleteNotif(${n.id})" title="Dismiss"
+              style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;
+                color:#d1d5db;transition:color 0.15s;"
+              onmouseover="this.style.color='#ef4444'"
+              onmouseout="this.style.color='#d1d5db'">
+              <i data-lucide="x" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+        </div>`;
+    };
+
+    const renderSection = (label, items) => `
+      <div style="margin-bottom:6px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:#9ca3af;
+          text-transform:uppercase;padding:16px 0 6px;">${label}</div>
+        ${items.map(renderItem).join('')}
+      </div>`;
+
+    let html = '';
+    if (pinned.length) html += renderSection('Pinned', pinned);
+    sectionOrder.forEach(k => { if (groups[k]) html += renderSection(k, groups[k]); });
+    monthGroups.forEach(k  => { if (groups[k]) html += renderSection(k, groups[k]); });
+
+    container.innerHTML = html;
+    lucide.createIcons();
+
   } catch (e) {
-    showToast('Failed to update meetings', 'error');
+    container.innerHTML = `
+      <div style="text-align:center;padding:60px 0;color:#9ca3af;font-size:13px;">
+        Could not load notifications.
+      </div>`;
   }
 }
 
-// Close notification panel when clicking outside
-document.addEventListener('click', (e) => {
-  const bell  = document.getElementById('notifBellBtn');
-  const panel = document.getElementById('notifPanel');
-  if (!bell || !panel || !_notifPanelOpen) return;
-  if (!bell.contains(e.target) && !panel.contains(e.target)) {
-    panel.style.display = 'none';
-    _notifPanelOpen = false;
-  }
-});
+function formatTimeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)   return 'Just now';
+  if (m < 60)  return m + ' min ago';
+  const h = Math.floor(m / 60);
+  if (h < 24)  return h + ' hr' + (h > 1 ? 's' : '') + ' ago';
+  const d = Math.floor(h / 24);
+  if (d < 7)   return d + ' day' + (d > 1 ? 's' : '') + ' ago';
+  return new Date(dateStr).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+}
+
+async function toggleNotifPin(id) {
+  try {
+    await fetch(`/api/notifications/${id}/pin`, { method: 'POST' });
+    loadNotificationsPage();
+  } catch (e) { showToast('Failed to update pin', 'error'); }
+}
+
+async function deleteNotif(id) {
+  try {
+    await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+    loadNotificationsPage();
+  } catch (e) { showToast('Failed to dismiss', 'error'); }
+}
+
+async function markAllNotifsRead() {
+  try {
+    await fetch('/api/notifications/mark-read', { method: 'POST' });
+    loadNotificationsPage();
+    showToast('All notifications marked as read', 'success');
+  } catch (e) { showToast('Failed', 'error'); }
+}
 
 // ── COMPANY INFO ──
+function loadDateTimeSettings() {
+  const tf = getTimeFormat();
+  const df = getDateFormat();
+  const tfEl = document.getElementById('settingTimeFormat');
+  const dfEl = document.getElementById('settingDateFormat');
+  if (tfEl) tfEl.value = tf;
+  if (dfEl) dfEl.value = df;
+}
+
+function saveDateTimeSettings() {
+  const tf = document.getElementById('settingTimeFormat').value;
+  const df = document.getElementById('settingDateFormat').value;
+  localStorage.setItem('timeFormat', tf);
+  localStorage.setItem('dateFormat', df);
+  updateClock();
+  showToast('Date & time settings saved!', 'success');
+}
+
 async function loadCompanyInfo() {
   try {
     const res  = await fetch('/api/settings/company');

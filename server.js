@@ -171,6 +171,13 @@ function logActivity(schoolId, activityType, details) {
   );
 }
 
+function insertNotification(type, title, body, icon = 'bell') {
+  db.run(
+    `INSERT INTO notifications (type, title, body, icon) VALUES (?, ?, ?, ?)`,
+    [type, title, body, icon]
+  );
+}
+
 // ── LOGIN RATE LIMITER ──
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -431,6 +438,7 @@ app.post("/api/schools", [
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       logActivity(this.lastID, "LEAD_CREATED", "School lead manually added.");
+      insertNotification('lead', 'New lead added', s.school_name, 'user-plus');
       res.json({ message: "School lead added", id: this.lastID });
     }
   );
@@ -817,6 +825,10 @@ app.post("/api/import-csv/confirm", (req, res) => {
         if (processed === rows.length) {
           db.run(`INSERT INTO import_logs (filename, imported_count, error_count) VALUES (?, ?, ?)`,
             [filename || 'import.csv', imported, errors.length]);
+          if (imported > 0) {
+            insertNotification('import', 'CSV Import complete',
+              `${imported} lead${imported > 1 ? 's' : ''} imported from ${filename || 'CSV'}`, 'file-up');
+          }
           res.json({ imported, errors, school_ids: schoolIds });
         }
       }
@@ -874,6 +886,10 @@ app.post("/api/bulk-promo-email", async (req, res) => {
     }
   }
 
+  if (results.sent > 0) {
+    insertNotification('email', 'Bulk emails sent',
+      `${results.sent} promotional email${results.sent > 1 ? 's' : ''} sent successfully`, 'send');
+  }
   res.json(results);
 });
 
@@ -1200,6 +1216,8 @@ app.post("/api/inquiries", inquiryLimiter, [
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
 
+      insertNotification('inquiry', 'New inquiry received',
+        `${i.school_name} — ${i.contact_person}`, 'mail');
       res.json({
         message: "Inquiry submitted successfully",
         id: this.lastID
@@ -1687,6 +1705,8 @@ app.post("/api/meetings", (req, res) => {
                       'MEETING_SCHEDULED',
                       `Presentation scheduled on ${m.meeting_date} at ${m.meeting_time}`
                     );
+                    insertNotification('meeting', 'Meeting scheduled',
+                      `${school.school_name} — ${m.meeting_date} at ${m.meeting_time}`, 'calendar');
 
                     res.json({
                       message: "Meeting scheduled successfully",
@@ -2231,6 +2251,44 @@ cron.schedule("0 16 * * *", () => {
 });
 
 console.log("✅ Backup scheduler started — runs daily at midnight PHT");
+
+// ── NOTIFICATIONS API ──
+app.get("/api/notifications", (req, res) => {
+  db.all(
+    `SELECT * FROM notifications ORDER BY is_pinned DESC, created_at DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
+});
+
+app.post("/api/notifications/:id/pin", (req, res) => {
+  const { id } = req.params;
+  db.get(`SELECT is_pinned FROM notifications WHERE id = ?`, [id], (err, row) => {
+    if (err || !row) return res.status(404).json({ error: 'Not found' });
+    const newPinned = row.is_pinned ? 0 : 1;
+    db.run(`UPDATE notifications SET is_pinned = ? WHERE id = ?`, [newPinned, id], (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ is_pinned: newPinned });
+    });
+  });
+});
+
+app.post("/api/notifications/mark-read", (req, res) => {
+  db.run(`UPDATE notifications SET is_read = 1 WHERE is_read = 0`, [], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ updated: this.changes });
+  });
+});
+
+app.delete("/api/notifications/:id", (req, res) => {
+  db.run(`DELETE FROM notifications WHERE id = ?`, [req.params.id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Deleted' });
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

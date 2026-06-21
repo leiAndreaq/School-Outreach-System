@@ -183,6 +183,20 @@ db.run(`
       deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // ── NOTIFICATIONS TABLE ──
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      icon TEXT DEFAULT 'bell',
+      is_pinned INTEGER DEFAULT 0,
+      is_read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 });
 
 module.exports = db;
