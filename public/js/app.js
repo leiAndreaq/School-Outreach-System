@@ -344,13 +344,14 @@ window.addEventListener('load', async () => {
 });
 
 // ── SETTINGS SECTION SWITCH ──
-const SETTINGS_SECTIONS = ['company', 'password', 'backup', 'activity', 'datetime'];
+const SETTINGS_SECTIONS = ['company', 'password', 'backup', 'activity', 'datetime', 'preferences'];
 const SETTINGS_TITLES   = {
-  company:  'Company Information',
-  password: 'Change Password',
-  backup:   'Database Backup',
-  activity: 'Activity Log',
-  datetime: 'Date & Time',
+  company:     'Company Information',
+  password:    'Change Password',
+  backup:      'Database Backup',
+  activity:    'Activity Log',
+  datetime:    'Date & Time',
+  preferences: 'Preferences',
 };
 
 function showSettingsSection(name) {
@@ -367,9 +368,28 @@ function showSettingsSection(name) {
   const title = document.getElementById('settingsSectionTitle');
   if (title) title.textContent = SETTINGS_TITLES[name] || 'Settings';
 
-  if (name === 'activity') loadActivityLog();
-  if (name === 'company')  loadCompanyInfo();
-  if (name === 'datetime') loadDateTimeSettings();
+  if (name === 'activity')     loadActivityLog();
+  if (name === 'company')      loadCompanyInfo();
+  if (name === 'datetime')     loadDateTimeSettings();
+  if (name === 'preferences')  loadThemePref();
+}
+
+function loadThemePref() {
+  const saved = localStorage.getItem('themePref') || 'light';
+  selectThemePref(saved, true);
+}
+
+function selectThemePref(value, silent) {
+  const light = document.getElementById('pref-light');
+  const dark  = document.getElementById('pref-dark');
+  if (!light || !dark) return;
+
+  light.style.borderColor = value === 'light' ? '#1B1F6B' : '#e5e7eb';
+  light.style.background  = value === 'light' ? '#eef0fb' : '#f9fafb';
+  dark.style.borderColor  = value === 'dark'  ? '#1B1F6B' : '#e5e7eb';
+  dark.style.background   = value === 'dark'  ? '#eef0fb' : '#f9fafb';
+
+  if (!silent) localStorage.setItem('themePref', value);
 }
 
 function backToMainNav() {
