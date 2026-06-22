@@ -35,7 +35,7 @@ function renderAnalytics() {
   if (!analyticsData) return;
   const isWeekly = analyticsPeriod === 'weekly';
 
-  // New Leads = schools currently in NEW_LEAD status (matches dashboard definition)
+  // Promotional Leads = schools currently in NEW_LEAD status (matches dashboard definition)
   const newLeads = (analyticsData.status_dist || [])
     .filter(r => !r.status || r.status === 'NEW_LEAD')
     .reduce((s, r) => s + r.count, 0);
@@ -53,8 +53,8 @@ function renderAnalytics() {
   document.getElementById('an-inquiries-label').textContent = label;
 
   document.getElementById('leads-chart-title').textContent = isWeekly
-    ? 'New Leads — Last 7 Days'
-    : 'New Leads — Last 30 Days (by week)';
+    ? 'Promotional Leads — Last 7 Days'
+    : 'Promotional Leads — Last 30 Days (by week)';
 
   renderLeadsChart();
   renderStatusChart();
@@ -105,7 +105,7 @@ function renderLeadsChart() {
     data: {
       labels,
       datasets: [{
-        label: 'New Leads',
+        label: 'Promotional Leads',
         data: values,
         backgroundColor: '#1B1F6B',
         borderRadius: 6,
@@ -206,7 +206,7 @@ function renderStatusChart() {
   const meetings  = isWeekly ? analyticsData.weekly_meetings  : analyticsData.monthly_meetings;
   const inquiries = isWeekly ? analyticsData.weekly_inquiries : analyticsData.monthly_inquiries;
 
-  const labels = ['New Leads', 'Email Sent', 'Meetings', 'Inquiries'];
+  const labels = ['Promotional Leads', 'Email Sent', 'Meetings', 'Inquiries'];
   const values = [newLeads, emails, meetings, inquiries];
   const colors = ['#201658', '#1D24CA', '#98ABEE', '#F9E8C9'];
 
