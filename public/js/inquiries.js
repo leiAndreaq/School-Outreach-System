@@ -377,7 +377,9 @@ async function confirmDismiss() {
 
 function formatInquiryDate(dateStr) {
   if (!dateStr) return '—';
-  const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T00:00:00');
+  const normalized = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T');
+  const d = new Date(normalized);
+  if (isNaN(d)) return dateStr;
   return d.toLocaleDateString('en-PH', {
     month: 'short',
     day:   'numeric',

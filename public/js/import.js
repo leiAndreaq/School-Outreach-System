@@ -148,42 +148,22 @@ function openBulkEmailModal(schoolIds) {
   document.getElementById('bulkEmailResult').style.display   = 'none';
   document.getElementById('bulkSendBtn').disabled = false;
 
-  // Show template preview (sample with placeholder)
-  document.getElementById('bulkEmailPreview').textContent =
-    `Subject: Invitation for School Management and Learning Management System Presentation
-
-Dear [Contact Person / School Administrator],
-
-Good day.
-
-I hope this message finds you well. We are respectfully reaching out to [School Name] to introduce ThinkTANQ's School Management System (SMS) and Learning Management System (LMS) — designed to modernise school operations and academic delivery for private schools across the Philippines.
-
-ThinkTANQ is built to help schools like [School Name] simplify day-to-day administration while empowering teachers, students, and parents through technology. Our platform covers:
-
-• Enrollment & Admissions Management
-• Student Records, Attendance & Grading
-• Digital Report Cards & Transcript Generation
-• Learning Modules, Assessments & e-Library
-• AI-Assisted Lesson Planning & Item Analysis
-• Parent & Student Portal
-• Multi-Campus Monitoring & Analytics Dashboard
-• School Inventory & ID Generation
-
-We would like to invite [School Name] to a free 20–30 minute online or onsite presentation — at absolutely no commitment — so we can demonstrate exactly how ThinkTANQ can benefit your institution.
-
-Please reply to this email with your preferred date and time and we will arrange a convenient schedule.
-
-We currently offer an introductory arrangement for qualified partner schools and would be honoured to discuss how we can support your school's growth and future-readiness.
-
-If you are not the appropriate person to receive this message, we would appreciate being directed to the right administrator. Should you wish to opt out of further communications, simply reply "unsubscribe" and we will respectfully remove your contact.
-
-Respectfully yours,
-
-Accoutre AI Business Creation & Management OPC
-accoutre.ai.ph@gmail.com
-
-─────────────────────────────────────────
-Note: Each email will be personalised with your school's name and contact person.`;
+  // Load live HTML template preview
+  const previewEl = document.getElementById('bulkEmailPreview');
+  previewEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:12px;">Loading preview…</div>';
+  fetch('/api/promo-preview')
+    .then(r => r.text())
+    .then(html => {
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+      iframe.setAttribute('sandbox', 'allow-same-origin');
+      iframe.srcdoc = html;
+      previewEl.innerHTML = '';
+      previewEl.appendChild(iframe);
+    })
+    .catch(() => {
+      previewEl.innerHTML = '<div style="padding:14px;font-size:12px;color:#6b7280;">Preview unavailable.</div>';
+    });
 
   openModal('bulkEmailModal');
   lucide.createIcons();

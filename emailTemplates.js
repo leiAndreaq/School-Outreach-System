@@ -34,8 +34,6 @@ We would like to invite your school to a short 20 to 30-minute online or onsite 
 
 We currently have an introductory presentation and possible pilot/promo arrangement for qualified schools.
 
-If this is not the proper office or person to contact, we would appreciate being referred to the appropriate administrator. If you prefer not to receive further messages from us, kindly reply "unsubscribe" and we will respectfully remove your contact from our outreach list.
-
 Respectfully,
 
 ${companyBlock()}`
@@ -169,8 +167,7 @@ function htmlWrap(body) {
                      font-size:11px;color:#94a3b8;line-height:1.9;">
             <strong style="color:#374263;">${name}</strong><br>
             ${address}<br>
-            ${email}&nbsp;&nbsp;|&nbsp;&nbsp;${phone}<br><br>
-            To unsubscribe, reply with &ldquo;unsubscribe&rdquo;
+            ${email}&nbsp;&nbsp;|&nbsp;&nbsp;${phone}
           </td>
         </tr>
 
@@ -385,8 +382,7 @@ ${companyBlock()}`;
       <strong style="color:#374263;">${compName}</strong><br>
       ${compAddress}<br>
       <a href="mailto:${compEmail}" style="color:#9ca3af;text-decoration:none;">${compEmail}</a>
-      &nbsp;|&nbsp; ${compPhone}<br><br>
-      To unsubscribe, reply with &ldquo;unsubscribe&rdquo;
+      &nbsp;|&nbsp; ${compPhone}
     </td>
   </tr>
 
@@ -608,8 +604,7 @@ function thankYouInquiryTemplate(inquiry) {
       <strong style="color:#374263;">${compName}</strong><br>
       ${compAddress}<br>
       <a href="mailto:${compEmail}" style="color:#9ca3af;text-decoration:none;">${compEmail}</a>
-      &nbsp;|&nbsp; ${compPhone}<br><br>
-      To unsubscribe, reply with &ldquo;unsubscribe&rdquo;
+      &nbsp;|&nbsp; ${compPhone}
     </td>
   </tr>
 

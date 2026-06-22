@@ -379,13 +379,16 @@ async function viewMeeting(id) {
         ${detailRow('Time',     formatTime(m.meeting_time))}
         ${detailRow('Type',     m.meeting_type)}
         ${detailRow('Mode',     m.meeting_mode)}
+        ${detailRow('Status',   meetingStatusBadge(m.status))}
+      </div>
+      <div style="display:grid; grid-template-columns:1fr; gap:6px 24px;">
         ${m.meeting_link ?
           detailRow('Meeting Link',
             `<a href="${m.meeting_link}" target="_blank"
               style="color:var(--navy)">${m.meeting_link}</a>`) : ''}
         ${m.meeting_address ?
           detailRow('Address', m.meeting_address) : ''}
-        ${detailRow('Status',   meetingStatusBadge(m.status))}
+        ${m.school_email ? detailRow('Email', `<a href="mailto:${m.school_email}" style="color:var(--navy)">${m.school_email}</a>`) : ''}
       </div>
       ${m.notes ? `
         <div style="margin-top:16px; padding:12px; background:#f9fafb;
@@ -417,10 +420,6 @@ async function viewMeeting(id) {
       footer.innerHTML = `
         <button onclick="closeModal('meetingModal')" class="btn-ghost">
           Close
-        </button>
-        <button onclick="generateFollowUpEmail()" class="btn-navy text-sm"
-          style="display:inline-flex;align-items:center;gap:5px;">
-          ${licon('mail')} Send Follow-up Email
         </button>
       `;
     } else {

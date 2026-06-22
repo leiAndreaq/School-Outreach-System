@@ -1757,5 +1757,48 @@ function schoolGoToBiz() {
 })();
 </script>
 
+<!-- ── PROMOTIONAL EMAIL PRE-FILL ── -->
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const schoolName = params.get('school_name');
+  const email      = params.get('email');
+
+  if (!schoolName && !email) return;
+
+  // Skip landing + pick pages, go straight to school form
+  window.addEventListener('DOMContentLoaded', function() {
+    const landing  = document.getElementById('landingPage');
+    const pickPage = document.getElementById('pickSidePage');
+    const formPage = document.getElementById('formPage');
+
+    if (landing)  landing.style.display = 'none';
+    if (pickPage) pickPage.style.display = 'none';
+    if (formPage) {
+      formPage.classList.add('active');
+      formPage.removeAttribute('aria-hidden');
+    }
+
+    // Pre-fill fields and fire input events so live tracking updates
+    if (schoolName) {
+      const f = document.getElementById('school_name');
+      if (f) {
+        f.value = decodeURIComponent(schoolName);
+        f.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    if (email) {
+      const f = document.getElementById('email');
+      if (f) {
+        f.value = decodeURIComponent(email);
+        f.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
+    window.scrollTo(0, 0);
+  });
+})();
+</script>
+
 </body>
 </html>

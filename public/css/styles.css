@@ -499,7 +499,7 @@ textarea.input-field {
   font-weight: 500;
   min-width: 140px;
 }
-.detail-value { color: #111; }
+.detail-value { color: #111; word-break: break-all; }
 
 /* ── CALENDAR ── */
 .calendar-day {

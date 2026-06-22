@@ -836,6 +836,19 @@ app.post("/api/import-csv/confirm", (req, res) => {
   });
 });
 
+// ── PROMO TEMPLATE PREVIEW ──
+app.get("/api/promo-preview", (_req, res) => {
+  const sampleSchool = {
+    school_name: '[School Name]',
+    contact_person: '[Contact Person]',
+    city: '[City]',
+    province: '[Province]'
+  };
+  const tmpl = getPromoTemplate(1, sampleSchool, '#', '#');
+  res.setHeader('Content-Type', 'text/html');
+  res.send(tmpl.html);
+});
+
 // ── BULK PROMOTIONAL EMAIL ──
 app.post("/api/bulk-promo-email", async (req, res) => {
   const { school_ids } = req.body;
@@ -859,22 +872,35 @@ app.post("/api/bulk-promo-email", async (req, res) => {
         continue;
       }
 
-      const email = await generateEmail(school, 'PROMOTIONAL');
+      const baseUrl    = process.env.APP_URL || 'http://localhost:3000';
+      const inquireUrl = `${baseUrl}/track?school_id=${school.id}&action=inquire`;
+      const unsubUrl   = `${baseUrl}/track?school_id=${school.id}&action=unsubscribe`;
+      const phtNow     = new Date(Date.now() + 8 * 60 * 60 * 1000);
+      const weekNumber = Math.ceil((phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+      const tmpl       = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl);
 
       const draftId = await new Promise((resolve, reject) => {
         db.run(
           `INSERT INTO email_drafts (school_id, email_type, subject, body) VALUES (?, ?, ?, ?)`,
-          [school.id, 'PROMOTIONAL', email.subject, email.body],
+          [school.id, 'PROMOTIONAL', tmpl.subject, tmpl.html],
           function (err) { if (err) reject(err); else resolve(this.lastID); }
         );
       });
 
-      const result = await sendEmail({ to: school.email, subject: email.subject, body: email.body });
+      const result = await sendEmail({
+        to: school.email,
+        subject: tmpl.subject,
+        html: tmpl.html,
+        headers: {
+          'List-Unsubscribe': `<${unsubUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
+      });
 
       if (result.sent) {
         db.run(`UPDATE email_drafts SET status = 'SENT' WHERE id = ?`, [draftId]);
         db.run(`UPDATE schools SET status = 'EMAIL_SENT', last_contacted = DATE('now'), updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [school.id]);
-        logActivity(school.id, 'EMAIL_SENT', 'Bulk promotional email sent.');
+        logActivity(school.id, 'EMAIL_SENT', `Bulk promotional email (template ${((weekNumber - 1) % 4) + 1}) sent.`);
         results.sent++;
       } else {
         results.failed++;
@@ -1983,6 +2009,9 @@ db.run(`ALTER TABLE schools ADD COLUMN lead_type TEXT DEFAULT 'OFFICIAL'`, (err)
   }
 });
 
+// ── PROMO UNSUBSCRIBED COLUMN (migration guard) ──
+db.run(`ALTER TABLE schools ADD COLUMN promo_unsubscribed INTEGER DEFAULT 0`, () => {});
+
 // ── MEETING REMINDERS ──
 
 // 6 AM PHT — send day-of reminder to every meeting today
@@ -2168,7 +2197,15 @@ cron.schedule("0 8 * * 1", async () => {
           const unsubUrl     = `${baseUrl}/track?school_id=${school.id}&action=unsubscribe`;
           const tmpl         = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl);
 
-          const result = await sendEmail({ to: school.email, subject: tmpl.subject, html: tmpl.html });
+          const result = await sendEmail({
+            to:      school.email,
+            subject: tmpl.subject,
+            html:    tmpl.html,
+            headers: {
+              'List-Unsubscribe':      `<${baseUrl}/track?school_id=${school.id}&action=unsubscribe>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+            }
+          });
 
           if (result.sent) {
             logActivity(school.id, 'EMAIL_SENT', `Promotional email (template ${((weekNumber - 1) % 4) + 1}) sent.`);
@@ -2189,6 +2226,64 @@ cron.schedule("0 8 * * 1", async () => {
 }, { timezone: "Asia/Manila" });
 
 console.log("✅ Weekly promotional email scheduler started — every Monday 8:00 AM PHT");
+
+// ── PROMOTIONAL EMAIL CLICK TRACKING ──
+app.get("/track", (req, res) => {
+  const { school_id, action } = req.query;
+  const id = parseInt(school_id);
+
+  if (!id || !['inquire', 'unsubscribe'].includes(action)) {
+    return res.status(400).send('Invalid tracking link.');
+  }
+
+  db.get(`SELECT id, school_name, email FROM schools WHERE id = ?`, [id], (err, school) => {
+    if (err || !school) return res.redirect('/inquiry.html');
+
+    if (action === 'inquire') {
+      logActivity(school.id, 'PROMO_LINK_CLICKED', 'Clicked "Inquire Now" in promotional email.');
+      const qs = new URLSearchParams({
+        school_name: school.school_name || '',
+        email:       school.email       || ''
+      }).toString();
+      return res.redirect(`/inquiry.html?${qs}`);
+    }
+
+    if (action === 'unsubscribe') {
+      db.run(
+        `UPDATE schools SET promo_unsubscribed = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [school.id]
+      );
+      logActivity(school.id, 'UNSUBSCRIBED', 'Unsubscribed from promotional emails.');
+
+      const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+      const compEmail   = process.env.COMPANY_EMAIL   || '';
+      return res.send(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unsubscribed — ${compName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',sans-serif;background:#f3f4f6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{background:#fff;border-radius:16px;padding:48px 40px;max-width:460px;width:100%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+  .icon{width:56px;height:56px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;}
+  h1{font-size:22px;font-weight:700;color:#1B1F6B;margin-bottom:12px;}
+  p{font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:8px;}
+  .footer{margin-top:32px;font-size:12px;color:#9ca3af;}
+  a{color:#1B1F6B;text-decoration:none;}
+</style></head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg width="24" height="24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h1>You've been unsubscribed</h1>
+    <p>You will no longer receive promotional emails from <strong>${compName}</strong>.</p>
+    <p>If this was a mistake, you can <a href="mailto:${compEmail}">email us</a> to resubscribe.</p>
+    <div class="footer">© ${new Date().getFullYear()} ${compName}</div>
+  </div>
+</body></html>`);
+    }
+  });
+});
 
 // ── DATABASE BACKUP SYSTEM ──
 

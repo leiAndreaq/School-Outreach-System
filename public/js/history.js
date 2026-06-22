@@ -144,6 +144,9 @@ const ACTIVITY_LABELS = {
   MEETING_AUTO_DONE:  { label: 'Meeting Done',        color: '#166534', bg: '#dcfce7' },
   MEETING_CANCELLED:  { label: 'Meeting Cancelled',   color: '#991b1b', bg: '#fee2e2' },
   LEAD_CREATED_INQUIRY:{ label: 'Inquiry Received',   color: '#9a3412', bg: '#ffedd5' },
+  PROMO_LINK_CLICKED:  { label: 'Link Clicked',        color: '#7c3aed', bg: '#ede9fe' },
+  UNSUBSCRIBE_CLICKED: { label: 'Unsubscribe Clicked', color: '#dc2626', bg: '#fee2e2' },
+  UNSUBSCRIBED:        { label: 'Unsubscribed',         color: '#7f1d1d', bg: '#fecaca' },
 };
 
 async function loadActivityLog() {

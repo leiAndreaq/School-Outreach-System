@@ -193,6 +193,7 @@ function renderSchools(schools) {
       <td>${s.city_province || '—'}</td>
       <td>${s.level_offered || '—'}</td>
       <td>${statusBadge(s.status)}</td>
+      <td style="font-size:12px;color:#6b7280;white-space:nowrap;">${fmtDate(s.created_at)}</td>
       <td>
         <button
           onclick="viewSchool(${s.id})"
