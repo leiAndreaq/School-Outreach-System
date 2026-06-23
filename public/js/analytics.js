@@ -5,6 +5,8 @@ let leadsChartInstance  = null;
 let statusChartInstance = null;
 let heardFromChartInstance = null;
 
+function isDark() { return document.body.classList.contains('dark'); }
+
 // ── LOAD ──
 async function loadAnalytics() {
   try {
@@ -119,10 +121,13 @@ function renderLeadsChart() {
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { precision: 0, stepSize: 1 },
-          grid: { color: '#f3f4f6' }
+          ticks: { precision: 0, stepSize: 1, color: isDark() ? '#94a3b8' : '#6b7280' },
+          grid:  { color: isDark() ? 'rgba(255,255,255,0.07)' : '#f3f4f6' }
         },
-        x: { grid: { display: false } }
+        x: {
+          grid:  { display: false },
+          ticks: { color: isDark() ? '#94a3b8' : '#6b7280' }
+        }
       }
     }
   });
@@ -186,10 +191,13 @@ function renderHeardFromChart() {
       scales: {
         x: {
           beginAtZero: true,
-          ticks: { precision: 0, stepSize: 1 },
-          grid: { color: '#f3f4f6' }
+          ticks: { precision: 0, stepSize: 1, color: isDark() ? '#94a3b8' : '#6b7280' },
+          grid:  { color: isDark() ? 'rgba(255,255,255,0.07)' : '#f3f4f6' }
         },
-        y: { grid: { display: false } }
+        y: {
+          grid:  { display: false },
+          ticks: { color: isDark() ? '#94a3b8' : '#6b7280' }
+        }
       }
     }
   });
@@ -221,7 +229,7 @@ function renderStatusChart() {
         data: values,
         backgroundColor: colors,
         borderWidth: 2,
-        borderColor: '#fff',
+        borderColor: isDark() ? '#1e2237' : '#fff',
         hoverOffset: 6,
       }]
     },
@@ -231,7 +239,12 @@ function renderStatusChart() {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { font: { size: 11 }, padding: 10, boxWidth: 12 }
+          labels: {
+            font: { size: 11 },
+            padding: 10,
+            boxWidth: 12,
+            color: isDark() ? '#e2e8f0' : '#374151'
+          }
         }
       }
     }

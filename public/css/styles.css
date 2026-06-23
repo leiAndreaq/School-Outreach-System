@@ -427,7 +427,7 @@ textarea.input-field {
   border-top: 1px solid #f3f4f6;
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: space-between;
   flex-wrap: wrap;
 }
 
@@ -875,3 +875,209 @@ textarea.input-field {
 @media (min-width: 1280px) {
   main.p-8 { padding: 32px; }
 }
+
+/* ══════════════════════════════════════════════
+   DARK MODE
+══════════════════════════════════════════════ */
+body.dark {
+  background-color: #131729 !important;
+  color: #e2e8f0;
+}
+
+/* Sidebar — dark SaaS gradient */
+body.dark .sidebar-gradient {
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(0, 89, 255, 0.18) 0%,
+      rgba(0, 89, 255, 0.08) 35%,
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      #07113B 0%,
+      #031033 45%,
+      #010B28 75%,
+      #010613 100%
+    ) !important;
+  border-right: 1px solid rgba(255,255,255,0.05) !important;
+  box-shadow: inset 0 0 80px rgba(0, 89, 255, 0.08) !important;
+}
+
+/* Header / topbar */
+body.dark header,
+body.dark header.bg-white {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+
+/* Header logos — keep original colors and full opacity in dark mode */
+body.dark header img { opacity: 1 !important; }
+
+/* Dark mode logo swaps */
+body.dark header img[alt="PATHS"]                          { content: url('/images/Path.png'); }
+body.dark header img[alt="PATH Partnership And Training Hub System"] { content: url('/images/finder.png'); }
+
+
+/* Notification bell */
+body.dark #notifBellBtn {
+  background: #252a42 !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+body.dark #notifBellBtn svg { stroke: #ffffff !important; }
+body.dark #notifBadge { border-color: #1a1f35 !important; }
+
+/* Chat button stays the same (already dark) */
+body.dark #chatToggleBtn {
+  background: linear-gradient(135deg,#1a1f50,#0d1035) !important;
+}
+
+/* Section title */
+body.dark .section-title { color: #e2e8f0 !important; }
+
+/* Stat cards */
+body.dark .stat-card {
+  background: #1e2237 !important;
+  border-top-color: rgba(255,255,255,0.08) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important;
+}
+body.dark .stat-num   { color: #f1f5f9 !important; }
+body.dark .stat-label { color: #94a3b8 !important; }
+
+/* Cards */
+body.dark .card {
+  background: #1e2237 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important;
+}
+body.dark .card-header {
+  border-color: rgba(255,255,255,0.08) !important;
+}
+body.dark .card-header h3,
+body.dark .card-header .font-semibold { color: #e2e8f0 !important; }
+
+/* Tables */
+body.dark .table-head th {
+  background: #252a42 !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+body.dark tbody tr   { border-color: rgba(255,255,255,0.06) !important; }
+body.dark tbody tr:hover { background: #252a42 !important; }
+body.dark tbody td   { color: #cbd5e1 !important; }
+body.dark tbody td:first-child { color: #f1f5f9 !important; }
+
+/* Inputs & selects */
+body.dark .input-field {
+  background: #252a42 !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: #e2e8f0 !important;
+}
+body.dark .input-field:focus { border-color: #818cf8 !important; }
+body.dark .input-field::placeholder { color: #64748b !important; }
+
+/* Form labels */
+body.dark .form-label { color: #94a3b8 !important; }
+
+/* Buttons */
+body.dark .btn-ghost {
+  background: #252a42 !important;
+  color: #e2e8f0 !important;
+}
+body.dark .btn-ghost:hover { background: #2e3452 !important; }
+body.dark .btn-outline {
+  border-color: #818cf8 !important;
+  color: #818cf8 !important;
+}
+body.dark .btn-outline:hover { background: rgba(129,140,248,0.12) !important; }
+
+/* Modal */
+body.dark .modal {
+  background: #1e2237 !important;
+}
+body.dark .modal-header {
+  background: #1e2237 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+body.dark .modal-footer { border-color: rgba(255,255,255,0.08) !important; }
+body.dark .modal-title  { color: #e2e8f0 !important; }
+body.dark .modal-close  {
+  background: #252a42 !important;
+  color: #e2e8f0 !important;
+}
+body.dark .modal-close:hover { background: #2e3452 !important; }
+body.dark .modal-body p,
+body.dark .modal-body label,
+body.dark .modal-body span { color: #cbd5e1 !important; }
+
+/* Text utility overrides */
+body.dark .text-navy     { color: #818cf8 !important; }
+body.dark .text-gray-400 { color: #64748b !important; }
+body.dark .text-gray-500 { color: #94a3b8 !important; }
+body.dark .text-gray-600 { color: #94a3b8 !important; }
+body.dark .text-gray-700 { color: #cbd5e1 !important; }
+body.dark .text-gray-800 { color: #e2e8f0 !important; }
+body.dark .text-gray-900 { color: #f1f5f9 !important; }
+body.dark .text-navy-600,
+body.dark .text-navy-700 { color: #818cf8 !important; }
+
+/* Stat card containers (rounded-2xl bg-white) */
+body.dark .rounded-2xl.bg-white {
+  background: #1e2237 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+/* Stat card icon backgrounds — boost opacity so icons are visible */
+body.dark .rounded-2xl .rounded-xl {
+  background: rgba(255,255,255,0.08) !important;
+}
+/* Stat card number text */
+body.dark .font-black { color: #f1f5f9 !important; }
+/* General p and span text inside dark cards */
+body.dark .rounded-2xl p  { color: #94a3b8 !important; }
+
+/* Border overrides */
+body.dark .border-gray-200 { border-color: rgba(255,255,255,0.08) !important; }
+body.dark .border-gray-100 { border-color: rgba(255,255,255,0.06) !important; }
+
+/* Email preview */
+body.dark .email-preview {
+  background: #252a42 !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  color: #e2e8f0 !important;
+}
+
+/* Upload area */
+body.dark .upload-area {
+  border-color: rgba(255,255,255,0.15) !important;
+}
+body.dark .upload-area:hover { background: #252a42 !important; }
+
+/* Calendar */
+body.dark .calendar-day {
+  border-color: rgba(255,255,255,0.08) !important;
+  color: #e2e8f0;
+}
+body.dark .calendar-day:hover { background: #252a42 !important; }
+body.dark .calendar-day.today {
+  border-color: #818cf8 !important;
+  background: rgba(129,140,248,0.12) !important;
+}
+body.dark .day-number { color: #cbd5e1 !important; }
+
+/* Empty state */
+body.dark .empty-state .title { color: #94a3b8 !important; }
+
+/* Bg overrides for inline Tailwind-styled whites */
+body.dark .bg-white    { background: #1e2237 !important; }
+body.dark .bg-gray-50  { background: #252a42 !important; }
+body.dark .bg-gray-100 { background: #252a42 !important; }
+
+/* Weekly/Monthly toggle container */
+body.dark div:has(#btn-weekly) {
+  background: #1e2237 !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+body.dark #btn-monthly { color: #94a3b8 !important; }
+
+/* Chart card inline titles (color:#1B1F6B) */
+body.dark [style*="color:#1B1F6B"] { color: #818cf8 !important; }
+body.dark [style*="color: #1B1F6B"] { color: #818cf8 !important; }
