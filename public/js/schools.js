@@ -19,7 +19,103 @@ function switchSchoolsView(type) {
   const addBtn = document.getElementById('btn-add-lead');
   if (addBtn) addBtn.style.display = type === 'OFFICIAL' ? '' : 'none';
 
+  const isPromo = type === 'PROMOTIONAL';
+  const pauseBtn   = document.getElementById('btn-pause-campaign');
+  const previewBtn = document.getElementById('btn-preview-template');
+  const statsBar   = document.getElementById('promoCampaignStats');
+  if (pauseBtn)   pauseBtn.style.display   = isPromo ? '' : 'none';
+  if (previewBtn) previewBtn.style.display = isPromo ? '' : 'none';
+  if (statsBar)   statsBar.style.display   = isPromo ? '' : 'none';
+
+  if (isPromo) {
+    loadPromoCampaignStatus();
+    loadPromoStats();
+  }
+
   loadSchools();
+}
+
+// ── PROMO: LOAD CAMPAIGN STATUS (pause/resume button label) ──
+async function loadPromoCampaignStatus() {
+  try {
+    const data = await fetch('/api/promo-campaign/status').then(r => r.json());
+    const label = document.getElementById('pause-campaign-label');
+    const icon  = document.querySelector('#btn-pause-campaign i[data-lucide]');
+    if (label) label.textContent = data.paused ? 'Resume Campaign' : 'Pause Campaign';
+    if (icon)  icon.setAttribute('data-lucide', data.paused ? 'play-circle' : 'pause-circle');
+    lucide.createIcons();
+  } catch (_) {}
+}
+
+// ── PROMO: TOGGLE PAUSE/RESUME ──
+async function togglePromoCampaign() {
+  try {
+    const data = await fetch('/api/promo-campaign/toggle', { method: 'POST' }).then(r => r.json());
+    const label = document.getElementById('pause-campaign-label');
+    const icon  = document.querySelector('#btn-pause-campaign i[data-lucide]');
+    if (label) label.textContent = data.paused ? 'Resume Campaign' : 'Pause Campaign';
+    if (icon)  icon.setAttribute('data-lucide', data.paused ? 'play-circle' : 'pause-circle');
+    lucide.createIcons();
+    showToast(data.paused ? 'Campaign paused — no emails will send on Monday.' : 'Campaign resumed.', data.paused ? 'error' : 'success');
+  } catch (_) {
+    showToast('Could not toggle campaign status', 'error');
+  }
+}
+
+// ── PROMO: LOAD STATS BAR ──
+async function loadPromoStats() {
+  try {
+    const s = await fetch('/api/promo-stats').then(r => r.json());
+    document.getElementById('stat-total').textContent       = s.total       ?? '—';
+    document.getElementById('stat-sent').textContent        = s.emails_sent ?? '—';
+    document.getElementById('stat-opens').textContent       = s.opens       ?? '—';
+    document.getElementById('stat-clicks').textContent      = s.clicks      ?? '—';
+    document.getElementById('stat-conversions').textContent = s.conversions  ?? '—';
+    document.getElementById('stat-unsub').textContent       = s.unsubscribed ?? '—';
+  } catch (_) {}
+}
+
+// ── PROMO: TEMPLATE PREVIEW ──
+async function openPromoPreview() {
+  const phtNow     = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const weekNumber = Math.ceil((phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+  const tNum       = ((weekNumber - 1) % 4) + 1;
+  document.getElementById('promoPreviewTemplateNum').textContent = `(Template ${tNum} — current week)`;
+  loadPromoPreview(tNum);
+  openModal('promoPreviewModal');
+}
+
+function loadPromoPreview(templateNum) {
+  const frame = document.getElementById('promoPreviewFrame');
+  if (frame) frame.src = `/api/promo-preview?template=${templateNum}`;
+  document.getElementById('promoPreviewTemplateNum').textContent = `(Template ${templateNum})`;
+}
+
+// ── PROMO: RESUBSCRIBE SCHOOL ──
+async function resubscribeSchool(schoolId) {
+  try {
+    await fetch(`/api/schools/${schoolId}/resubscribe`, { method: 'POST' });
+    showToast('School re-added to promotional campaign.', 'success');
+    closeModal('schoolModal');
+    loadSchools();
+  } catch (_) {
+    showToast('Could not resubscribe school', 'error');
+  }
+}
+
+// ── PROMO: RETRY FAILED EMAIL ──
+async function retryPromoEmail(schoolId) {
+  showToast('Sending retry...', 'success');
+  try {
+    const res  = await fetch(`/api/schools/${schoolId}/retry-promo`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Retry failed', 'error'); return; }
+    showToast('Promotional email resent successfully.', 'success');
+    closeModal('schoolModal');
+    loadSchools();
+  } catch (_) {
+    showToast('Could not send retry', 'error');
+  }
 }
 
 // ── PAGINATION STATE ──
@@ -120,7 +216,7 @@ function exportSchoolsCSV() {
     'School Name', 'Contact Person', 'Email', 'Phone',
     'Website', 'Facebook Page', 'Address', 'City/Province',
     'Region', 'School Type', 'Level Offered', 'Est. Students',
-    'Assigned To', 'Status', 'Notes', 'Date Added'
+    'Status', 'Notes', 'Date Added'
   ];
 
   const rows = allSchools.map(s => [
@@ -136,7 +232,6 @@ function exportSchoolsCSV() {
     escape(s.school_type),
     escape(s.level_offered),
     escape(s.estimated_students),
-    escape(s.assigned_to),
     escape(s.status),
     escape(s.notes),
     escape(s.created_at ? s.created_at.split('T')[0] : '')
@@ -460,7 +555,6 @@ async function viewSchool(id) {
         ${detailRow('School Type',     s.school_type)}
         ${detailRow('Level Offered',   s.level_offered)}
         ${detailRow('Est. Students',   s.estimated_students)}
-        ${detailRow('Assigned To',     s.assigned_to)}
         ${detailRow('Status',          statusBadge(s.status))}
         ${detailRow('Last Contacted',  fmtDate(s.last_contacted))}
       </div>
@@ -487,6 +581,18 @@ async function viewSchool(id) {
         genBtn.style.cursor  = 'pointer';
         genBtn.title = '';
       }
+    }
+
+    // Show/hide promo-specific action buttons in the modal footer
+    const resubBtn = document.getElementById('modal-resubscribe-btn');
+    const retryBtn = document.getElementById('modal-retry-promo-btn');
+    if (resubBtn) {
+      resubBtn.style.display = (s.lead_type === 'PROMOTIONAL' && s.promo_unsubscribed) ? '' : 'none';
+      resubBtn.onclick = () => resubscribeSchool(s.id);
+    }
+    if (retryBtn) {
+      retryBtn.style.display = (s.lead_type === 'PROMOTIONAL' && !s.promo_unsubscribed) ? '' : 'none';
+      retryBtn.onclick = () => retryPromoEmail(s.id);
     }
 
     openModal('schoolModal');
@@ -562,7 +668,6 @@ async function submitEditSchool() {
     school_type:        document.getElementById('e-school_type').value,
     level_offered:      document.getElementById('e-level_offered').value,
     estimated_students: document.getElementById('e-estimated_students').value || null,
-    assigned_to:        document.getElementById('e-assigned_to').value.trim(),
     status:             document.getElementById('e-status').value,
     notes:              document.getElementById('e-notes').value.trim(),
   };
@@ -638,7 +743,6 @@ async function addSchool() {
     school_type:        document.getElementById('f-school_type').value,
     level_offered:      document.getElementById('f-level_offered').value,
     estimated_students: document.getElementById('f-estimated_students').value || null,
-    assigned_to:        document.getElementById('f-assigned_to').value,
     notes:              document.getElementById('f-notes').value,
     mode:               window.currentMode || 'school',
   };
@@ -671,7 +775,7 @@ function clearForm() {
     'school_name', 'contact_person', 'email', 'phone',
     'website', 'facebook_page', 'address', 'city_province',
     'region', 'school_type', 'level_offered',
-    'estimated_students', 'assigned_to', 'notes'
+    'estimated_students', 'notes'
   ];
   fields.forEach(f => {
     const el = document.getElementById('f-' + f);

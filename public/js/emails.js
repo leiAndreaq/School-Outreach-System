@@ -1,8 +1,7 @@
 // ── DRAFT STATUS BADGE ──
 function draftStatusBadge(status) {
-  if (status === 'SENT') {
-    return '<span class="badge badge-sent">SENT</span>';
-  }
+  if (status === 'SENT')   return '<span class="badge badge-sent">SENT</span>';
+  if (status === 'FAILED') return '<span class="badge" style="background:#fee2e2;color:#991b1b;">FAILED</span>';
   return '<span class="badge badge-default">DRAFT</span>';
 }
 

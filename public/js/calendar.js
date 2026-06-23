@@ -2,7 +2,8 @@
 let currentYear  = new Date().getFullYear();
 let currentMonth = new Date().getMonth(); // 0-indexed (0 = January)
 let allMeetings  = [];
-let currentMeetingId = null;
+let currentMeetingId   = null;
+let currentMeetingData = null;
 let upcomingMode = 'weekly'; // cycles: 'weekly' → 'monthly' → 'today' → 'weekly'
 
 // ── MONTH NAMES ──
@@ -184,26 +185,100 @@ function onDayClick(dateStr) {
   openScheduleModal();
 }
 
+// ── SCHOOL PICKER STATE ──
+let _schoolPickerData = [];
+
 // ── OPEN SCHEDULE MODAL ──
 async function openScheduleModal() {
-  // Load schools into dropdown
-  try {
-    const res = await fetch('/api/schools');
-    const schools = await res.json();
-    const select = document.getElementById('m-school_id');
+  // Reset picker and errors
+  document.getElementById('schoolSearch').value = '';
+  document.getElementById('m-school_id').value  = '';
+  document.getElementById('schoolDropdownList').style.display = 'none';
+  clearScheduleError();
 
-    select.innerHTML = `<option value="">-- Select a School --</option>` +
-      schools.map(s => `
-        <option value="${s.id}">
-          ${s.school_name} ${s.city_province ? '— ' + s.city_province : ''}
-        </option>
-      `).join('');
+  try {
+    const res = await fetch('/api/schools?mode=school&lead_type=OFFICIAL');
+    _schoolPickerData = await res.json();
   } catch (e) {
     showToast('Could not load schools', 'error');
   }
 
   openModal('scheduleModal');
+  lucide.createIcons();
 }
+
+// ── RENDER SCHOOL DROPDOWN ──
+function renderSchoolDropdown(schools) {
+  const list = document.getElementById('schoolDropdownList');
+  if (!schools.length) {
+    list.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:#9ca3af;">No schools found</div>';
+    return;
+  }
+
+  list.innerHTML = schools.map(s => {
+    const hasMeeting = !!s.active_meeting_date;
+    const meetingInfo = hasMeeting
+      ? `<span style="font-size:11px;color:#1e40af;white-space:nowrap;flex-shrink:0;">
+           📅 ${fmtDate(s.active_meeting_date)} ${formatTimeShort(s.active_meeting_time)}
+         </span>`
+      : '';
+
+    return `<div
+      onclick="${hasMeeting ? '' : `pickSchool(${s.id}, \`${s.school_name.replace(/`/g, "'")}\`)`}"
+      style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+             padding:10px 16px;cursor:${hasMeeting ? 'not-allowed' : 'pointer'};
+             opacity:${hasMeeting ? '0.45' : '1'};
+             border-bottom:1px solid #f3f4f6;
+             transition:background 0.1s;"
+      onmouseenter="if(!${hasMeeting}) this.style.background='#f0f4ff'"
+      onmouseleave="this.style.background=''"
+    >
+      <div style="min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#1B1F6B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${s.school_name}
+        </div>
+        <div style="font-size:11px;color:#9ca3af;">${s.city_province || ''}</div>
+      </div>
+      ${meetingInfo}
+    </div>`;
+  }).join('');
+}
+
+// ── SHOW DROPDOWN ──
+function showSchoolDropdown() {
+  renderSchoolDropdown(_schoolPickerData);
+  document.getElementById('schoolDropdownList').style.display = 'block';
+}
+
+// ── FILTER DROPDOWN BY SEARCH ──
+function filterSchoolDropdown() {
+  const q = document.getElementById('schoolSearch').value.toLowerCase();
+  // Clear selected value if user is typing again
+  document.getElementById('m-school_id').value = '';
+  const filtered = _schoolPickerData.filter(s =>
+    s.school_name.toLowerCase().includes(q) ||
+    (s.city_province || '').toLowerCase().includes(q)
+  );
+  renderSchoolDropdown(filtered);
+  document.getElementById('schoolDropdownList').style.display = 'block';
+}
+
+// ── SELECT A SCHOOL ──
+function pickSchool(id, name) {
+  document.getElementById('m-school_id').value  = id;
+  document.getElementById('schoolSearch').value = name;
+  document.getElementById('schoolDropdownList').style.display = 'none';
+  clearScheduleError();
+}
+
+// ── CLOSE DROPDOWN WHEN CLICKING OUTSIDE ──
+document.addEventListener('click', function(e) {
+  const wrapper = document.getElementById('schoolPickerWrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    const list = document.getElementById('schoolDropdownList');
+    if (list) list.style.display = 'none';
+  }
+});
 
 // ── TOGGLE MEETING MODE (show/hide link or address) ──
 function toggleMeetingMode() {
@@ -234,6 +309,22 @@ async function scheduleMeeting() {
   if (!schoolId || !date || !time) {
     showToast('Please fill in School, Date, and Time', 'error');
     return;
+  }
+
+  // 2-hour advance rule for same-day scheduling
+  const phtNow   = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const todayPHT = phtNow.toISOString().split('T')[0];
+  if (date === todayPHT) {
+    const nowMins     = phtNow.getUTCHours() * 60 + phtNow.getUTCMinutes();
+    const [th, tm]    = time.split(':').map(Number);
+    const meetingMins = th * 60 + tm;
+    if (meetingMins < nowMins + 120) {
+      const earliest = new Date(phtNow.getTime() + 2 * 60 * 60 * 1000);
+      const eh = String(earliest.getUTCHours()).padStart(2, '0');
+      const em = String(earliest.getUTCMinutes()).padStart(2, '0');
+      showToast(`Same-day meetings must be at least 2 hours from now. Earliest available: ${formatTimeShort(eh + ':' + em)}`, 'error');
+      return;
+    }
   }
 
   const payload = {
@@ -300,22 +391,53 @@ function handleSchedulingError(data) {
       data.error,
       'Switch to Online mode or contact your partner for areas outside Metro Manila.'
     );
+  } else if (type === 'TOO_SOON') {
+    showConflictAlert(
+      'Too Soon to Schedule',
+      data.error,
+      'Same-day meetings need at least 2 hours of preparation time.'
+    );
   } else {
     showToast('Error: ' + data.error, 'error');
   }
 }
 
-// ── SHOW CONFLICT ALERT ──
+// ── SHOW INLINE SCHEDULE ERROR ──
 function showConflictAlert(title, message, suggestion) {
-  document.getElementById('conflictTitle').textContent   = title;
-  document.getElementById('conflictMessage').textContent = message;
-  document.getElementById('conflictSuggestion').textContent = suggestion;
-  openModal('conflictModal');
+  const box = document.getElementById('scheduleInlineError');
+  if (!box) { showToast(message, 'error'); return; }
+  box.innerHTML = `<strong>${title}</strong><br>${message}${suggestion ? `<br><span style="color:#b91c1c;font-size:12px;">${suggestion}</span>` : ''}`;
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── CLEAR INLINE SCHEDULE ERROR ──
+function clearScheduleError() {
+  const box = document.getElementById('scheduleInlineError');
+  if (box) { box.style.display = 'none'; box.innerHTML = ''; }
 }
 
 // ── CHECK DATE WHEN ADMIN PICKS IT ──
 async function checkDateAvailability(date) {
   if (!date) return;
+  clearScheduleError();
+
+  // If today: enforce 2-hour minimum, update time input's min attribute
+  const phtNow    = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const todayPHT  = phtNow.toISOString().split('T')[0];
+  const timeInput = document.getElementById('m-meeting_time');
+  if (date === todayPHT) {
+    const earliest = new Date(phtNow.getTime() + 2 * 60 * 60 * 1000);
+    const eh = String(earliest.getUTCHours()).padStart(2, '0');
+    const em = String(earliest.getUTCMinutes()).padStart(2, '0');
+    if (timeInput) {
+      timeInput.min = `${eh}:${em}`;
+      // Clear any currently selected time that is now too early
+      if (timeInput.value && timeInput.value < `${eh}:${em}`) timeInput.value = '';
+    }
+  } else {
+    if (timeInput) timeInput.removeAttribute('min');
+  }
 
   try {
     const res  = await fetch('/api/meetings/check/' + date);
@@ -365,7 +487,8 @@ async function viewMeeting(id) {
   try {
     const res = await fetch('/api/meetings/' + id);
     const m = await res.json();
-    currentMeetingId = id;
+    currentMeetingId   = id;
+    currentMeetingData = m;
 
     const isCancelled   = m.status === 'CANCELLED';
     const isRescheduled = m.status === 'RESCHEDULED';
@@ -574,9 +697,10 @@ async function confirmCancelMeeting() {
 
 // ── OPEN RESCHEDULE MODAL ──
 function openRescheduleModal() {
-  document.getElementById('r-meeting_date').value = '';
-  document.getElementById('r-meeting_time').value = '';
-  document.getElementById('r-notes').value = '';
+  const m = currentMeetingData;
+  document.getElementById('r-meeting_date').value = m ? m.meeting_date : '';
+  document.getElementById('r-meeting_time').value = m ? m.meeting_time : '';
+  document.getElementById('r-notes').value        = m ? (m.notes || '') : '';
   const indicator = document.getElementById('reschedDateAvailability');
   if (indicator) indicator.innerHTML = '';
   closeModal('meetingModal');

@@ -505,6 +505,16 @@
               class="btn-ghost text-sm">
               <i data-lucide="mail" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Promotional Leads
             </button>
+            <!-- Promo-only action buttons -->
+            <button id="btn-pause-campaign" onclick="togglePromoCampaign()" style="display:none;"
+              class="btn-ghost text-sm" title="Pause or resume the Monday email campaign">
+              <i data-lucide="pause-circle" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
+              <span id="pause-campaign-label">Pause Campaign</span>
+            </button>
+            <button id="btn-preview-template" onclick="openPromoPreview()" style="display:none;"
+              class="btn-ghost text-sm" title="Preview this week's email template">
+              <i data-lucide="eye" style="width:13px;height:13px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Preview Template
+            </button>
           </div>
           <div class="flex gap-3 items-center">
             <div style="position:relative; display:inline-block;">
@@ -528,6 +538,36 @@
               <i data-lucide="download" style="width:14px;height:14px;"></i> Export CSV
             </button>
             <button id="btn-add-lead" onclick="showTab('add')" class="bg-navy text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-opacity-90 transition">+ Add School</button>
+          </div>
+        </div>
+
+        <!-- Promo Campaign Stats (visible only on Promotional tab) -->
+        <div id="promoCampaignStats" style="display:none;margin-bottom:14px;">
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
+            <div class="card" style="padding:14px 16px;text-align:center;">
+              <div id="stat-total" style="font-size:22px;font-weight:800;color:#1B1F6B;">—</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">Total Schools</div>
+            </div>
+            <div class="card" style="padding:14px 16px;text-align:center;">
+              <div id="stat-sent" style="font-size:22px;font-weight:800;color:#1B1F6B;">—</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">Emails Sent</div>
+            </div>
+            <div class="card" style="padding:14px 16px;text-align:center;">
+              <div id="stat-opens" style="font-size:22px;font-weight:800;color:#1B1F6B;">—</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">Opens</div>
+            </div>
+            <div class="card" style="padding:14px 16px;text-align:center;">
+              <div id="stat-clicks" style="font-size:22px;font-weight:800;color:#1B1F6B;">—</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">Inquire Clicks</div>
+            </div>
+            <div class="card" style="padding:14px 16px;text-align:center;">
+              <div id="stat-conversions" style="font-size:22px;font-weight:800;color:#16a34a;">—</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">Conversions</div>
+            </div>
+            <div class="card" style="padding:14px 16px;text-align:center;">
+              <div id="stat-unsub" style="font-size:22px;font-weight:800;color:#dc2626;">—</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px;">Unsubscribed</div>
+            </div>
           </div>
         </div>
 
@@ -649,10 +689,6 @@
                 <label class="form-label">Estimated Students</label>
                 <input type="number" id="f-estimated_students" class="input-field" placeholder="e.g. 500"/>
               </div>
-              <div class="form-group">
-                <label class="form-label">Assigned To (Intern)</label>
-                <input type="text" id="f-assigned_to" class="input-field" placeholder="e.g. Juan dela Cruz"/>
-              </div>
               <div class="form-group col-span-2">
                 <label class="form-label">Notes</label>
                 <textarea id="f-notes" class="input-field h-24" placeholder="Any additional notes..."></textarea>
@@ -695,7 +731,7 @@
                       school_name, contact_person, email, phone, website,
                       facebook_page, address, city_province, region,
                       school_type, level_offered, estimated_students,
-                      assigned_to, notes
+                      notes
                     </div>
                     <button onclick="downloadCSVTemplate()"
                       style="margin-top:12px; width:100%; padding:8px 14px;
@@ -1236,6 +1272,15 @@
           style="color:#991b1b; margin-right:auto;">
           <i data-lucide="trash-2" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Delete Record
         </button>
+        <!-- Promo-specific buttons (shown/hidden by viewSchool()) -->
+        <button id="modal-resubscribe-btn" style="display:none;"
+          class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:4px;color:#16a34a;">
+          <i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i> Re-add to Campaign
+        </button>
+        <button id="modal-retry-promo-btn" style="display:none;"
+          class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:4px;">
+          <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Retry Email
+        </button>
         <button onclick="openEditModal(currentSchoolId)"
           class="btn-ghost text-sm" style="display:inline-flex;align-items:center;gap:4px;"><i data-lucide="pencil" style="width:13px;height:13px;"></i> Edit Details</button>
         <button onclick="generateEmail(currentSchoolId, 'PROPOSAL')"
@@ -1317,10 +1362,6 @@
           <div class="form-group">
             <label class="form-label">Estimated Students</label>
             <input type="number" id="e-estimated_students" class="input-field" placeholder="e.g. 500"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Assigned To (Intern)</label>
-            <input type="text" id="e-assigned_to" class="input-field"/>
           </div>
           <div class="form-group">
             <label class="form-label">Status</label>
@@ -1496,6 +1537,32 @@
     </div>
   </div>
 
+  <!-- MODAL: Promo Template Preview -->
+  <div id="promoPreviewModal" class="modal-overlay">
+    <div class="modal" style="max-width:660px;width:95%;padding:0;overflow:hidden;">
+      <div class="modal-header" style="padding:16px 20px;">
+        <h2 class="modal-title" style="display:flex;align-items:center;gap:6px;">
+          <i data-lucide="eye" style="width:16px;height:16px;"></i>
+          This Week's Email Template
+          <span id="promoPreviewTemplateNum" style="font-size:12px;font-weight:400;color:#6b7280;margin-left:6px;"></span>
+        </h2>
+        <button onclick="closeModal('promoPreviewModal')" class="modal-close">
+          <i data-lucide="x" style="width:16px;height:16px;"></i>
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;padding:0 20px 12px;border-bottom:1px solid #e5e7eb;">
+        <button onclick="loadPromoPreview(1)" class="btn-ghost text-sm">Template 1</button>
+        <button onclick="loadPromoPreview(2)" class="btn-ghost text-sm">Template 2</button>
+        <button onclick="loadPromoPreview(3)" class="btn-ghost text-sm">Template 3</button>
+        <button onclick="loadPromoPreview(4)" class="btn-ghost text-sm">Template 4</button>
+      </div>
+      <iframe id="promoPreviewFrame"
+        style="width:100%;height:520px;border:none;display:block;"
+        src="about:blank">
+      </iframe>
+    </div>
+  </div>
+
   <!-- MODAL: Delete Inquiry -->
   <div id="deleteInquiryModal" class="modal-overlay">
     <div class="modal" style="max-width:420px;">
@@ -1540,32 +1607,6 @@
     </div>
   </div>
 
-  <!-- MODAL: Conflict Alert -->
-  <div id="conflictModal" class="modal-overlay">
-    <div class="modal" style="max-width:420px;">
-      <div class="modal-header">
-        <h2 id="conflictTitle" class="modal-title">Scheduling Conflict</h2>
-        <button onclick="closeModal('conflictModal')"
-          class="modal-close"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
-      </div>
-      <div class="modal-body">
-        <p id="conflictMessage"
-          style="font-size:13px; color:#374151;
-          margin-bottom:12px; line-height:1.7;">
-        </p>
-        <div id="conflictSuggestion"
-          style="font-size:12px; color:#6b7280;
-          padding:10px 12px; background:#f9fafb;
-          border-radius:6px; border-left:3px solid #D01B1B;">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button onclick="closeModal('conflictModal')"
-          class="btn-red">Got it</button>
-      </div>
-    </div>
-  </div>
-
   <!-- MODAL: Schedule Meeting -->
   <div id="scheduleModal" class="modal-overlay">
     <div class="modal modal-lg">
@@ -1577,9 +1618,22 @@
         <div class="form-grid">
           <div class="form-group col-span-2">
             <label class="form-label">School *</label>
-            <select id="m-school_id" class="input-field">
-              <option value="">-- Select a School --</option>
-            </select>
+            <div id="schoolPickerWrapper" style="position:relative;">
+              <input type="text" id="schoolSearch" class="input-field"
+                placeholder="Search school..."
+                autocomplete="off"
+                oninput="filterSchoolDropdown()"
+                onfocus="showSchoolDropdown()"
+                style="padding-right:36px;" />
+              <i data-lucide="chevron-down" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#9ca3af;pointer-events:none;"></i>
+              <input type="hidden" id="m-school_id" value="" />
+              <div id="schoolDropdownList"
+                style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+                       z-index:9999;background:#fff;border:1px solid #d1d5db;border-radius:8px;
+                       max-height:260px;overflow-y:auto;
+                       box-shadow:0 8px 24px rgba(0,0,0,0.13);">
+              </div>
+            </div>
           </div>
           <div>
             <label class="form-label">Meeting Date *</label>
@@ -1625,6 +1679,10 @@
               placeholder="Any notes about this meeting..."></textarea>
           </div>
         </div>
+      </div>
+      <div id="scheduleInlineError" style="display:none;margin:0 24px 12px;padding:10px 14px;
+        background:#fef2f2;border:1px solid #fecaca;border-radius:8px;
+        font-size:13px;color:#991b1b;line-height:1.6;">
       </div>
       <div class="modal-footer">
         <button onclick="closeModal('scheduleModal')" class="btn-ghost">Cancel</button>

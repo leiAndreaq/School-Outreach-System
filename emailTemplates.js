@@ -648,7 +648,10 @@ function promoFooter(compName, compAddress, compEmail, compPhone, unsubLink) {
   </tr>`;
 }
 
-function promoWrapper(rows) {
+function promoWrapper(rows, pixelUrl) {
+  const pixel = pixelUrl
+    ? `<img src="${pixelUrl}" width="1" height="1" style="display:none;border:0;" alt="" />`
+    : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
@@ -660,6 +663,7 @@ function promoWrapper(rows) {
          box-shadow:0 4px 24px rgba(27,31,107,0.10);">
   ${rows}
 </table>
+${pixel}
 </td></tr>
 </table>
 </body>
@@ -667,7 +671,7 @@ function promoWrapper(rows) {
 }
 
 // Template 1 — Introduction: Who we are and what we do
-function promoTemplate1(school, trackInquireUrl, unsubUrl) {
+function promoTemplate1(school, trackInquireUrl, unsubUrl, pixelUrl) {
   const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
   const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
   const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
@@ -726,7 +730,7 @@ function promoTemplate1(school, trackInquireUrl, unsubUrl) {
       </p>
     </td>
   </tr>
-  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`, pixelUrl);
 
   return {
     subject: `Introducing ThinkTANQ — A Smarter Way to Run ${schoolName}`,
@@ -735,7 +739,7 @@ function promoTemplate1(school, trackInquireUrl, unsubUrl) {
 }
 
 // Template 2 — Features & Benefits: What the system can do
-function promoTemplate2(school, trackInquireUrl, unsubUrl) {
+function promoTemplate2(school, trackInquireUrl, unsubUrl, pixelUrl) {
   const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
   const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
   const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
@@ -793,7 +797,7 @@ function promoTemplate2(school, trackInquireUrl, unsubUrl) {
       </p>
     </td>
   </tr>
-  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`, pixelUrl);
 
   return {
     subject: `${schoolName} — Here's What ThinkTANQ PathFinder Can Do For You`,
@@ -802,7 +806,7 @@ function promoTemplate2(school, trackInquireUrl, unsubUrl) {
 }
 
 // Template 3 — Problem & Solution: Pain points schools face
-function promoTemplate3(school, trackInquireUrl, unsubUrl) {
+function promoTemplate3(school, trackInquireUrl, unsubUrl, pixelUrl) {
   const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
   const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
   const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
@@ -857,7 +861,7 @@ function promoTemplate3(school, trackInquireUrl, unsubUrl) {
       </div>
     </td>
   </tr>
-  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`, pixelUrl);
 
   return {
     subject: `Is ${schoolName} Still Doing These Things Manually?`,
@@ -866,7 +870,7 @@ function promoTemplate3(school, trackInquireUrl, unsubUrl) {
 }
 
 // Template 4 — Call to Action / Limited Pilot Slots
-function promoTemplate4(school, trackInquireUrl, unsubUrl) {
+function promoTemplate4(school, trackInquireUrl, unsubUrl, pixelUrl) {
   const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
   const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
   const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
@@ -924,7 +928,7 @@ function promoTemplate4(school, trackInquireUrl, unsubUrl) {
       </p>
     </td>
   </tr>
-  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`);
+  ${promoFooter(compName, compAddress, compEmail, compPhone, unsubUrl)}`, pixelUrl);
 
   return {
     subject: `[Limited Slots] ${schoolName} — Join the ThinkTANQ Pilot Program`,
@@ -932,10 +936,298 @@ function promoTemplate4(school, trackInquireUrl, unsubUrl) {
   };
 }
 
-function getPromoTemplate(weekNumber, school, trackInquireUrl, unsubUrl) {
+function getPromoTemplate(weekNumber, school, trackInquireUrl, unsubUrl, pixelUrl) {
   const templates = [promoTemplate1, promoTemplate2, promoTemplate3, promoTemplate4];
   const fn = templates[(weekNumber - 1) % templates.length];
-  return fn(school, trackInquireUrl, unsubUrl);
+  return fn(school, trackInquireUrl, unsubUrl, pixelUrl);
+}
+
+function inquiryApprovalTemplate(inquiry) {
+  const contact     = inquiry.contact_person || 'Valued Partner';
+  const school      = inquiry.school_name    || '';
+  const hasSchedule = !!inquiry.preferred_date;
+  const date        = formatDateLong(inquiry.preferred_date);
+  const time        = inquiry.preferred_time ? formatTime(inquiry.preferred_time) : 'To be confirmed';
+  const mode        = inquiry.preferred_mode === 'ONSITE'
+    ? 'Onsite — At your school'
+    : 'Online — Google Meet / Zoom';
+
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+
+  const infoRow = (label, value) => value ? `
+    <tr>
+      <td style="padding:9px 14px;font-size:13px;color:#6b7280;font-weight:600;
+                 width:40%;border-bottom:1px solid #f0f0f5;">${label}</td>
+      <td style="padding:9px 14px;font-size:13px;color:#1e2a5e;font-weight:500;
+                 border-bottom:1px solid #f0f0f5;">${value}</td>
+    </tr>` : '';
+
+  const scheduleBlock = hasSchedule ? `
+      <!-- Schedule Card -->
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;
+                  overflow:hidden;margin:0 0 24px;">
+        <div style="background:linear-gradient(135deg,#1e2a8a,#2334a8);
+                    padding:11px 20px;font-size:11px;font-weight:700;
+                    color:#ffffff;letter-spacing:1.5px;text-transform:uppercase;">
+          Confirmed Schedule
+        </div>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${infoRow('Date', date)}
+          ${infoRow('Time', time)}
+          ${infoRow('Format', mode)}
+          ${infoRow('School', school)}
+        </table>
+      </div>
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0 0 24px;">
+        Our team will send you the meeting link (if online) or visit details (if onsite)
+        closer to the date. If you need to make any changes, simply reply to this email.
+      </p>` : `
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0 0 24px;">
+        You did not specify a preferred schedule. Our team will reach out to you
+        within <strong>24–48 hours</strong> to arrange a convenient presentation date and time.
+      </p>`;
+
+  return {
+    subject: `Your Presentation is Confirmed — ${compName}`,
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#07092b;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#07092b;">
+<tr><td align="center" style="padding:36px 16px;">
+<table width="580" cellpadding="0" cellspacing="0"
+  style="max-width:580px;width:100%;border-radius:20px;overflow:hidden;
+         box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.06);">
+
+  <!-- HEADER -->
+  <tr>
+    <td style="background:linear-gradient(155deg,#1e2a8a 0%,#111860 55%,#0d1240 100%);
+               padding:36px 44px 30px;text-align:center;">
+      <div style="display:inline-block;background:rgba(255,255,255,0.08);
+                  border:1px solid rgba(255,255,255,0.14);border-radius:40px;
+                  padding:5px 18px;font-size:10px;font-weight:700;
+                  letter-spacing:2.5px;text-transform:uppercase;
+                  color:#a5b4f8;margin-bottom:16px;">
+        &#9679;&nbsp;&nbsp;ThinkTANQ PathFinder
+      </div><br>
+      <span style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">ACCOUTRE</span>
+      <span style="font-size:28px;font-weight:800;color:#e8c56a;letter-spacing:-0.5px;">&nbsp;Ai</span><br>
+      <span style="font-size:11px;color:rgba(255,255,255,0.45);letter-spacing:1.2px;
+                   display:inline-block;margin-top:8px;">
+        School Management &amp; Learning Systems
+      </span>
+    </td>
+  </tr>
+
+  <!-- CONFIRMED BANNER -->
+  <tr>
+    <td style="background:#1a3a1a;padding:14px 44px;text-align:center;
+               border-bottom:2px solid #22c55e;">
+      <span style="font-size:13px;font-weight:700;color:#86efac;letter-spacing:0.5px;">
+        &#10003;&nbsp;&nbsp;Inquiry Approved — Presentation Confirmed
+      </span>
+    </td>
+  </tr>
+
+  <!-- BODY -->
+  <tr>
+    <td style="background:#f7f8fc;padding:36px 44px 28px;">
+      <p style="font-size:20px;font-weight:800;color:#0d1240;margin:0 0 6px;">
+        Great news, ${contact}!
+      </p>
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0 0 24px;">
+        We are excited to confirm that your inquiry from
+        <strong style="color:#1e2a8a;">${school}</strong> has been
+        <strong style="color:#16a34a;">approved</strong>. We look forward to presenting
+        the <strong>ThinkTANQ PathFinder</strong> — our AI-powered School Management
+        and Learning Management System — to your team.
+      </p>
+
+      ${scheduleBlock}
+
+      <!-- Contact -->
+      <div style="background:#f0f4ff;border-left:4px solid #2334a8;border-radius:0 8px 8px 0;
+                  padding:14px 18px;margin:0 0 28px;">
+        <p style="font-size:13px;font-weight:700;color:#1e2a8a;margin:0 0 6px;">
+          Questions? Reach us anytime.
+        </p>
+        <p style="font-size:13px;color:#374151;margin:0;line-height:1.7;">
+          ${compEmail}&nbsp;&nbsp;|&nbsp;&nbsp;${compPhone}
+        </p>
+      </div>
+
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0;">
+        We are looking forward to connecting with you and sharing how our system can
+        help <strong>${school}</strong> become more future-ready.
+      </p>
+    </td>
+  </tr>
+
+  <!-- FOOTER -->
+  <tr>
+    <td style="background:#0d1240;padding:24px 44px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
+      <p style="font-size:12px;color:#6b7280;margin:0 0 4px;">${compName}</p>
+      <p style="font-size:11px;color:#4b5563;margin:0 0 4px;">${compAddress}</p>
+      <p style="font-size:11px;color:#4b5563;margin:0;">${compEmail} &nbsp;|&nbsp; ${compPhone}</p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+  };
+}
+
+function bizThankYouInquiry(inquiry) {
+  const contact  = inquiry.contact_person || 'Valued Partner';
+  const company  = inquiry.company_name   || 'your organization';
+  const hasDate  = !!inquiry.preferred_date;
+  const date     = formatDateLong(inquiry.preferred_date);
+  const time     = inquiry.preferred_time ? formatTime(inquiry.preferred_time) : null;
+
+  const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
+  const compEmail   = process.env.COMPANY_EMAIL   || 'accoutre.ai.ph@gmail.com';
+  const compPhone   = process.env.COMPANY_PHONE   || '(+63) 921 696 4799';
+  const compAddress = process.env.COMPANY_ADDRESS || 'Unit 201, #61 Saudi Arabia St, Don Bosco, Parañaque City';
+
+  const infoRow = (label, value) => value ? `
+    <tr>
+      <td style="padding:9px 14px;font-size:13px;color:#6b7280;font-weight:600;
+                 width:38%;border-bottom:1px solid #f0f0f5;">${label}</td>
+      <td style="padding:9px 14px;font-size:13px;color:#1e2a5e;font-weight:500;
+                 border-bottom:1px solid #f0f0f5;">${value}</td>
+    </tr>` : '';
+
+  const scheduleBlock = hasDate ? `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;
+                  overflow:hidden;margin:0 0 24px;">
+        <div style="background:linear-gradient(135deg,#1e2a8a,#2334a8);
+                    padding:11px 20px;font-size:11px;font-weight:700;
+                    color:#ffffff;letter-spacing:1.5px;text-transform:uppercase;">
+          Requested Schedule
+        </div>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${infoRow('Company', company)}
+          ${infoRow('Date', date)}
+          ${time ? infoRow('Time', time) : ''}
+        </table>
+      </div>
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0 0 24px;">
+        Your preferred schedule has been noted. Our team will review your request and
+        confirm the final meeting details within <strong>24 hours</strong>. If you need
+        to adjust the date or time, simply reply to this email.
+      </p>` : `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;
+                  overflow:hidden;margin:0 0 24px;">
+        <div style="background:linear-gradient(135deg,#1e2a8a,#2334a8);
+                    padding:11px 20px;font-size:11px;font-weight:700;
+                    color:#ffffff;letter-spacing:1.5px;text-transform:uppercase;">
+          Your Inquiry
+        </div>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${infoRow('Company', company)}
+          ${infoRow('Contact', contact)}
+        </table>
+      </div>
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0 0 24px;">
+        Our team will reach out within <strong>24 hours</strong> to arrange a convenient
+        meeting date and time with your team.
+      </p>`;
+
+  return {
+    subject: `We've Received Your Meeting Request — ${compName}`,
+    html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#07092b;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#07092b;">
+<tr><td align="center" style="padding:36px 16px;">
+<table width="580" cellpadding="0" cellspacing="0"
+  style="max-width:580px;width:100%;border-radius:20px;overflow:hidden;
+         box-shadow:0 40px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.06);">
+
+  <!-- HEADER -->
+  <tr>
+    <td style="background:linear-gradient(155deg,#1e2a8a 0%,#111860 55%,#0d1240 100%);
+               padding:36px 44px 30px;text-align:center;">
+      <div style="display:inline-block;background:rgba(255,255,255,0.08);
+                  border:1px solid rgba(255,255,255,0.14);border-radius:40px;
+                  padding:5px 18px;font-size:10px;font-weight:700;
+                  letter-spacing:2.5px;text-transform:uppercase;
+                  color:#a5b4f8;margin-bottom:16px;">
+        &#9679;&nbsp;&nbsp;Business Partnership
+      </div><br>
+      <span style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">ACCOUTRE</span>
+      <span style="font-size:28px;font-weight:800;color:#e8c56a;letter-spacing:-0.5px;">&nbsp;Ai</span><br>
+      <span style="font-size:11px;color:rgba(255,255,255,0.45);letter-spacing:1.2px;
+                   display:inline-block;margin-top:8px;">
+        Business Creation &amp; Management
+      </span>
+    </td>
+  </tr>
+
+  <!-- STATUS BANNER -->
+  <tr>
+    <td style="background:#1a2f4a;padding:14px 44px;text-align:center;
+               border-bottom:2px solid #3b82f6;">
+      <span style="font-size:13px;font-weight:700;color:#93c5fd;letter-spacing:0.5px;">
+        &#10003;&nbsp;&nbsp;Inquiry Received — Under Review
+      </span>
+    </td>
+  </tr>
+
+  <!-- BODY -->
+  <tr>
+    <td style="background:#f7f8fc;padding:36px 44px 28px;">
+      <p style="font-size:20px;font-weight:800;color:#0d1240;margin:0 0 6px;">
+        Thank you, ${contact}.
+      </p>
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0 0 24px;">
+        We have successfully received your meeting request from
+        <strong style="color:#1e2a8a;">${company}</strong>. Our team will review your
+        inquiry and get back to you with a confirmed schedule shortly.
+      </p>
+
+      ${scheduleBlock}
+
+      <!-- Contact block -->
+      <div style="background:#f0f4ff;border-left:4px solid #2334a8;border-radius:0 8px 8px 0;
+                  padding:14px 18px;margin:0 0 28px;">
+        <p style="font-size:13px;font-weight:700;color:#1e2a8a;margin:0 0 6px;">
+          Questions? We're here to help.
+        </p>
+        <p style="font-size:13px;color:#374151;margin:0;line-height:1.7;">
+          Reply to this email or reach us at ${compEmail}&nbsp;&nbsp;|&nbsp;&nbsp;${compPhone}
+        </p>
+      </div>
+
+      <p style="font-size:14px;color:#4b5563;line-height:1.8;margin:0;">
+        We look forward to exploring how Accoutre AI can support
+        <strong>${company}</strong> in achieving its business goals.
+      </p>
+    </td>
+  </tr>
+
+  <!-- FOOTER -->
+  <tr>
+    <td style="background:#0d1240;padding:24px 44px;text-align:center;border-top:1px solid rgba(255,255,255,0.08);">
+      <p style="font-size:12px;color:#6b7280;margin:0 0 4px;">${compName}</p>
+      <p style="font-size:11px;color:#4b5563;margin:0 0 4px;">${compAddress}</p>
+      <p style="font-size:11px;color:#4b5563;margin:0;">${compEmail} &nbsp;|&nbsp; ${compPhone}</p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+  };
 }
 
 module.exports = {
@@ -946,6 +1238,8 @@ module.exports = {
   meetingHourReminderTemplate,
   postMeetingFollowUpTemplate,
   thankYouInquiryTemplate,
+  inquiryApprovalTemplate,
+  bizThankYouInquiry,
   promoTemplate1,
   promoTemplate2,
   promoTemplate3,

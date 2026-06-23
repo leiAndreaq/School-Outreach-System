@@ -100,6 +100,8 @@ const {
   meetingHourReminderTemplate,
   postMeetingFollowUpTemplate,
   thankYouInquiryTemplate,
+  inquiryApprovalTemplate,
+  bizThankYouInquiry,
   getPromoTemplate
 } = require("./emailTemplates");
 
@@ -134,10 +136,11 @@ function requireAuth(req, res, next) {
     "/session"
   ];
 
-  // Only the inquiry submission endpoint is public — GET /api/inquiries requires auth
-  const isPublicInquiryPost = req.method === 'POST' && req.path === '/inquiries';
+  // Only the inquiry submission endpoints are public — GET variants require auth
+  const isPublicInquiryPost    = req.method === 'POST' && req.path === '/inquiries';
+  const isPublicBizInquiryPost = req.method === 'POST' && req.path === '/business-inquiries';
 
-  const isPublic = isPublicInquiryPost || publicPaths.some(route =>
+  const isPublic = isPublicInquiryPost || isPublicBizInquiryPost || publicPaths.some(route =>
     req.path.startsWith(route)
   );
 
@@ -261,7 +264,9 @@ app.post("/api/change-password", (req, res) => {
       [newHash, row.id],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Password changed successfully" });
+        req.session.destroy(() => {
+          res.json({ message: "Password changed successfully. Please log in again." });
+        });
       }
     );
   });
@@ -275,8 +280,14 @@ app.get("/api/session", (req, res) => {
   });
 });
 
-// Manual backup trigger
-app.post("/api/backup", (req, res) => {
+// Manual backup — max 5 per hour
+const backupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many backup requests. Please wait before triggering another backup." }
+});
+
+app.post("/api/backup", backupLimiter, (req, res) => {
   try {
     runBackup();
     res.json({ message: "Backup created successfully" });
@@ -427,12 +438,12 @@ app.post("/api/schools", [
 
   db.run(
     `INSERT INTO schools
-    (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode, lead_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, notes, mode, lead_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       s.school_name, s.contact_person, s.email, s.phone, s.website, s.facebook_page,
       s.address, s.city_province, s.region, s.school_type, s.level_offered,
-      s.estimated_students, s.assigned_to, s.notes,
+      s.estimated_students, s.notes,
       s.mode || 'school', 'OFFICIAL'
     ],
     function (err) {
@@ -449,8 +460,14 @@ app.get("/api/schools", (req, res) => {
   const leadType = req.query.lead_type || null;
 
   const query  = leadType
-    ? `SELECT * FROM schools WHERE mode = ? AND lead_type = ? ORDER BY created_at DESC`
-    : `SELECT * FROM schools WHERE mode = ? ORDER BY created_at DESC`;
+    ? `SELECT schools.*,
+         (SELECT meeting_date FROM meetings WHERE school_id = schools.id AND status IN ('SCHEDULED','RESCHEDULED') ORDER BY meeting_date ASC LIMIT 1) as active_meeting_date,
+         (SELECT meeting_time FROM meetings WHERE school_id = schools.id AND status IN ('SCHEDULED','RESCHEDULED') ORDER BY meeting_date ASC LIMIT 1) as active_meeting_time
+       FROM schools WHERE mode = ? AND lead_type = ? ORDER BY created_at DESC`
+    : `SELECT schools.*,
+         (SELECT meeting_date FROM meetings WHERE school_id = schools.id AND status IN ('SCHEDULED','RESCHEDULED') ORDER BY meeting_date ASC LIMIT 1) as active_meeting_date,
+         (SELECT meeting_time FROM meetings WHERE school_id = schools.id AND status IN ('SCHEDULED','RESCHEDULED') ORDER BY meeting_date ASC LIMIT 1) as active_meeting_time
+       FROM schools WHERE mode = ? ORDER BY created_at DESC`;
   const params = leadType ? [mode, leadType] : [mode];
 
   db.all(query, params, (err, rows) => {
@@ -521,14 +538,14 @@ app.put("/api/schools/:id", [
       school_name = ?, contact_person = ?, email = ?, phone = ?,
       website = ?, facebook_page = ?, address = ?, city_province = ?,
       region = ?, school_type = ?, level_offered = ?, estimated_students = ?,
-      assigned_to = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [
       s.school_name,
       s.contact_person  || null, s.email           || null, s.phone        || null,
       s.website         || null, s.facebook_page   || null, s.address      || null,
       s.city_province   || null, s.region          || null, s.school_type  || null,
-      s.level_offered   || null, s.estimated_students || null, s.assigned_to || null,
+      s.level_offered   || null, s.estimated_students || null,
       s.status          || 'NEW_LEAD',
       s.notes           || null,
       req.params.id
@@ -556,34 +573,35 @@ app.delete("/api/schools", (req, res) => {
   }
 
   const deleteReason = (reason || '').trim() || 'Bulk delete by admin';
-  let deleted = 0;
-  let processed = 0;
+  const placeholders = validIds.map(() => '?').join(',');
 
-  validIds.forEach(id => {
+  db.all(
+    `SELECT * FROM schools WHERE id IN (${placeholders})`,
+    validIds,
+    (err, schools) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!schools.length) return res.json({ deleted: 0 });
+
       db.serialize(() => {
-      db.get(`SELECT * FROM schools WHERE id = ?`, [id], (err, school) => {
-        if (err || !school) {
-          processed++;
-          if (processed === validIds.length) res.json({ deleted });
-          return;
+        db.run('BEGIN TRANSACTION');
+        for (const school of schools) {
+          db.run(`INSERT INTO deletion_history (record_type, record_name, reason) VALUES (?, ?, ?)`,
+            ['SCHOOL', school.school_name, deleteReason]);
+          db.run(`DELETE FROM email_drafts WHERE school_id = ?`, [school.id]);
+          db.run(`DELETE FROM meetings WHERE school_id = ?`, [school.id]);
+          db.run(`DELETE FROM activity_logs WHERE school_id = ?`, [school.id]);
+          db.run(`DELETE FROM schools WHERE id = ?`, [school.id]);
         }
-
-        db.run(
-          `INSERT INTO deletion_history (record_type, record_name, reason) VALUES (?, ?, ?)`,
-          ['SCHOOL', school.school_name, deleteReason]
-        );
-        db.run(`DELETE FROM email_drafts WHERE school_id = ?`, [id]);
-        db.run(`DELETE FROM meetings WHERE school_id = ?`, [id]);
-        db.run(`DELETE FROM activity_logs WHERE school_id = ?`, [id]);
-
-        db.run(`DELETE FROM schools WHERE id = ?`, [id], function (err) {
-          if (!err) deleted++;
-          processed++;
-          if (processed === validIds.length) res.json({ deleted });
+        db.run('COMMIT', function (err) {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(500).json({ error: err.message });
+          }
+          res.json({ deleted: schools.length });
         });
       });
-    });
-  });
+    }
+  );
 });
 
 // ── DELETE SCHOOL (Right to Erasure) ──
@@ -764,7 +782,7 @@ app.post("/api/email-drafts/:id/send", (req, res) => {
           body: draft.body
         });
 
-        const newStatus = result.sent ? "SENT" : "DRAFT";
+        const newStatus = result.sent ? "SENT" : "FAILED";
         db.run(`UPDATE email_drafts SET status = ? WHERE id = ?`, [newStatus, req.params.id]);
         if (result.sent) {
           db.run(`UPDATE schools SET status = 'EMAIL_SENT', last_contacted = DATE('now'), updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [draft.school_id]);
@@ -813,11 +831,11 @@ app.post("/api/import-csv/confirm", (req, res) => {
     db.run(
       `INSERT INTO schools
        (school_name, contact_person, email, phone, website, facebook_page, address,
-        city_province, region, school_type, level_offered, estimated_students, assigned_to, notes, mode, lead_type)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        city_province, region, school_type, level_offered, estimated_students, notes, mode, lead_type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [row.school_name, row.contact_person, row.email, row.phone, row.website,
        row.facebook_page, row.address, row.city_province, row.region,
-       row.school_type, row.level_offered, row.estimated_students, row.assigned_to, row.notes, importMode, 'PROMOTIONAL'],
+       row.school_type, row.level_offered, row.estimated_students, row.notes, importMode, 'PROMOTIONAL'],
       function (err) {
         if (err) { errors.push(err.message); }
         else { imported++; schoolIds.push(this.lastID); }
@@ -837,14 +855,17 @@ app.post("/api/import-csv/confirm", (req, res) => {
 });
 
 // ── PROMO TEMPLATE PREVIEW ──
-app.get("/api/promo-preview", (_req, res) => {
+app.get("/api/promo-preview", (req, res) => {
+  const phtNow     = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const weekNumber = Math.ceil((phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+  const tNum       = parseInt(req.query.template) || weekNumber;
   const sampleSchool = {
-    school_name: '[School Name]',
+    school_name:    '[School Name]',
     contact_person: '[Contact Person]',
-    city: '[City]',
-    province: '[Province]'
+    city_province:  '[City, Province]',
+    region:         '[Region]'
   };
-  const tmpl = getPromoTemplate(1, sampleSchool, '#', '#');
+  const tmpl = getPromoTemplate(tNum, sampleSchool, '#', '#', '');
   res.setHeader('Content-Type', 'text/html');
   res.send(tmpl.html);
 });
@@ -875,9 +896,10 @@ app.post("/api/bulk-promo-email", async (req, res) => {
       const baseUrl    = process.env.APP_URL || 'http://localhost:3000';
       const inquireUrl = `${baseUrl}/track?school_id=${school.id}&action=inquire`;
       const unsubUrl   = `${baseUrl}/track?school_id=${school.id}&action=unsubscribe`;
+      const pixelUrl   = `${baseUrl}/track?school_id=${school.id}&action=open`;
       const phtNow     = new Date(Date.now() + 8 * 60 * 60 * 1000);
       const weekNumber = Math.ceil((phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000));
-      const tmpl       = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl);
+      const tmpl       = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl, pixelUrl);
 
       const draftId = await new Promise((resolve, reject) => {
         db.run(
@@ -903,6 +925,8 @@ app.post("/api/bulk-promo-email", async (req, res) => {
         logActivity(school.id, 'EMAIL_SENT', `Bulk promotional email (template ${((weekNumber - 1) % 4) + 1}) sent.`);
         results.sent++;
       } else {
+        db.run(`UPDATE email_drafts SET status = 'FAILED' WHERE id = ?`, [draftId]);
+        logActivity(school.id, 'EMAIL_NOT_SENT', `Bulk promotional email failed: ${result.reason || 'not sent'}`);
         results.failed++;
         results.errors.push(`${school.school_name}: ${result.reason || 'not sent'}`);
       }
@@ -945,12 +969,12 @@ app.post("/api/import-csv", upload.single("file"), (req, res) => {
       rows.forEach(row => {
         db.run(
           `INSERT INTO schools
-          (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, assigned_to, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (school_name, contact_person, email, phone, website, facebook_page, address, city_province, region, school_type, level_offered, estimated_students, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             row.school_name, row.contact_person, row.email, row.phone, row.website, row.facebook_page,
             row.address, row.city_province, row.region, row.school_type, row.level_offered,
-            row.estimated_students, row.assigned_to, row.notes
+            row.estimated_students, row.notes
           ],
           function (err) {
             if (err) errors.push(err.message);
@@ -1280,13 +1304,80 @@ app.post("/api/inquiries/:id/approve", (req, res) => {
         return res.status(404).json({ error: "Inquiry not found" });
       }
 
-      // Insert as new school lead
-      db.run(
+      // Check if this inquiry matches an existing PROMOTIONAL school by email
+      const emailToCheck = (inquiry.email || '').toLowerCase().trim();
+      db.get(
+        `SELECT * FROM schools WHERE lower(trim(email)) = ? AND lead_type = 'PROMOTIONAL' LIMIT 1`,
+        [emailToCheck],
+        (err, promoSchool) => {
+
+        if (promoSchool) {
+          // ── UPGRADE existing promotional school to Official ──
+          const schoolId = promoSchool.id;
+          db.run(
+            `UPDATE schools SET
+               lead_type = 'OFFICIAL',
+               promo_unsubscribed = 1,
+               status = 'INTERESTED',
+               contact_person = COALESCE(NULLIF(?, ''), contact_person),
+               phone = COALESCE(NULLIF(?, ''), phone),
+               updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [inquiry.contact_person, inquiry.phone, schoolId],
+            async () => {
+              db.run(
+                `UPDATE inquiries SET status = 'APPROVED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                [req.params.id]
+              );
+              logActivity(schoolId, 'LEAD_UPGRADED',
+                'Upgraded from Promotional to Official Leads — school submitted inquiry form.');
+              logActivity(schoolId, 'LEAD_CREATED_INQUIRY',
+                `Inquiry received from ${inquiry.contact_person} on ${inquiry.created_at}.`);
+
+              if (inquiry.preferred_date) {
+                const meetTime = convertTimeTo24hr(inquiry.preferred_time) || '09:00';
+                db.run(
+                  `INSERT INTO meetings
+                   (school_id, school_name, contact_person, meeting_type,
+                    meeting_date, meeting_time, meeting_mode, status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED')`,
+                  [schoolId, promoSchool.school_name, inquiry.contact_person,
+                   'PRESENTATION', inquiry.preferred_date, meetTime,
+                   inquiry.preferred_mode || 'ONLINE'],
+                  function (meetErr) {
+                    if (!meetErr) {
+                      logActivity(schoolId, 'MEETING_SCHEDULED',
+                        `Presentation auto-scheduled on ${inquiry.preferred_date} at ${meetTime} from inquiry preferred date.`);
+                    }
+                  }
+                );
+              }
+
+              const finalStatus = inquiry.preferred_date ? 'PRESENTATION_SCHEDULED' : 'INTERESTED';
+              db.run(`UPDATE schools SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+                [finalStatus, schoolId]);
+
+              const tmpl = inquiryApprovalTemplate(inquiry);
+              sendEmail({ to: inquiry.email, subject: tmpl.subject, html: tmpl.html })
+                .then(r => {
+                  if (r.sent) logActivity(schoolId, 'EMAIL_SENT', 'Approval confirmation email sent to school.');
+                  else logActivity(schoolId, 'EMAIL_NOT_SENT', `Approval email not sent: ${r.reason}`);
+                })
+                .catch(e => console.error('[APPROVAL] Email error:', e.message));
+
+              res.json({ message: 'Inquiry approved — school upgraded to Official Leads', school_id: schoolId });
+            }
+          );
+          return;
+        }
+
+        // ── No matching promo school — create a new Official lead ──
+        db.run(
         `INSERT INTO schools
          (school_name, contact_person, email, phone,
           city_province, region, school_type, level_offered,
-          estimated_students, notes, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW_LEAD')`,
+          estimated_students, notes, status, lead_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW_LEAD', 'OFFICIAL')`,
         [
           inquiry.school_name,
           inquiry.contact_person,
@@ -1304,7 +1395,7 @@ app.post("/api/inquiries/:id/approve", (req, res) => {
            Heard from: ${inquiry.heard_from || 'Not specified'}.
            Message: ${inquiry.message || 'None'}.`
         ],
-        async function (err) {
+        function (err) {
           if (err) return res.status(500).json({ error: err.message });
 
           const schoolId = this.lastID;
@@ -1351,68 +1442,25 @@ app.post("/api/inquiries/:id/approve", (req, res) => {
             );
           }
 
-          // Auto-generate PROPOSAL email immediately
-          const school = {
-            id: schoolId,
-            school_name:        inquiry.school_name,
-            contact_person:     inquiry.contact_person,
-            email:              inquiry.email,
-            phone:              inquiry.phone,
-            city_province:      inquiry.city_province,
-            region:             inquiry.region,
-            school_type:        inquiry.school_type,
-            level_offered:      inquiry.level_offered,
-            estimated_students: inquiry.estimated_students,
-            status:             'NEW_LEAD'
-          };
+          const finalStatus = inquiry.preferred_date ? 'PRESENTATION_SCHEDULED' : 'INTERESTED';
+          db.run(`UPDATE schools SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [finalStatus, schoolId]);
 
-          try {
-            const email = await generateEmail(school, 'PROPOSAL');
+          const tmpl = inquiryApprovalTemplate(inquiry);
+          sendEmail({ to: inquiry.email, subject: tmpl.subject, html: tmpl.html })
+            .then(r => {
+              if (r.sent) logActivity(schoolId, 'EMAIL_SENT', 'Approval confirmation email sent to school.');
+              else logActivity(schoolId, 'EMAIL_NOT_SENT', `Approval email not sent: ${r.reason}`);
+            })
+            .catch(e => console.error('[APPROVAL] Email error:', e.message));
 
-            db.run(
-              `INSERT INTO email_drafts (school_id, email_type, subject, body)
-               VALUES (?, ?, ?, ?)`,
-              [schoolId, 'PROPOSAL', email.subject, email.body],
-              function (draftErr) {
-                if (draftErr) {
-                  return res.json({
-                    message:   "Inquiry approved and converted to school lead",
-                    school_id: schoolId
-                  });
-                }
-
-                db.run(
-                  `UPDATE schools SET status = 'PROPOSAL_GENERATED',
-                   updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-                  [schoolId]
-                );
-
-                logActivity(
-                  schoolId,
-                  'EMAIL_GENERATED',
-                  'PROPOSAL email generated after inquiry approval.'
-                );
-
-                res.json({
-                  message:   "Inquiry approved and converted to school lead",
-                  school_id: schoolId,
-                  draft_id:  this.lastID,
-                  subject:   email.subject,
-                  body:      email.body
-                });
-              }
-            );
-          } catch (emailErr) {
-            // Email generation failed — still return school creation success
-            res.json({
-              message:   "Inquiry approved and converted to school lead",
-              school_id: schoolId
-            });
-          }
+          res.json({ message: 'Inquiry approved and converted to school lead', school_id: schoolId });
         }
       );
-    }
-  );
+        } // end promoSchool callback
+      );  // end db.get promoSchool check
+    }     // end inquiry callback
+  );      // end db.get inquiry
 });
 
 // Dismiss inquiry
@@ -1533,11 +1581,14 @@ app.post("/api/meetings/mark-past-done", (req, res) => {
                   );
                   logActivity(meeting.school_id, 'STATUS_UPDATED', 'Status changed to PRESENTED after meeting marked Done.');
                 }
-                if (!meeting.school_email) return;
+                if (!meeting.school_email || meeting.followup_sent) return;
                 try {
                   const tmpl = postMeetingFollowUpTemplate(meeting);
                   sendEmail({ to: meeting.school_email, subject: tmpl.subject, body: tmpl.body, html: tmpl.html })
-                    .then(r => console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`))
+                    .then(r => {
+                      if (r.sent) db.run(`UPDATE meetings SET followup_sent = 1 WHERE id = ?`, [meeting.id]);
+                      console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`);
+                    })
                     .catch(e => console.error('[FOLLOW-UP] Email error:', e.message));
                 } catch (e) {
                   console.error('[FOLLOW-UP] Template error:', e.message);
@@ -1619,6 +1670,24 @@ app.post("/api/meetings", (req, res) => {
     return res.status(400).json({
       error: "school_id, meeting_date, and meeting_time are required"
     });
+  }
+
+  // ── 2-HOUR ADVANCE RULE: same-day meetings must be at least 2 hours from now (PHT) ──
+  const phtNow   = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const todayPHT = phtNow.toISOString().split('T')[0];
+  if (m.meeting_date === todayPHT) {
+    const nowMins     = phtNow.getUTCHours() * 60 + phtNow.getUTCMinutes();
+    const [th, tm]    = m.meeting_time.split(':').map(Number);
+    const meetingMins = th * 60 + tm;
+    if (meetingMins < nowMins + 120) {
+      const earliest = new Date(phtNow.getTime() + 2 * 60 * 60 * 1000);
+      const eh = String(earliest.getUTCHours()).padStart(2, '0');
+      const em = String(earliest.getUTCMinutes()).padStart(2, '0');
+      return res.status(400).json({
+        error: `Same-day meetings must be scheduled at least 2 hours in advance. Earliest available time today: ${eh}:${em}.`,
+        conflict_type: 'TOO_SOON'
+      });
+    }
   }
 
   db.get(`SELECT * FROM schools WHERE id = ?`, [m.school_id], (err, school) => {
@@ -1720,11 +1789,19 @@ app.post("/api/meetings", (req, res) => {
                   function (err) {
                     if (err) return res.status(500).json({ error: err.message });
 
+                    // If school was a promotional lead, upgrade to Official now
+                    const wasPromotional = school.lead_type === 'PROMOTIONAL';
                     db.run(
                       `UPDATE schools SET status = 'PRESENTATION_SCHEDULED',
+                       lead_type = 'OFFICIAL',
                        updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
                       [m.school_id]
                     );
+
+                    if (wasPromotional) {
+                      logActivity(m.school_id, 'LEAD_UPGRADED',
+                        'Upgraded from Promotional to Official Leads — presentation scheduled.');
+                    }
 
                     logActivity(
                       m.school_id,
@@ -1774,11 +1851,14 @@ app.patch("/api/meetings/:id/status", (req, res) => {
               );
               logActivity(meeting.school_id, 'STATUS_UPDATED', 'Status changed to PRESENTED after meeting marked Done.');
             }
-            if (!meeting.school_email) return;
+            if (!meeting.school_email || meeting.followup_sent) return;
             try {
               const tmpl = postMeetingFollowUpTemplate(meeting);
               sendEmail({ to: meeting.school_email, subject: tmpl.subject, body: tmpl.body, html: tmpl.html })
-                .then(r => console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`))
+                .then(r => {
+                  if (r.sent) db.run(`UPDATE meetings SET followup_sent = 1 WHERE id = ?`, [meeting.id]);
+                  console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`);
+                })
                 .catch(e => console.error('[FOLLOW-UP] Email error:', e.message));
             } catch (e) {
               console.error('[FOLLOW-UP] Template error:', e.message);
@@ -1827,30 +1907,82 @@ app.patch("/api/meetings/:id/reschedule", (req, res) => {
   db.get(`SELECT * FROM meetings WHERE id = ?`, [req.params.id], (err, meeting) => {
     if (err || !meeting) return res.status(404).json({ error: "Meeting not found" });
 
-    db.run(
-      `UPDATE meetings SET
-       meeting_date = ?,
-       meeting_time = ?,
-       status = 'RESCHEDULED',
-       notes = ?,
-       updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [
-        meeting_date,
-        meeting_time,
-        notes || meeting.notes,
-        req.params.id
-      ],
-      function (err) {
+    // CHECK 1: Max 3 meetings per day (excluding this meeting)
+    db.get(
+      `SELECT COUNT(*) as count FROM meetings
+       WHERE meeting_date = ? AND status IN ('SCHEDULED', 'RESCHEDULED') AND id != ?`,
+      [meeting_date, req.params.id],
+      (err, dayCount) => {
         if (err) return res.status(500).json({ error: err.message });
+        if (dayCount.count >= 3) {
+          return res.status(400).json({
+            error: `Maximum of 3 meetings per day reached for ${meeting_date}. Please choose a different date.`,
+            conflict_type: 'MAX_MEETINGS_REACHED'
+          });
+        }
 
-        logActivity(
-          meeting.school_id,
-          'MEETING_RESCHEDULED',
-          `Meeting rescheduled from ${meeting.meeting_date} to ${meeting_date} at ${meeting_time}`
+        // CHECK 2: Time slot overlap within 30 minutes (excluding this meeting)
+        db.all(
+          `SELECT * FROM meetings
+           WHERE meeting_date = ? AND status IN ('SCHEDULED', 'RESCHEDULED') AND id != ?`,
+          [meeting_date, req.params.id],
+          (err, sameDayMeetings) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            const newTime = timeToMinutes(meeting_time);
+            const overlap = sameDayMeetings.find(existing =>
+              Math.abs(newTime - timeToMinutes(existing.meeting_time)) < 30
+            );
+
+            if (overlap) {
+              return res.status(400).json({
+                error: `Time slot conflict. There is already a meeting at ${overlap.meeting_time} with ${overlap.school_name}. Please choose a time at least 30 minutes apart.`,
+                conflict_type: 'TIME_SLOT_TAKEN'
+              });
+            }
+
+            // CHECK 3: Onsite outside Metro Manila
+            const metroManila = [
+              'manila', 'quezon city', 'makati', 'pasig',
+              'taguig', 'mandaluyong', 'marikina', 'pasay',
+              'caloocan', 'malabon', 'navotas', 'valenzuela',
+              'las pinas', 'muntinlupa', 'paranaque', 'parañaque',
+              'pateros', 'san juan', 'ncr'
+            ];
+            if (meeting.meeting_mode === 'ONSITE') {
+              const location = (meeting.meeting_address || '').toLowerCase();
+              if (location.length > 0 && !metroManila.some(c => location.includes(c))) {
+                return res.status(400).json({
+                  error: `Onsite meetings are only available within Metro Manila. Please switch to Online or contact your partner for this area.`,
+                  conflict_type: 'OUTSIDE_METRO_MANILA'
+                });
+              }
+            }
+
+            // ALL CHECKS PASSED — update
+            db.run(
+              `UPDATE meetings SET
+               meeting_date = ?,
+               meeting_time = ?,
+               status = 'RESCHEDULED',
+               notes = ?,
+               updated_at = CURRENT_TIMESTAMP
+               WHERE id = ?`,
+              [meeting_date, meeting_time, notes || meeting.notes, req.params.id],
+              function (err) {
+                if (err) return res.status(500).json({ error: err.message });
+
+                logActivity(
+                  meeting.school_id,
+                  'MEETING_RESCHEDULED',
+                  `Meeting rescheduled from ${meeting.meeting_date} to ${meeting_date} at ${meeting_time}`
+                );
+
+                res.json({ message: "Meeting rescheduled" });
+              }
+            );
+          }
         );
-
-        res.json({ message: "Meeting rescheduled" });
       }
     );
   });
@@ -2012,6 +2144,9 @@ db.run(`ALTER TABLE schools ADD COLUMN lead_type TEXT DEFAULT 'OFFICIAL'`, (err)
 // ── PROMO UNSUBSCRIBED COLUMN (migration guard) ──
 db.run(`ALTER TABLE schools ADD COLUMN promo_unsubscribed INTEGER DEFAULT 0`, () => {});
 
+// ── FOLLOWUP SENT COLUMN (migration guard) ──
+db.run(`ALTER TABLE meetings ADD COLUMN followup_sent INTEGER DEFAULT 0`, () => {});
+
 // ── MEETING REMINDERS ──
 
 // 6 AM PHT — send day-of reminder to every meeting today
@@ -2151,11 +2286,14 @@ cron.schedule("2 0 * * *", () => {
                   );
                   logActivity(meeting.school_id, 'STATUS_UPDATED', 'Status changed to PRESENTED after meeting marked Done.');
                 }
-                if (!meeting.school_email) return;
+                if (!meeting.school_email || meeting.followup_sent) return;
                 try {
                   const tmpl = postMeetingFollowUpTemplate(meeting);
                   sendEmail({ to: meeting.school_email, subject: tmpl.subject, body: tmpl.body, html: tmpl.html })
-                    .then(r => console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`))
+                    .then(r => {
+                      if (r.sent) db.run(`UPDATE meetings SET followup_sent = 1 WHERE id = ?`, [meeting.id]);
+                      console.log(`[FOLLOW-UP] ${r.sent ? 'Sent' : 'Not sent'} → ${meeting.school_email}`);
+                    })
                     .catch(e => console.error('[FOLLOW-UP] Email error:', e.message));
                 } catch (e) {
                   console.error('[FOLLOW-UP] Template error:', e.message);
@@ -2170,80 +2308,99 @@ cron.schedule("2 0 * * *", () => {
 }, { timezone: "Asia/Manila" });
 
 // ── WEEKLY PROMOTIONAL EMAIL — Every Monday 8:00 AM PHT ──
-cron.schedule("0 8 * * 1", async () => {
-  const phtNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
-  const weekNumber = Math.ceil(
-    (phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000)
-  );
-  console.log(`[PROMO] Monday blast starting — week ${weekNumber}, template ${((weekNumber - 1) % 4) + 1}`);
+cron.schedule("0 8 * * 1", () => {
+  db.get(`SELECT value FROM app_settings WHERE key = 'promo_campaign_paused'`, [], async (err, setting) => {
+    if (setting && setting.value === '1') {
+      console.log('[PROMO] Campaign is paused — skipping Monday blast.');
+      return;
+    }
 
-  db.all(
-    `SELECT * FROM schools
-     WHERE lead_type = 'PROMOTIONAL'
-     AND (promo_unsubscribed IS NULL OR promo_unsubscribed = 0)
-     AND email IS NOT NULL AND email != ''`,
-    [],
-    async (err, schools) => {
-      if (err) { console.error('[PROMO] DB error:', err.message); return; }
-      if (!schools.length) { console.log('[PROMO] No promotional leads to email.'); return; }
+    const phtNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    const weekNumber = Math.ceil(
+      (phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000)
+    );
+    console.log(`[PROMO] Monday blast starting — week ${weekNumber}, template ${((weekNumber - 1) % 4) + 1}`);
 
-      console.log(`[PROMO] Sending to ${schools.length} school(s)...`);
-      let sent = 0, skipped = 0;
+    db.all(
+      `SELECT * FROM schools
+       WHERE lead_type = 'PROMOTIONAL'
+       AND (promo_unsubscribed IS NULL OR promo_unsubscribed = 0)
+       AND email IS NOT NULL AND email != ''`,
+      [],
+      async (err, schools) => {
+        if (err) { console.error('[PROMO] DB error:', err.message); return; }
+        if (!schools.length) { console.log('[PROMO] No promotional leads to email.'); return; }
 
-      for (const school of schools) {
-        try {
-          const baseUrl      = process.env.APP_URL || 'http://localhost:3000';
-          const inquireUrl   = `${baseUrl}/track?school_id=${school.id}&action=inquire`;
-          const unsubUrl     = `${baseUrl}/track?school_id=${school.id}&action=unsubscribe`;
-          const tmpl         = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl);
+        console.log(`[PROMO] Sending to ${schools.length} school(s)...`);
+        let sent = 0, skipped = 0;
 
-          const result = await sendEmail({
-            to:      school.email,
-            subject: tmpl.subject,
-            html:    tmpl.html,
-            headers: {
-              'List-Unsubscribe':      `<${baseUrl}/track?school_id=${school.id}&action=unsubscribe>`,
-              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        for (const school of schools) {
+          try {
+            const baseUrl    = process.env.APP_URL || 'http://localhost:3000';
+            const inquireUrl = `${baseUrl}/track?school_id=${school.id}&action=inquire`;
+            const unsubUrl   = `${baseUrl}/track?school_id=${school.id}&action=unsubscribe`;
+            const pixelUrl   = `${baseUrl}/track?school_id=${school.id}&action=open`;
+            const tmpl       = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl, pixelUrl);
+
+            const result = await sendEmail({
+              to:      school.email,
+              subject: tmpl.subject,
+              html:    tmpl.html,
+              headers: {
+                'List-Unsubscribe':      `<${unsubUrl}>`,
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+              }
+            });
+
+            if (result.sent) {
+              logActivity(school.id, 'EMAIL_SENT', `Promotional email (template ${((weekNumber - 1) % 4) + 1}) sent.`);
+              sent++;
+            } else {
+              logActivity(school.id, 'EMAIL_NOT_SENT', `Promotional email not sent: ${result.reason}`);
+              skipped++;
             }
-          });
-
-          if (result.sent) {
-            logActivity(school.id, 'EMAIL_SENT', `Promotional email (template ${((weekNumber - 1) % 4) + 1}) sent.`);
-            sent++;
-          } else {
-            logActivity(school.id, 'EMAIL_NOT_SENT', `Promotional email not sent: ${result.reason}`);
+          } catch (e) {
+            console.error(`[PROMO] Failed for ${school.school_name}:`, e.message);
             skipped++;
           }
-        } catch (e) {
-          console.error(`[PROMO] Failed for ${school.school_name}:`, e.message);
-          skipped++;
         }
-      }
 
-      console.log(`[PROMO] Done — ${sent} sent, ${skipped} skipped.`);
-    }
-  );
+        console.log(`[PROMO] Done — ${sent} sent, ${skipped} skipped.`);
+      }
+    );
+  });
 }, { timezone: "Asia/Manila" });
 
 console.log("✅ Weekly promotional email scheduler started — every Monday 8:00 AM PHT");
 
-// ── PROMOTIONAL EMAIL CLICK TRACKING ──
+// ── PROMOTIONAL EMAIL TRACKING ──
 app.get("/track", (req, res) => {
   const { school_id, action } = req.query;
   const id = parseInt(school_id);
 
-  if (!id || !['inquire', 'unsubscribe'].includes(action)) {
+  if (!id || !['inquire', 'unsubscribe', 'open'].includes(action)) {
     return res.status(400).send('Invalid tracking link.');
   }
 
-  db.get(`SELECT id, school_name, email FROM schools WHERE id = ?`, [id], (err, school) => {
+  db.get(`SELECT id, school_name, email, contact_person FROM schools WHERE id = ?`, [id], (err, school) => {
     if (err || !school) return res.redirect('/inquiry.html');
+
+    if (action === 'open') {
+      logActivity(school.id, 'PROMO_EMAIL_OPENED', 'Promotional email was opened.');
+      // Return 1×1 transparent GIF
+      const pixel = Buffer.from(
+        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'
+      );
+      res.set({ 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' });
+      return res.send(pixel);
+    }
 
     if (action === 'inquire') {
       logActivity(school.id, 'PROMO_LINK_CLICKED', 'Clicked "Inquire Now" in promotional email.');
       const qs = new URLSearchParams({
-        school_name: school.school_name || '',
-        email:       school.email       || ''
+        school_name:    school.school_name    || '',
+        email:          school.email          || '',
+        contact_person: school.contact_person || ''
       }).toString();
       return res.redirect(`/inquiry.html?${qs}`);
     }
@@ -2255,8 +2412,8 @@ app.get("/track", (req, res) => {
       );
       logActivity(school.id, 'UNSUBSCRIBED', 'Unsubscribed from promotional emails.');
 
-      const compName    = process.env.COMPANY_NAME    || 'Accoutre AI';
-      const compEmail   = process.env.COMPANY_EMAIL   || '';
+      const compName  = process.env.COMPANY_NAME  || 'Accoutre AI';
+      const compEmail = process.env.COMPANY_EMAIL || '';
       return res.send(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Unsubscribed — ${compName}</title>
@@ -2281,6 +2438,101 @@ app.get("/track", (req, res) => {
     <div class="footer">© ${new Date().getFullYear()} ${compName}</div>
   </div>
 </body></html>`);
+    }
+  });
+});
+
+// ── PROMO CAMPAIGN STATUS / PAUSE TOGGLE ──
+app.get("/api/promo-campaign/status", (_req, res) => {
+  db.get(`SELECT value FROM app_settings WHERE key = 'promo_campaign_paused'`, [], (err, row) => {
+    res.json({ paused: row ? row.value === '1' : false });
+  });
+});
+
+app.post("/api/promo-campaign/toggle", (req, res) => {
+  db.get(`SELECT value FROM app_settings WHERE key = 'promo_campaign_paused'`, [], (err, row) => {
+    const newVal = (row && row.value === '1') ? '0' : '1';
+    db.run(
+      `INSERT OR REPLACE INTO app_settings (key, value) VALUES ('promo_campaign_paused', ?)`,
+      [newVal],
+      (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const paused = newVal === '1';
+        logActivity(0, paused ? 'CAMPAIGN_PAUSED' : 'CAMPAIGN_RESUMED',
+          paused ? 'Promotional email campaign paused by admin.' : 'Promotional email campaign resumed by admin.');
+        res.json({ paused });
+      }
+    );
+  });
+});
+
+// ── PROMO CAMPAIGN STATS ──
+app.get("/api/promo-stats", (_req, res) => {
+  db.get(`
+    SELECT
+      (SELECT COUNT(*) FROM schools WHERE lead_type = 'PROMOTIONAL') AS total,
+      (SELECT COUNT(*) FROM schools WHERE lead_type = 'PROMOTIONAL' AND promo_unsubscribed = 1) AS unsubscribed,
+      (SELECT COUNT(*) FROM activity_logs WHERE activity_type = 'EMAIL_SENT'
+         AND details LIKE '%promotional%') AS emails_sent,
+      (SELECT COUNT(*) FROM activity_logs WHERE activity_type = 'PROMO_LINK_CLICKED') AS clicks,
+      (SELECT COUNT(*) FROM activity_logs WHERE activity_type = 'PROMO_EMAIL_OPENED') AS opens,
+      (SELECT COUNT(*) FROM activity_logs WHERE activity_type = 'LEAD_UPGRADED') AS conversions
+  `, [], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(row || { total: 0, unsubscribed: 0, emails_sent: 0, clicks: 0, opens: 0, conversions: 0 });
+  });
+});
+
+// ── RESUBSCRIBE SCHOOL TO PROMO CAMPAIGN ──
+app.post("/api/schools/:id/resubscribe", (req, res) => {
+  const id = parseInt(req.params.id);
+  db.run(
+    `UPDATE schools SET promo_unsubscribed = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'School not found' });
+      logActivity(id, 'RESUBSCRIBED', 'Re-added to promotional email campaign by admin.');
+      res.json({ message: 'School re-added to promotional campaign.' });
+    }
+  );
+});
+
+// ── RETRY FAILED PROMO EMAIL ──
+app.post("/api/schools/:id/retry-promo", async (req, res) => {
+  db.get(`SELECT * FROM schools WHERE id = ?`, [req.params.id], async (err, school) => {
+    if (err || !school) return res.status(404).json({ error: 'School not found' });
+    if (!school.email)  return res.status(400).json({ error: 'School has no email address' });
+    if (school.promo_unsubscribed) return res.status(400).json({ error: 'School is unsubscribed' });
+
+    const baseUrl    = process.env.APP_URL || 'http://localhost:3000';
+    const inquireUrl = `${baseUrl}/track?school_id=${school.id}&action=inquire`;
+    const unsubUrl   = `${baseUrl}/track?school_id=${school.id}&action=unsubscribe`;
+    const pixelUrl   = `${baseUrl}/track?school_id=${school.id}&action=open`;
+    const phtNow     = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    const weekNumber = Math.ceil((phtNow - new Date(phtNow.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000));
+    const tmpl       = getPromoTemplate(weekNumber, school, inquireUrl, unsubUrl, pixelUrl);
+
+    try {
+      const result = await sendEmail({
+        to: school.email, subject: tmpl.subject, html: tmpl.html,
+        headers: {
+          'List-Unsubscribe':      `<${unsubUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
+      });
+      if (result.sent) {
+        logActivity(school.id, 'EMAIL_SENT',
+          `Promotional email retry (template ${((weekNumber - 1) % 4) + 1}) sent.`);
+        db.run(`UPDATE schools SET status = 'EMAIL_SENT', last_contacted = DATE('now'),
+                updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [school.id]);
+        res.json({ message: 'Retry sent successfully.' });
+      } else {
+        logActivity(school.id, 'EMAIL_NOT_SENT', `Promotional email retry failed: ${result.reason}`);
+        res.status(500).json({ error: result.reason || 'Failed to send' });
+      }
+    } catch (e) {
+      res.status(500).json({ error: e.message });
     }
   });
 });
@@ -2383,6 +2635,53 @@ app.delete("/api/notifications/:id", (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: 'Deleted' });
   });
+});
+
+// ── BUSINESS INQUIRIES ──
+app.post("/api/business-inquiries", inquiryLimiter, [
+  body('company_name').trim().notEmpty().withMessage('Company name is required').isLength({ max: 200 }),
+  body('contact_person').trim().notEmpty().withMessage('Name is required').isLength({ max: 200 }),
+  body('email').trim().isEmail().withMessage('Valid email is required'),
+  body('preferred_date').optional({ nullable: true, checkFalsy: true }).isISO8601().withMessage('Invalid date'),
+  body('preferred_time').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 20 }),
+  body('description').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 2000 }),
+  body('guest_emails').optional({ nullable: true }).isArray(),
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+  const { company_name, contact_person, email, preferred_date, preferred_time, description, guest_emails } = req.body;
+  const guestStr = Array.isArray(guest_emails) && guest_emails.length > 0
+    ? JSON.stringify(guest_emails.filter(g => g && typeof g === 'string' && g.trim()))
+    : null;
+
+  db.run(
+    `INSERT INTO business_inquiries (company_name, contact_person, email, guest_emails, preferred_date, preferred_time, description)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [company_name, contact_person, email, guestStr, preferred_date || null, preferred_time || null, description || null],
+    async function (err) {
+      if (err) {
+        console.error('[BIZ INQUIRY] DB insert failed:', err.message);
+        return res.status(500).json({ error: 'Failed to save inquiry. Please try again.' });
+      }
+
+      insertNotification(
+        'business_inquiry',
+        `New Business Inquiry: ${company_name}`,
+        `${contact_person} (${email}) requested a meeting.`,
+        'briefcase'
+      );
+
+      try {
+        const tmpl = bizThankYouInquiry({ company_name, contact_person, email, preferred_date, preferred_time, description });
+        await sendEmail({ to: email, subject: tmpl.subject, html: tmpl.html });
+      } catch (emailErr) {
+        console.error('[BIZ INQUIRY] Email send failed:', emailErr.message);
+      }
+
+      res.json({ success: true, id: this.lastID });
+    }
+  );
 });
 
 const PORT = process.env.PORT || 3000;

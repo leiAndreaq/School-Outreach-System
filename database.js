@@ -20,6 +20,8 @@ db.serialize(() => {
       estimated_students INTEGER,
       status TEXT DEFAULT 'NEW_LEAD',
       lead_type TEXT DEFAULT 'OFFICIAL',
+      mode TEXT DEFAULT 'school',
+      promo_unsubscribed INTEGER DEFAULT 0,
       assigned_to TEXT,
       notes TEXT,
       last_contacted TEXT,
@@ -66,25 +68,9 @@ db.serialize(() => {
       meeting_address TEXT,
       notes TEXT,
       status TEXT DEFAULT 'SCHEDULED',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (school_id) REFERENCES schools(id)
-    )
-  `);
-db.run(`
-    CREATE TABLE IF NOT EXISTS meetings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_id INTEGER NOT NULL,
-      school_name TEXT NOT NULL,
-      contact_person TEXT,
-      meeting_type TEXT DEFAULT 'PRESENTATION',
-      meeting_date TEXT NOT NULL,
-      meeting_time TEXT NOT NULL,
-      meeting_mode TEXT DEFAULT 'ONLINE',
-      meeting_link TEXT,
-      meeting_address TEXT,
-      notes TEXT,
-      status TEXT DEFAULT 'SCHEDULED',
+      reminder_day_sent INTEGER DEFAULT 0,
+      reminder_hour_sent INTEGER DEFAULT 0,
+      followup_sent INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (school_id) REFERENCES schools(id)
@@ -115,32 +101,7 @@ db.run(`
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-db.run(`
-    CREATE TABLE IF NOT EXISTS inquiries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      school_name TEXT NOT NULL,
-      school_type TEXT,
-      level_offered TEXT,
-      estimated_students INTEGER,
-      city_province TEXT,
-      region TEXT,
-      contact_person TEXT NOT NULL,
-      position TEXT,
-      email TEXT NOT NULL,
-      phone TEXT,
-      preferred_date TEXT,
-      preferred_time TEXT,
-      preferred_mode TEXT DEFAULT 'ONLINE',
-      heard_from TEXT,
-      message TEXT,
-      status TEXT DEFAULT 'PENDING',
-      rejection_reason TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
 
-  // ── AUTH TABLE ──
   db.run(`
     CREATE TABLE IF NOT EXISTS auth (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,7 +123,6 @@ db.run(`
     }
   });
 
-  // ── IMPORT LOGS TABLE ──
   db.run(`
     CREATE TABLE IF NOT EXISTS import_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,7 +133,6 @@ db.run(`
     )
   `);
 
-  // ── DELETION HISTORY TABLE ──
   db.run(`
     CREATE TABLE IF NOT EXISTS deletion_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -184,7 +143,6 @@ db.run(`
     )
   `);
 
-  // ── NOTIFICATIONS TABLE ──
   db.run(`
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,6 +155,37 @@ db.run(`
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    )
+  `);
+  db.run(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('promo_campaign_paused', '0')`);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS business_inquiries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_name TEXT NOT NULL,
+      contact_person TEXT NOT NULL,
+      email TEXT NOT NULL,
+      guest_emails TEXT,
+      preferred_date TEXT,
+      preferred_time TEXT,
+      description TEXT,
+      status TEXT DEFAULT 'PENDING',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // ── INDEXES for performance on commonly queried columns ──
+  db.run(`CREATE INDEX IF NOT EXISTS idx_schools_lead_type ON schools(lead_type)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_schools_status ON schools(status)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_meetings_school_id ON meetings(school_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_meetings_date_status ON meetings(meeting_date, status)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_activity_logs_school_id ON activity_logs(school_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_email_drafts_school_id ON email_drafts(school_id)`);
 });
 
 module.exports = db;

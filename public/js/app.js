@@ -205,6 +205,15 @@ function fmtDate(dateStr) {
   return applyFmtDate(dateStr);
 }
 
+// ── FORMAT TIME SHORT (24h "14:00" → "2:00 PM") ──
+function formatTimeShort(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 // ── ICON HELPER (for dynamic HTML) ──
 function licon(name, size = 14) {
   return `<i data-lucide="${name}" style="width:${size}px;height:${size}px;display:inline-block;vertical-align:middle;flex-shrink:0;"></i>`;

@@ -1281,6 +1281,16 @@ function schoolGoToBiz() {
 
       <div class="biz-sum-row">
         <div class="biz-sum-row-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><path d="M12 12v4"/><path d="M8 12h8"/></svg>
+        </div>
+        <div class="biz-sum-row-content">
+          <div class="biz-sum-row-label">Company</div>
+          <div class="biz-sum-row-value biz-sum-empty" id="bizLiveSumCompany">—</div>
+        </div>
+      </div>
+
+      <div class="biz-sum-row">
+        <div class="biz-sum-row-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
         <div class="biz-sum-row-content">
@@ -1377,7 +1387,11 @@ function schoolGoToBiz() {
 
           <div class="form-grid g1">
             <div class="field">
-              <label for="bizName">Name <span class="req-star">*</span></label>
+              <label for="bizCompany">Company Name <span class="req-star">*</span></label>
+              <input type="text" id="bizCompany" name="company_name" placeholder="e.g. Acme Corporation" required autocomplete="organization"/>
+            </div>
+            <div class="field">
+              <label for="bizName">Your Name <span class="req-star">*</span></label>
               <input type="text" id="bizName" name="name" placeholder="e.g. Maria Santos" required autocomplete="name"/>
             </div>
             <div class="field">
@@ -1475,9 +1489,11 @@ function schoolGoToBiz() {
     renderCalendar();
     bizUpdateLiveSummary();
     // Attach live-update listeners (idempotent — safe to call multiple times)
-    var nameInput  = document.getElementById('bizName');
-    var emailInput = document.getElementById('bizEmail');
-    var msgInput   = document.getElementById('bizMessage');
+    var companyInput = document.getElementById('bizCompany');
+    var nameInput    = document.getElementById('bizName');
+    var emailInput   = document.getElementById('bizEmail');
+    var msgInput     = document.getElementById('bizMessage');
+    if (companyInput && !companyInput._bizBound) { companyInput._bizBound = true; companyInput.addEventListener('input', bizUpdateLiveSummary); }
     if (nameInput  && !nameInput._bizBound)  { nameInput._bizBound  = true; nameInput.addEventListener('input',  bizUpdateLiveSummary); }
     if (emailInput && !emailInput._bizBound) { emailInput._bizBound = true; emailInput.addEventListener('input', bizUpdateLiveSummary); }
     if (msgInput   && !msgInput._bizBound)   { msgInput._bizBound   = true; msgInput.addEventListener('input',   bizUpdateLiveSummary); }
@@ -1601,6 +1617,14 @@ function schoolGoToBiz() {
         timeEl.classList.add('biz-sum-empty');
       }
     }
+    // Company
+    var companyEl    = document.getElementById('bizLiveSumCompany');
+    var companyInput = document.getElementById('bizCompany');
+    if (companyEl && companyInput) {
+      var cv = companyInput.value.trim();
+      if (cv) { companyEl.textContent = cv; companyEl.classList.remove('biz-sum-empty'); }
+      else     { companyEl.textContent = '—'; companyEl.classList.add('biz-sum-empty'); }
+    }
     // Name
     var nameEl    = document.getElementById('bizLiveSumName');
     var nameInput = document.getElementById('bizName');
@@ -1689,12 +1713,14 @@ function schoolGoToBiz() {
   window.bizSubmit = function (e) {
     e.preventDefault();
 
-    var name = document.getElementById('bizName').value.trim();
-    var email = document.getElementById('bizEmail').value.trim();
+    var company = document.getElementById('bizCompany').value.trim();
+    var name    = document.getElementById('bizName').value.trim();
+    var email   = document.getElementById('bizEmail').value.trim();
     var message = document.getElementById('bizMessage').value.trim();
 
     if (!selectedDate || !selectedTime) { toast('Please select a date and time.', 'error'); return; }
-    if (!name) { toast('Please enter your name.', 'error'); return; }
+    if (!company) { toast('Please enter your company name.', 'error'); return; }
+    if (!name)    { toast('Please enter your name.', 'error'); return; }
     if (!validEmail(email)) { toast('Please enter a valid email address.', 'error'); return; }
 
     // collect guest emails (ignore blanks, validate filled ones)
@@ -1707,29 +1733,63 @@ function schoolGoToBiz() {
       guests.push(g);
     }
 
-    // ── If you have a backend, send the payload here. ──
-    // var payload = { name: name, email: email, guests: guests,
-    //                 date: selectedDate.toISOString(), time: selectedTime, description: message };
-    // fetch('/api/business-inquiry', { method:'POST',
-    //   headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    var btn        = document.querySelector('#bizForm .btn-submit');
+    var btnOrigHTML = btn.innerHTML;
+    btn.disabled   = true;
+    btn.textContent = 'Sending…';
 
-    // build success summary
-    var rows = '';
-    rows += sumRow('Name', name);
-    rows += sumRow('Email', email);
-    if (guests.length) rows += sumRow('Guests', guests.join('<br/>'));
-    rows += sumRow('Date', fmtDate(selectedDate));
-    rows += sumRow('Time', selectedTime);
-    if (message) rows += sumRow('Notes', message);
+    var isoDate = selectedDate.getFullYear() + '-' +
+      String(selectedDate.getMonth() + 1).padStart(2, '0') + '-' +
+      String(selectedDate.getDate()).padStart(2, '0');
 
-    document.getElementById('bizSuccessSummary').innerHTML =
-      '<div class="sum-title">Your Request</div>' + rows;
+    fetch('/api/business-inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        company_name:   company,
+        contact_person: name,
+        email:          email,
+        guest_emails:   guests,
+        preferred_date: isoDate,
+        preferred_time: selectedTime,
+        description:    message || null
+      })
+    })
+    .then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+    })
+    .then(function (res) {
+      btn.disabled = false;
+      btn.innerHTML = btnOrigHTML;
+      if (!res.ok) {
+        toast(res.data.error || 'Submission failed. Please try again.', 'error');
+        return;
+      }
 
-    document.getElementById('bizFormPage').classList.remove('active');
-    document.getElementById('bizFormPage').setAttribute('aria-hidden', 'true');
-    document.getElementById('bizSuccessPage').classList.add('active');
-    document.getElementById('bizSuccessPage').setAttribute('aria-hidden', 'false');
-    window.scrollTo(0, 0);
+      // build success summary
+      var rows = '';
+      rows += sumRow('Company', company);
+      rows += sumRow('Name', name);
+      rows += sumRow('Email', email);
+      if (guests.length) rows += sumRow('Guests', guests.join('<br/>'));
+      rows += sumRow('Date', fmtDate(selectedDate));
+      rows += sumRow('Time', selectedTime);
+      if (message) rows += sumRow('Notes', message);
+
+      document.getElementById('bizSuccessSummary').innerHTML =
+        '<div class="sum-title">Your Request</div>' + rows;
+
+      document.getElementById('bizFormPage').classList.remove('active');
+      document.getElementById('bizFormPage').setAttribute('aria-hidden', 'true');
+      document.getElementById('bizSuccessPage').classList.add('active');
+      document.getElementById('bizSuccessPage').setAttribute('aria-hidden', 'false');
+      window.scrollTo(0, 0);
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.innerHTML = btnOrigHTML;
+      toast('Network error. Please check your connection and try again.', 'error');
+    });
   };
 
   function sumRow(label, value) {
@@ -1760,11 +1820,12 @@ function schoolGoToBiz() {
 <!-- ── PROMOTIONAL EMAIL PRE-FILL ── -->
 <script>
 (function() {
-  const params = new URLSearchParams(window.location.search);
-  const schoolName = params.get('school_name');
-  const email      = params.get('email');
+  const params        = new URLSearchParams(window.location.search);
+  const schoolName    = params.get('school_name');
+  const email         = params.get('email');
+  const contactPerson = params.get('contact_person');
 
-  if (!schoolName && !email) return;
+  if (!schoolName && !email && !contactPerson) return;
 
   // Skip landing + pick pages, go straight to school form
   window.addEventListener('DOMContentLoaded', function() {
@@ -1791,6 +1852,13 @@ function schoolGoToBiz() {
       const f = document.getElementById('email');
       if (f) {
         f.value = decodeURIComponent(email);
+        f.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    if (contactPerson) {
+      const f = document.getElementById('contact_person');
+      if (f) {
+        f.value = decodeURIComponent(contactPerson);
         f.dispatchEvent(new Event('input', { bubbles: true }));
       }
     }

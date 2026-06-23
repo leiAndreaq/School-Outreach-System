@@ -5,7 +5,7 @@ let pendingSchoolIds      = [];
 
 // ── DOWNLOAD CSV TEMPLATE ──
 function downloadCSVTemplate() {
-  const header = 'school_name,contact_person,email,phone,website,facebook_page,address,city_province,region,school_type,level_offered,estimated_students,assigned_to,notes';
+  const header = 'school_name,contact_person,email,phone,website,facebook_page,address,city_province,region,school_type,level_offered,estimated_students,notes';
   const blob = new Blob([header + '\n'], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const link = document.createElement('a');
