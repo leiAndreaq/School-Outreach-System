@@ -78,6 +78,19 @@ const navMap = {
 };
 
 // ── TABS ──
+let prevTab = 'dashboard';
+
+function toggleNotifications() {
+  const active = document.querySelector('.tab-section.active');
+  const currentId = active ? active.id.replace('tab-', '') : 'dashboard';
+  if (currentId === 'notifications') {
+    showTab(prevTab || 'dashboard');
+  } else {
+    prevTab = currentId;
+    showTab('notifications');
+  }
+}
+
 function showTab(name) {
   // Close dashboard dropdown when switching away from dashboard tabs
   if (name !== 'dashboard' && name !== 'analytics') {
@@ -293,6 +306,7 @@ window.addEventListener('load', async () => {
 
   loadDashboard();
   loadNotifBadge();
+  loadThemePref();
 
   // Auto refresh every 30 seconds
   setInterval(() => {
@@ -380,14 +394,31 @@ function loadThemePref() {
 }
 
 function selectThemePref(value, silent) {
-  const light = document.getElementById('pref-light');
-  const dark  = document.getElementById('pref-dark');
-  if (!light || !dark) return;
+  // Toggle dark class on body — CSS handles all visual changes
+  document.body.classList.toggle('dark', value === 'dark');
 
-  light.style.borderColor = value === 'light' ? '#1B1F6B' : '#e5e7eb';
-  light.style.background  = value === 'light' ? '#eef0fb' : '#f9fafb';
-  dark.style.borderColor  = value === 'dark'  ? '#1B1F6B' : '#e5e7eb';
-  dark.style.background   = value === 'dark'  ? '#eef0fb' : '#f9fafb';
+  // Re-render charts so Chart.js picks up new dark/light colors
+  if (typeof analyticsData !== 'undefined' && analyticsData) {
+    if (typeof renderLeadsChart     === 'function') renderLeadsChart();
+    if (typeof renderStatusChart    === 'function') renderStatusChart();
+    if (typeof renderHeardFromChart === 'function') renderHeardFromChart();
+  }
+
+  // Highlight selected card in Preferences section (if visible)
+  const lightCard = document.getElementById('pref-light');
+  const darkCard  = document.getElementById('pref-dark');
+  if (lightCard && darkCard) {
+    const dark = document.body.classList.contains('dark');
+    const activeBorder   = dark ? '#818cf8' : '#1B1F6B';
+    const activeBg       = dark ? 'rgba(129,140,248,0.15)' : '#eef0fb';
+    const inactiveBorder = dark ? 'rgba(255,255,255,0.12)' : '#e5e7eb';
+    const inactiveBg     = dark ? '#252a42' : '#f9fafb';
+
+    lightCard.style.borderColor = value === 'light' ? activeBorder : inactiveBorder;
+    lightCard.style.background  = value === 'light' ? activeBg     : inactiveBg;
+    darkCard.style.borderColor  = value === 'dark'  ? activeBorder : inactiveBorder;
+    darkCard.style.background   = value === 'dark'  ? activeBg     : inactiveBg;
+  }
 
   if (!silent) localStorage.setItem('themePref', value);
 }
